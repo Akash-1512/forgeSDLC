@@ -83,7 +83,7 @@ def test_storage_factory_raises_if_url_not_postgresql() -> None:
     original = os.environ.get("DATABASE_URL")
     try:
         os.environ["DATABASE_URL"] = "sqlite:///test.db"
-        with pytest.raises(ValueError, match="postgresql"):
+        with pytest.raises(ValueError, match="PostgreSQL"):
             get_db_url()
     finally:
         if original is None:

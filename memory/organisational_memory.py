@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+import chromadb
 import structlog
+from langchain_huggingface import HuggingFaceEmbeddings
 
 from interpret.record import InterpretRecord
 from memory.schemas import OrgMemoryEntry
@@ -20,9 +22,6 @@ class OrgMemory:
     """
 
     def __init__(self, chroma_path: str = "./chroma_db") -> None:
-        import chromadb
-        from langchain_huggingface import HuggingFaceEmbeddings
-
         # PersistentClient — data written to disk, survives process restarts.
         # Never use chromadb.Client() / EphemeralClient() — loses data on exit.
         self._client = chromadb.PersistentClient(path=chroma_path)
