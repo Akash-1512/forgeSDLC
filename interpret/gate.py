@@ -10,3 +10,4 @@ def check_gate(confirmation: str) -> bool:
     Users never see or type the gate phrase; the button sends it internally.
     """
     return confirmation == HUMAN_CONFIRMATION_PHRASE
+    

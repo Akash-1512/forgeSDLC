@@ -30,3 +30,4 @@ def test_gate_rejects_whitespace() -> None:
 def test_gate_is_pure_no_side_effects() -> None:
     results = [check_gate("100% GO") for _ in range(100)]
     assert all(results)
+    
