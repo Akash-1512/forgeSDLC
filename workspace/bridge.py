@@ -6,6 +6,7 @@ from pathlib import Path
 
 import structlog
 from watchdog.events import FileSystemEventHandler
+from git import InvalidGitRepositoryError, Repo
 from watchdog.observers import Observer
 
 from interpret.record import InterpretRecord
@@ -70,7 +71,6 @@ class WorkspaceBridge:
 
     async def _refresh(self) -> None:
         """Rebuild WorkspaceContext from filesystem + git state. Never writes."""
-        from git import InvalidGitRepositoryError, Repo  # noqa: PLC0415
 
         p = self._path or Path(".")
 
