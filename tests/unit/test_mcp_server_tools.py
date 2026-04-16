@@ -79,8 +79,24 @@ async def test_save_decision_stub_returns_valid_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_route_code_generation_stub_returns_valid_dict() -> None:
-    result = await route_code_generation(project_id="p1", task="write tests", context="")
-    _assert_valid_stub(result, "route_code_generation")
+    from unittest.mock import AsyncMock, MagicMock
+    from tool_router.context import AvailableTool, ToolResult
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+    with patch("mcp_server.tools.code_generation_tool.ToolRouter.route",
+               AsyncMock(return_value=ToolResult(
+                   tool=AvailableTool.DIRECT_LLM,
+                   output="# code",
+                   files_written=[],
+                   success=True,
+                   stderr=None,
+               ))):
+        result = await route_code_generation(
+            task="write tests", project_id="p1", ctx=mock_ctx
+        )
+    assert isinstance(result, dict)
+    assert result["status"] == "ok"
+    assert "project_id" in result
 
 
 @pytest.mark.asyncio
