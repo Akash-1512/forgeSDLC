@@ -153,3 +153,33 @@ class ToolRouter:
                 )
                 return response.status_code == 200
         except Exception:
+            return False
+        
+        # ------------------------------------------------------------------ helpers
+
+    def _get_adapter(
+        self, tool: AvailableTool
+    ) -> CursorAdapter | ClaudeCodeAdapter | DevinAdapter | DirectLLMAdapter:
+        adapters: dict[
+            AvailableTool,
+            CursorAdapter | ClaudeCodeAdapter | DevinAdapter | DirectLLMAdapter,
+        ] = {
+            AvailableTool.CURSOR:      CursorAdapter(),
+            AvailableTool.CLAUDE_CODE: ClaudeCodeAdapter(),
+            AvailableTool.DEVIN:       DevinAdapter(),
+            AvailableTool.DIRECT_LLM:  DirectLLMAdapter(),
+        }
+        return adapters[tool]
+
+    def _selection_reason(self, selected: AvailableTool) -> str:
+        reasons: dict[AvailableTool, str] = {
+            AvailableTool.CURSOR:
+                "Cursor Background Agent API configured and verified",
+            AvailableTool.CLAUDE_CODE:
+                "Claude Code CLI detected in PATH",
+            AvailableTool.DEVIN:
+                "Devin API key configured and health check passed",
+            AvailableTool.DIRECT_LLM:
+                "No external tools configured — using direct LLM fallback",
+        }
+        return reasons[selected]

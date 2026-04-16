@@ -116,16 +116,25 @@ async def test_route_emits_interpret_record_layer5_before_delegation() -> None:
 @pytest.mark.asyncio
 async def test_route_calls_context_file_manager_before_tool_invocation() -> None:
     """Ordering test: CFM.write_all() must be called before adapter.generate()."""
+    from context_files.manager import ContextFileManager
+    from tool_router.router import ToolRouter
+
     call_order: list[str] = []
 
-    mock_cfm = MagicMock()
-    mock_cfm.write_all = AsyncMock(
-        side_effect=lambda **kwargs: call_order.append("cfm") or ["AGENTS.md"]
-    )
+    mock_cfm = MagicMock(spec=ContextFileManager)
 
-    router = _make_router(cfm=mock_cfm)
+    async def spying_write_all(**kwargs: object) -> list[str]:
+        call_order.append("cfm")
+        return ["AGENTS.md"]
 
-    async def fake_generate(task: str, context: str, workspace_path: str) -> ToolResult:
+    mock_cfm.write_all = spying_write_all
+
+    # Create router directly — do NOT use _make_router which overwrites write_all
+    router = ToolRouter(context_file_manager=mock_cfm)
+
+    async def fake_generate(
+        self: object, task: str, context: str, workspace_path: str
+    ) -> ToolResult:
         call_order.append("adapter")
         return _stub_result()
 
@@ -133,18 +142,17 @@ async def test_route_calls_context_file_manager_before_tool_invocation() -> None
         patch.object(router, "_check_cursor", AsyncMock(return_value=False)),
         patch.object(router, "_check_claude_code", AsyncMock(return_value=False)),
         patch.object(router, "_check_devin", AsyncMock(return_value=False)),
-        patch(
-            "tool_router.router.DirectLLMAdapter.generate",
-            fake_generate,
-        ),
+        patch("tool_router.router.DirectLLMAdapter.generate", fake_generate),
     ):
-        await router.route(  # type: ignore[union-attr]
+        await router.route(
             task="write models",
             context="ctx",
             project_id="proj-1",
             workspace_path=".",
         )
 
+    assert "cfm" in call_order, f"CFM was never called. Order: {call_order}"
+    assert "adapter" in call_order, f"Adapter was never called. Order: {call_order}"
     assert call_order.index("cfm") < call_order.index("adapter"), (
         f"CFM must be called before adapter. Got order: {call_order}"
     )

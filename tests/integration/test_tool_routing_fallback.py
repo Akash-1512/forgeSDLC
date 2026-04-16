@@ -71,7 +71,9 @@ async def test_context_files_written_before_delegation(tmp_path: Path) -> None:
     cfm.write_all = spying_write_all  # type: ignore[method-assign]
     router = ToolRouter(context_file_manager=cfm)
 
-    async def fake_generate(task: str, context: str, workspace_path: str) -> ToolResult:
+    async def fake_generate(
+        self: object, task: str, context: str, workspace_path: str
+    ) -> ToolResult:
         call_order.append("adapter")
         return _stub_result()
 
