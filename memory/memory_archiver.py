@@ -24,7 +24,7 @@ class MemoryArchiver:
     Emits InterpretRecord(layer="memory") before writing to each layer.
 
     Layer 2 fact extraction is rule-based in this session — no LLM calls.
-    TODO Session 06: replace _archive_layer2 extraction with ModelRouter.route()
+    Session 06: _archive_layer2 now uses groq/llama-3.1-8b-instant via ModelRouter.
     using groq/llama-3.1-8b-instant for fact summarisation.
     """
 
@@ -81,11 +81,106 @@ class MemoryArchiver:
     # ------------------------------------------------------------------ L2
 
     async def _archive_layer2(self, state: SDLCState) -> None:
-        """Rule-based fact extraction — no LLM (ModelRouter not built yet).
+        """LLM-based fact extraction via groq/llama-3.1-8b-instant.
 
-        TODO Session 06: replace with ModelRouter.route(groq/llama-3.1-8b-instant)
-        for higher-quality fact summarisation.
+        Session 06: TODO resolved — now uses ModelRouter.route(context_compressor)
+        which maps to groq/llama-3.1-8b-instant (always free, no exceptions).
+        Produces higher-quality, categorised facts vs the previous rule-based approach.
         """
+        project_id = state.get("mcp_session_id") or "default"
+        run_id = str(uuid4())
+
+        try:
+            from langchain_core.messages import HumanMessage  # noqa: PLC0415
+            from model_router.router import ModelRouter  # noqa: PLC0415
+            import json  # noqa: PLC0415
+
+            router = ModelRouter()
+            adapter = await router.route(
+                agent="context_compressor",  # → groq/llama-3.1-8b-instant always free
+                task_type="extraction",
+                estimated_tokens=500,
+                subscription_tier=str(state.get("subscription_tier") or "free"),
+                budget_used=float(state.get("budget_used_usd") or 0.0),
+                budget_total=float(state.get("budget_remaining_usd") or 999.0),
+            )
+
+            prompt = (
+                "Extract 3-5 learnable facts from this SDLC pipeline run. "
+                "Each fact should be 1-2 sentences. "
+                "Categories must be one of: architecture, security, pattern, failure, preference.\n\n"
+                f"PRD: {str(state.get('prd', ''))[:300]}\n"
+                f"ADR: {str(state.get('adr', ''))[:300]}\n"
+                f"Security findings: {state.get('security_findings', {})}\n"
+                f"Human corrections: {state.get('human_corrections', [])}\n\n"
+                "Output ONLY valid JSON array, no markdown:\n"
+                '[{"content": "...", "category": "architecture"}]'
+            )
+
+            response = await adapter.ainvoke([HumanMessage(content=prompt)])
+            raw = str(response.content).strip()
+
+            # Strip markdown fences if present
+            if raw.startswith("```"):
+                raw = raw.split("```")[1]
+                if raw.startswith("json"):
+                    raw = raw[4:]
+            raw = raw.strip()
+
+            facts_data: list[dict[str, str]] = json.loads(raw)
+            valid_categories = {"architecture", "security", "pattern", "failure", "preference"}
+
+            for item in facts_data[:5]:
+                content = str(item.get("content", "")).strip()
+                category = str(item.get("category", "pattern")).strip()
+                if not content:
+                    continue
+                if category not in valid_categories:
+                    category = "pattern"
+                entry = OrgMemoryEntry(
+                    entry_id=str(uuid4()),
+                    project_id=project_id,
+                    content=content,
+                    category=category,  # type: ignore[arg-type]
+                    source_run_id=run_id,
+                    timestamp=datetime.now(tz=timezone.utc),
+                )
+                await self.l2.upsert(entry)
+
+            logger.info(
+                "memory_archiver.layer2_archived_llm",
+                project_id=project_id,
+                facts_extracted=len(facts_data),
+            )
+
+        except Exception as exc:
+            # Fallback to rule-based extraction if LLM fails
+            logger.warning(
+                "memory_archiver.layer2_llm_failed_fallback",
+                error=str(exc),
+                project_id=project_id,
+            )
+            facts: list[str] = []
+            if state.get("prd"):
+                facts.append(f"REQUIREMENTS: {str(state['prd'])[:200]}")
+            if state.get("adr"):
+                facts.append(f"DECISION: {str(state['adr'])[:200]}")
+            security = state.get("security_findings") or {}
+            if isinstance(security, dict) and security.get("high_count", 0) > 0:
+                facts.append(f"SECURITY: {security['high_count']} HIGH findings in this run")
+            for correction in (state.get("human_corrections") or []):
+                if correction:
+                    facts.append(f"CORRECTION: {str(correction)[:150]}")
+            for fact in facts[:5]:
+                entry = OrgMemoryEntry(
+                    entry_id=str(uuid4()),
+                    project_id=project_id,
+                    content=fact,
+                    category=self._classify_fact(fact),  # type: ignore[arg-type]
+                    source_run_id=run_id,
+                    timestamp=datetime.now(tz=timezone.utc),
+                )
+                await self.l2.upsert(entry)
         facts: list[str] = []
         project_id = state.get("mcp_session_id") or "default"
         run_id = str(uuid4())
