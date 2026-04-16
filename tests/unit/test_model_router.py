@@ -199,8 +199,15 @@ async def test_route_emits_interpret_record_layer4_before_selection() -> None:
 @pytest.mark.asyncio
 async def test_claude_raises_when_no_byok_key() -> None:
     from model_router.adapters.claude_adapter import ClaudeNotConfiguredError
+    from model_router.catalog import ALWAYS_BYOK_MODELS
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with (
+        patch("subscription.byok_manager.keyring") as mk,
+        patch.dict(
+            "model_router.router.AGENT_MODELS",
+            {"agent_10_docs": "claude-sonnet-4-6"},
+        ),
+    ):
         mk.get_password.return_value = None
         with pytest.raises(ClaudeNotConfiguredError):
             await router.route(  # type: ignore[union-attr]

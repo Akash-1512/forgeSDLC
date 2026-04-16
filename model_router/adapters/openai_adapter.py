@@ -8,38 +8,31 @@ from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
 
 logger = structlog.get_logger()
 
-# CRITICAL: o3-mini and gpt-5.4-pro use the Responses API, NOT Chat Completions.
-# - Endpoint method: client.responses.create (NOT client.chat.completions.create)
-# - Token param: max_output_tokens (NOT max_tokens)
-# - Input param: input=[...] (NOT messages=[...])
-# Getting this wrong produces a cryptic OpenAI 400 error.
-
 _MODEL_METADATA: dict[str, dict[str, object]] = {
-    "o3-mini": {
-        "context_window": 200_000,
-        "cost_per_1k_input": 0.003,
-        "cost_per_1k_output": 0.012,
-    },
-    "gpt-5.4-pro": {
+    "gpt-5.4": {
         "context_window": 128_000,
-        "cost_per_1k_input": 0.01,
-        "cost_per_1k_output": 0.03,
+        "cost_per_1k_input": 0.005,
+        "cost_per_1k_output": 0.015,
+    },
+    "gpt-5.4-mini": {
+        "context_window": 128_000,
+        "cost_per_1k_input": 0.00015,
+        "cost_per_1k_output": 0.0006,
     },
 }
 
 
-class OpenAIReasoningAdapter:
-    """OpenAI Responses API — o3-mini (Security STRIDE) and gpt-5.4-pro.
+class OpenAIAdapter:
+    """OpenAI Chat Completions API — gpt-5.4, gpt-5.4-mini.
 
-    Uses client.responses.create — NOT client.chat.completions.create.
-    Different endpoint, different parameter names.
-    Agent 5b (Security) uses o3-mini via this adapter.
+    Uses client.chat.completions.create — NOT the Responses API.
+    For o3-mini and gpt-5.4-pro use OpenAIReasoningAdapter instead.
     """
 
-    def __init__(self, model: str = "o3-mini") -> None:
+    def __init__(self, model: str = "gpt-5.4-mini") -> None:
         self._model = model
         self._api_key = os.getenv("OPENAI_API_KEY", "")
-        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["o3-mini"])
+        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["gpt-5.4-mini"])
         self._context_window = int(meta["context_window"])
         self._cost_input = float(meta["cost_per_1k_input"])
         self._cost_output = float(meta["cost_per_1k_output"])
@@ -55,22 +48,21 @@ class OpenAIReasoningAdapter:
         from openai import AsyncOpenAI  # noqa: PLC0415
 
         client = AsyncOpenAI(api_key=self._api_key)
-
-        # Responses API: input=[...], max_output_tokens=N (NOT max_tokens)
-        response = await client.responses.create(
-            model=self._model,
-            input=[
+        payload: dict[str, object] = {
+            "model": self._model,
+            "messages": [
                 {"role": self._map_role(m.type), "content": str(m.content)}
                 for m in messages
             ],
-            max_output_tokens=max_tokens,  # NOT max_tokens — Responses API param
-        )
-        content = response.output_text or ""
-        logger.info(
-            "openai_reasoning_adapter.ainvoke",
-            model=self._model,
-            chars=len(content),
-        )
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+        }
+        if stop:
+            payload["stop"] = stop
+
+        response = await client.chat.completions.create(**payload)  # type: ignore[arg-type]
+        content = response.choices[0].message.content or ""
+        logger.info("openai_adapter.ainvoke", model=self._model, chars=len(content))
         return AIMessage(content=content)
 
     async def astream(
@@ -80,14 +72,14 @@ class OpenAIReasoningAdapter:
         max_tokens: int = 2048,
         temperature: float = 0.0,
     ) -> AsyncIterator[AIMessageChunk]:
-        response = await self.ainvoke(messages, max_tokens=max_tokens)
+        response = await self.ainvoke(messages, max_tokens=max_tokens, temperature=temperature)
         async def _gen() -> AsyncIterator[AIMessageChunk]:
             yield AIMessageChunk(content=str(response.content))
         return _gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:
         raise NotImplementedError(
-            "Reasoning models do not support FIM. Use CodestralAdapter."
+            "OpenAI Chat Completions does not support FIM. Use CodestralAdapter."
         )
 
     @property
