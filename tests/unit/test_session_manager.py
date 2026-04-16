@@ -52,14 +52,9 @@ def test_uses_pyjwt_not_python_jose() -> None:
     import jwt
     assert hasattr(jwt, "__version__"), (
         "jwt module does not have __version__ — "
-        "python-jose may be installed instead of PyJWT. "
-        "Run: pip uninstall python-jose && pip install PyJWT"
+        "python-jose may be installed instead of PyJWT."
     )
-    # Additional check: PyJWT's encode returns a str, not bytes
-    import os
-    secret = "test-check-key"
+    secret = "a" * 32  # 32 bytes — meets PyJWT minimum for HS256
     payload = {"test": True}
     result = jwt.encode(payload, secret, algorithm="HS256")
-    assert isinstance(result, str), (
-        "jwt.encode returned bytes — this suggests python-jose is installed"
-    )
+    assert isinstance(result, str)

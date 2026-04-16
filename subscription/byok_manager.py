@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import keyring
 import structlog
 
 logger = structlog.get_logger()
@@ -20,19 +21,19 @@ class BYOKManager:
 
     def save_key(self, provider: str, key: str) -> None:
         """Store API key in OS keychain. Never logs the key value."""
-        import keyring  # noqa: PLC0415
+        # import keyring  # noqa: PLC0415
         keyring.set_password(_SERVICE, provider, key)
         # Log provider only — NEVER log the key value itself
         logger.info("byok_key_saved", provider=provider)
 
     def get_key(self, provider: str) -> str | None:
         """Retrieve API key from OS keychain. Returns None if not set."""
-        import keyring  # noqa: PLC0415
+        # import keyring  # noqa: PLC0415
         return keyring.get_password(_SERVICE, provider)
 
     def delete_key(self, provider: str) -> None:
         """Remove API key from OS keychain."""
-        import keyring  # noqa: PLC0415
+        # import keyring  # noqa: PLC0415
         try:
             keyring.delete_password(_SERVICE, provider)
             logger.info("byok_key_deleted", provider=provider)
