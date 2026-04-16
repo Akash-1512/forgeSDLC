@@ -7,7 +7,7 @@ name = "forgesdlc"
 version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
-    "fastmcp[cli]>=2.0",
+    "fastmcp>=2.0",
     "mcp>=1.0",
     "pydantic>=2.0",
     "structlog>=24.0",
@@ -32,6 +32,9 @@ dev = [
 
 [project.scripts]
 forgesdlc = "mcp_server.server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_server", "orchestrator", "interpret"]
 
 [tool.ruff]
 line-length = 88
