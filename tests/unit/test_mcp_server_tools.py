@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+from unittest.mock import patch
 from mcp_server.tools.architecture_tool import design_architecture
 from mcp_server.tools.cicd_tool import generate_cicd
 from mcp_server.tools.code_generation_tool import route_code_generation
@@ -40,14 +41,40 @@ async def test_design_architecture_stub_returns_valid_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_recall_context_stub_returns_valid_dict() -> None:
-    result = await recall_context(project_id="p1", query="what stack?")
-    _assert_valid_stub(result, "recall_context")
+    from unittest.mock import AsyncMock, MagicMock
+    from memory.organisational_memory import OrgMemory
+    from memory.pipeline_history_store import PipelineHistoryStore
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+    with (
+        patch("mcp_server.tools.memory_tool.MemoryContextBuilder") as mock_builder,
+    ):
+        mock_context = {
+            "org_memory": [],
+            "similar_runs": [],
+            "layers_queried": ["pipeline_history_store", "org_memory"],
+            "assembled_at": "2026-01-01T00:00:00+00:00",
+        }
+        mock_builder.return_value.build = AsyncMock(return_value=mock_context)
+        result = await recall_context(query="what stack?", project_id="p1", ctx=mock_ctx)
+    assert isinstance(result, dict)
+    assert result["status"] == "ok"
+    assert "project_id" in result
 
 
 @pytest.mark.asyncio
 async def test_save_decision_stub_returns_valid_dict() -> None:
-    result = await save_decision(project_id="p1", decision="use postgres", rationale="scale")
-    _assert_valid_stub(result, "save_decision")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+    with patch("mcp_server.tools.memory_tool.OrgMemory") as mock_org:
+        mock_org.return_value.upsert = AsyncMock()
+        result = await save_decision(
+            decision="use postgres", rationale="scale", project_id="p1", ctx=mock_ctx
+        )
+    assert isinstance(result, dict)
+    assert result["status"] == "saved"
+    assert "project_id" in result
 
 
 @pytest.mark.asyncio
