@@ -140,8 +140,9 @@ async def test_agent_3_interpret_shows_blocking_reason_when_blocked() -> None:
         }]
     }
     result = await agent.run(state)  # type: ignore[union-attr]
-    displayed = str(result.get("displayed_interpretation", ""))
-    assert "BLOCKED" in displayed or "blocked" in displayed.lower()
+    arch_validation = result.get("arch_validation", {})
+    assert arch_validation.get("gate_blocked") is True
+    assert arch_validation.get("anti_pattern_result", {}).get("high_count", 0) >= 1
 
 
 @pytest.mark.asyncio
