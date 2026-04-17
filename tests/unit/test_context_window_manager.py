@@ -62,13 +62,14 @@ async def test_build_packet_emits_interpret_record_layer11(
 
 @pytest.mark.asyncio
 async def test_build_packet_respects_max_context_tokens() -> None:
-    cwm = _make_cwm()
+    mock_cmp = MagicMock(spec=ContextCompressor)
+    mock_cmp.compress = AsyncMock(return_value="compressed summary text")
+    cwm = _make_cwm(compressor=mock_cmp)
     state = _base_state()
-    # Add a very large optional field
     state["memory_context"] = {"data": "word " * 10_000}
     packet = await cwm.build_packet("agent_0_decompose", state)
     assert packet.total_tokens_estimated <= AGENT_CONTEXT_SPECS["agent_0_decompose"].max_context_tokens + 500
-
+    
 
 @pytest.mark.asyncio
 async def test_build_packet_excludes_fields_completely() -> None:
