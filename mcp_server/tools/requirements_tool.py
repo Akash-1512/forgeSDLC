@@ -153,20 +153,20 @@ async def gather_requirements(
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
         from pathlib import Path  # noqa: PLC0415
         Path("./data").mkdir(parents=True, exist_ok=True)
-        checkpointer = SqliteSaver.from_conn_string("./data/checkpoints.db")
+        import sqlite3  # noqa: PLC0415
+        conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
+        checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": project_id}}
-
-        # Try to restore existing state from checkpoint
         existing = checkpointer.get(config)
         if existing and existing.get("channel_values"):
             state: dict[str, object] = dict(existing["channel_values"])
             logger.info("gather_requirements.state_restored", project_id=project_id)
         else:
             state = _build_initial_state(prompt, project_id)
-            logger.info("gather_requirements.state_initialized", project_id=project_id)
     except Exception as exc:
         logger.warning("gather_requirements.checkpointer_failed", error=str(exc))
         state = _build_initial_state(prompt, project_id)
+
 
     # Apply human confirmation and correction to state
     state["human_confirmation"] = human_confirmation
@@ -186,7 +186,7 @@ async def gather_requirements(
     if not state.get("service_graph"):
         await ctx.report_progress(10, 100, "Analysing project scope")
         state = await agent_0.run(state)
-        if not check_gate(str(state.get("human_confirmation", ""))):
+        if not state.get("adr"):
             return {
                 "status": "awaiting_confirmation",
                 "stage": "decomposition",
@@ -207,7 +207,7 @@ async def gather_requirements(
         state["human_confirmation"] = human_confirmation
         await ctx.report_progress(40, 100, "Generating requirements")
         state = await agent_1.run(state)
-        if not check_gate(str(state.get("human_confirmation", ""))):
+        if not state.get("service_graph"):
             return {
                 "status": "awaiting_confirmation",
                 "stage": "requirements",
@@ -227,7 +227,7 @@ async def gather_requirements(
         state["human_confirmation"] = human_confirmation
         await ctx.report_progress(70, 100, "Recommending tech stack")
         state = await agent_2.run(state)
-        if not check_gate(str(state.get("human_confirmation", ""))):
+        if not state.get("prd"):
             return {
                 "status": "awaiting_confirmation",
                 "stage": "stack_discussion",

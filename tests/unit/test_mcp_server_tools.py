@@ -29,9 +29,46 @@ def test_server_instantiates_without_error() -> None:
 
 @pytest.mark.asyncio
 async def test_gather_requirements_stub_returns_valid_dict() -> None:
-    result = await gather_requirements(prompt="build an API", project_id="p1")
-    _assert_valid_stub(result, "gather_requirements")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+    with patch("mcp_server.tools.requirements_tool._build_infrastructure"):
+        with patch("mcp_server.tools.requirements_tool._build_agents") as mock_build:
+            from agents.agent_0_decompose import ServiceDecompositionAgent
+            from agents.agent_1_requirements import RequirementsAgent
+            from agents.agent_2_stack import TechStackAgent
 
+            async def fake_a0_run(state: dict) -> dict:
+                state["service_graph"] = {"architecture_type": "monolith", "services": []}
+                state["human_confirmation"] = ""
+                return state
+
+            async def fake_a1_run(state: dict) -> dict:
+                state["prd"] = "# PRD\n## User Stories\n..."
+                state["human_confirmation"] = ""
+                return state
+
+            async def fake_a2_run(state: dict) -> dict:
+                state["adr"] = "# ADR-001\n## Decision\nFastAPI"
+                state["human_confirmation"] = ""
+                return state
+
+            mock_a0 = MagicMock(spec=ServiceDecompositionAgent)
+            mock_a0.run = AsyncMock(side_effect=fake_a0_run)
+            mock_a1 = MagicMock(spec=RequirementsAgent)
+            mock_a1.run = AsyncMock(side_effect=fake_a1_run)
+            mock_a2 = MagicMock(spec=TechStackAgent)
+            mock_a2.run = AsyncMock(side_effect=fake_a2_run)
+            mock_build.return_value = (mock_a0, mock_a1, mock_a2)
+
+            result = await gather_requirements(
+                prompt="build an API", project_id="p1",
+                ctx=mock_ctx, human_confirmation="100% GO"
+            )
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation")
+    assert "project_id" in result
+    
 
 @pytest.mark.asyncio
 async def test_design_architecture_stub_returns_valid_dict() -> None:
