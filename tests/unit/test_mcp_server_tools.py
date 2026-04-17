@@ -72,9 +72,39 @@ async def test_gather_requirements_stub_returns_valid_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_design_architecture_stub_returns_valid_dict() -> None:
-    result = await design_architecture(project_id="p1", prd="some prd")
-    _assert_valid_stub(result, "design_architecture")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+    with (
+        patch(
+            "mcp_server.tools.architecture_tool._build_arch_infrastructure",
+            return_value=(
+                MagicMock(), MagicMock(), MagicMock(),
+                MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+            ),
+        ),
+        patch(
+            "mcp_server.tools.architecture_tool._build_arch_agent",
+        ) as mock_build,
+    ):
+        from agents.agent_3_architecture import ArchitectureAgent
+        mock_agent = MagicMock(spec=ArchitectureAgent)
 
+        async def fake_run(state: dict) -> dict:
+            state["arch_validation"] = {"gate_blocked": False, "anti_pattern_result": {"high_count": 0, "medium_count": 0, "all_clear": True, "findings": []}, "nfr_checks": [], "architecture_score": {"scalability": 1, "reliability": 1, "security": 1, "maintainability": 1, "cost": 1, "overall": 1.0}}
+            state["rfc"] = "# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```"
+            state["human_confirmation"] = ""
+            return state
+
+        mock_agent.run = AsyncMock(side_effect=fake_run)
+        mock_build.return_value = mock_agent
+        result = await design_architecture(
+            requirements="some requirements", project_id="p1", ctx=mock_ctx,
+            human_confirmation="100% GO",
+        )
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation", "blocked")
+    assert "project_id" in result
 
 @pytest.mark.asyncio
 async def test_recall_context_stub_returns_valid_dict() -> None:
