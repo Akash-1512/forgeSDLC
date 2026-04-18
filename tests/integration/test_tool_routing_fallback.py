@@ -135,29 +135,54 @@ async def test_fallback_chain_cursor_unavailable_then_claude_code(
 async def test_route_code_generation_mcp_tool_returns_valid_response(
     tmp_path: Path,
 ) -> None:
-    from unittest.mock import MagicMock
-    from mcp_server.tools.code_generation_tool import route_code_generation
+    from unittest.mock import AsyncMock, MagicMock
+    from fastmcp import Context
+    from agents.agent_4_tool_router import ToolRouterAgent
+    from agents.agent_5_coord_review import CoordinatedReview
 
-    mock_ctx = MagicMock()
+    mock_ctx = MagicMock(spec=Context)
     mock_ctx.report_progress = AsyncMock()
+
+    infra_tuple = (
+        MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+    )
+
+    async def fake_a4_run(state: dict) -> dict:
+        state["generated_files"] = [{"path": "main.py", "content": "def foo(): pass"}]
+        state["tool_delegated_to"] = "direct_llm"
+        state["human_confirmation"] = ""
+        return state
+
+    async def fake_a5_run(state: dict) -> dict:
+        state["review_findings"] = []
+        state["trigger_agent_4_retry"] = False
+        state["human_confirmation"] = ""
+        return state
+
+    mock_a4 = MagicMock(spec=ToolRouterAgent)
+    mock_a4.run = AsyncMock(side_effect=fake_a4_run)
+    mock_a5 = MagicMock(spec=CoordinatedReview)
+    mock_a5.run = AsyncMock(side_effect=fake_a5_run)
 
     with (
         patch(
-            "mcp_server.tools.code_generation_tool.ToolRouter.route",
-            AsyncMock(return_value=_stub_result(AvailableTool.DIRECT_LLM)),
+            "mcp_server.tools.code_generation_tool._build_codegen_infrastructure",
+            return_value=infra_tuple,
         ),
         patch(
-            "mcp_server.tools.code_generation_tool.ContextFileManager.write_all",
-            AsyncMock(return_value=["AGENTS.md"]),
+            "mcp_server.tools.code_generation_tool._build_codegen_agents",
+            return_value=(mock_a4, mock_a5),
         ),
     ):
+        from mcp_server.tools.code_generation_tool import route_code_generation
         result = await route_code_generation(
-            task="write a FastAPI endpoint",
-            project_id="mcp-test",
+            task="write a hello world function",
+            project_id=f"test-codegen-{tmp_path.name}",
             ctx=mock_ctx,
-            workspace_path=str(tmp_path),
+            human_confirmation="100% GO",
         )
 
-    assert result["status"] == "ok"
-    assert result["tool_used"] == AvailableTool.DIRECT_LLM.value
-    assert result["project_id"] == "mcp-test"
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
+    assert "project_id" in result

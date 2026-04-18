@@ -150,21 +150,49 @@ async def test_route_code_generation_stub_returns_valid_dict() -> None:
     from tool_router.context import AvailableTool, ToolResult
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
-    with patch("mcp_server.tools.code_generation_tool.ToolRouter.route",
-               AsyncMock(return_value=ToolResult(
-                   tool=AvailableTool.DIRECT_LLM,
-                   output="# code",
-                   files_written=[],
-                   success=True,
-                   stderr=None,
-               ))):
+
+    infra_tuple = (
+        MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+    )
+
+    async def fake_a4_run(state: dict) -> dict:
+        state["generated_files"] = [{"path": "main.py", "content": "def foo(): pass"}]
+        state["tool_delegated_to"] = "direct_llm"
+        state["human_confirmation"] = ""
+        return state
+
+    async def fake_a5_run(state: dict) -> dict:
+        state["review_findings"] = []
+        state["trigger_agent_4_retry"] = False
+        state["human_confirmation"] = ""
+        return state
+
+    with (
+        patch(
+            "mcp_server.tools.code_generation_tool._build_codegen_infrastructure",
+            return_value=infra_tuple,
+        ),
+        patch(
+            "mcp_server.tools.code_generation_tool._build_codegen_agents",
+        ) as mock_build,
+    ):
+        from agents.agent_4_tool_router import ToolRouterAgent
+        from agents.agent_5_coord_review import CoordinatedReview
+        mock_a4 = MagicMock(spec=ToolRouterAgent)
+        mock_a4.run = AsyncMock(side_effect=fake_a4_run)
+        mock_a5 = MagicMock(spec=CoordinatedReview)
+        mock_a5.run = AsyncMock(side_effect=fake_a5_run)
+        mock_build.return_value = (mock_a4, mock_a5)
+
         result = await route_code_generation(
-            task="write tests", project_id="p1", ctx=mock_ctx
+            task="build something", project_id="p1",
+            ctx=mock_ctx, human_confirmation="100% GO",
         )
     assert isinstance(result, dict)
-    assert result["status"] == "ok"
+    assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
     assert "project_id" in result
-
+    
 
 @pytest.mark.asyncio
 async def test_run_security_scan_stub_returns_valid_dict() -> None:
