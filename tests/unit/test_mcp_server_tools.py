@@ -290,14 +290,81 @@ async def test_generate_cicd_stub_returns_valid_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_deploy_project_stub_returns_valid_dict() -> None:
-    result = await deploy_project(project_id="p1", environment="staging")
-    _assert_valid_stub(result, "deploy_project")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+
+    infra_tuple = (
+        MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+    )
+
+    async def fake_run(state: dict) -> dict:
+        state["deployment_url"] = "https://myapp.onrender.com"
+        state["deploy_blocked"] = False
+        state["human_confirmation"] = ""
+        return state
+
+    with (
+        patch(
+            "mcp_server.tools.deploy_tool._build_deploy_infrastructure",
+            return_value=infra_tuple,
+        ),
+        patch("mcp_server.tools.deploy_tool._build_deploy_agent") as mock_build,
+    ):
+        from agents.agent_8_deploy import DeployAgent
+        mock_agent = MagicMock(spec=DeployAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_run)
+        mock_build.return_value = mock_agent
+        result = await deploy_project(
+            project_id="p1", environment="staging",
+            ctx=mock_ctx, human_confirmation="100% GO",
+        )
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation", "blocked")
+    assert "project_id" in result
 
 
 @pytest.mark.asyncio
 async def test_setup_monitoring_stub_returns_valid_dict() -> None:
-    result = await setup_monitoring(project_id="p1", deployment_url="https://app.example.com")
-    _assert_valid_stub(result, "setup_monitoring")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+
+    infra_tuple = (
+        MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+    )
+
+    async def fake_run(state: dict) -> dict:
+        state["monitoring_config"] = {
+            "slo_definitions": [{"name": "Availability", "target": 99.9}],
+            "runbook_path": "docs/ops/runbook.md",
+            "otel_configured": True,
+        }
+        state["human_confirmation"] = ""
+        return state
+
+    with (
+        patch(
+            "mcp_server.tools.monitor_tool._build_monitor_infrastructure",
+            return_value=infra_tuple,
+        ),
+        patch("mcp_server.tools.monitor_tool._build_monitor_agent") as mock_build,
+    ):
+        from agents.agent_9_monitoring import MonitoringAgent
+        mock_agent = MagicMock(spec=MonitoringAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_run)
+        mock_build.return_value = mock_agent
+        result = await setup_monitoring(
+            project_id="p1",
+            deployment_url="https://app.example.com",
+            ctx=mock_ctx,
+            human_confirmation="100% GO",
+        )
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation")
+    assert "project_id" in result
 
 
 @pytest.mark.asyncio
