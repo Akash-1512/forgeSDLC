@@ -196,9 +196,48 @@ async def test_route_code_generation_stub_returns_valid_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_run_security_scan_stub_returns_valid_dict() -> None:
-    result = await run_security_scan(project_id="p1", target_path="./src")
-    _assert_valid_stub(result, "run_security_scan")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
 
+    infra_tuple = (
+        MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+    )
+
+    async def fake_run(state: dict) -> dict:
+        state["security_findings"] = {
+            "bandit_findings": [], "semgrep_findings": [],
+            "pip_audit_findings": [], "dast_findings": [],
+            "detect_secrets_findings": [], "threat_model_path": None,
+            "gate_blocked": False,
+        }
+        state["security_gate"] = {"blocked": False, "reason": None}
+        state["human_confirmation"] = ""
+        return state
+
+    with (
+        patch(
+            "mcp_server.tools.security_tool._build_security_infrastructure",
+            return_value=infra_tuple,
+        ),
+        patch(
+            "mcp_server.tools.security_tool._build_security_agent",
+        ) as mock_build,
+    ):
+        from agents.agent_5b_security import SecurityAgent
+        mock_agent = MagicMock(spec=SecurityAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_run)
+        mock_build.return_value = mock_agent
+
+        result = await run_security_scan(
+            project_id="p1", target_path="./src",
+            ctx=mock_ctx, human_confirmation="100% GO",
+        )
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation")
+    assert "project_id" in result
+    
 
 @pytest.mark.asyncio
 async def test_generate_cicd_stub_returns_valid_dict() -> None:
