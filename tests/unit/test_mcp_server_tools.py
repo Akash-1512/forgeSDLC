@@ -241,8 +241,51 @@ async def test_run_security_scan_stub_returns_valid_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_cicd_stub_returns_valid_dict() -> None:
-    result = await generate_cicd(project_id="p1", stack="fastapi")
-    _assert_valid_stub(result, "generate_cicd")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+
+    infra_tuple = (
+        MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+    )
+
+    async def fake_a6_run(state: dict) -> dict:
+        state["generated_files"] = [{"path": "tests/test_main.py", "content": "def test_x(): pass"}]
+        state["test_coverage"] = 85.0
+        state["test_retry_needed"] = False
+        state["human_confirmation"] = ""
+        return state
+
+    async def fake_a7_run(state: dict) -> dict:
+        state["ci_pipeline_url"] = "https://github.com/pending/actions"
+        state["human_confirmation"] = ""
+        return state
+
+    with (
+        patch(
+            "mcp_server.tools.cicd_tool._build_cicd_infrastructure",
+            return_value=infra_tuple,
+        ),
+        patch(
+            "mcp_server.tools.cicd_tool._build_cicd_agents",
+        ) as mock_build,
+    ):
+        from agents.agent_6_test_coordinator import TestCoordinatorAgent
+        from agents.agent_7_cicd import CICDAgent
+        mock_a6 = MagicMock(spec=TestCoordinatorAgent)
+        mock_a6.run = AsyncMock(side_effect=fake_a6_run)
+        mock_a7 = MagicMock(spec=CICDAgent)
+        mock_a7.run = AsyncMock(side_effect=fake_a7_run)
+        mock_build.return_value = (mock_a6, mock_a7)
+
+        result = await generate_cicd(
+            project_id="p1", stack="fastapi",
+            ctx=mock_ctx, human_confirmation="100% GO",
+        )
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
+    assert "project_id" in result
 
 
 @pytest.mark.asyncio

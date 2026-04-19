@@ -89,8 +89,8 @@ async def test_agent_6_delegates_test_gen_via_tool_router() -> None:
 @pytest.mark.asyncio
 async def test_agent_6_uses_sys_executable_not_hardcoded_python() -> None:
     """pytest subprocess must use sys.executable, not 'python' or 'python3'."""
+    from agents.agent_6_test_coordinator import TestCoordinatorAgent  # add this
     agent = _make_agent_6(coverage=85.0)
-    # Un-patch _measure_coverage to check the actual subprocess call
     agent._measure_coverage = TestCoordinatorAgent._measure_coverage.__get__(agent)  # type: ignore[method-assign]
 
     captured_args: list[tuple] = []
