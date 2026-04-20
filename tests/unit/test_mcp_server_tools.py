@@ -369,8 +369,39 @@ async def test_setup_monitoring_stub_returns_valid_dict() -> None:
 
 @pytest.mark.asyncio
 async def test_generate_docs_stub_returns_valid_dict() -> None:
-    result = await generate_docs(project_id="p1", scope="full")
-    _assert_valid_stub(result, "generate_docs")
+    from unittest.mock import AsyncMock, MagicMock
+    mock_ctx = MagicMock()
+    mock_ctx.report_progress = AsyncMock()
+
+    infra_tuple = (
+        MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+    )
+
+    async def fake_run(state: dict) -> dict:
+        state["project_context_graph"] = {"project_id": "p1", "services": []}
+        state["human_confirmation"] = ""
+        return state
+
+    with (
+        patch(
+            "mcp_server.tools.docs_tool._build_docs_infrastructure",
+            return_value=infra_tuple,
+        ),
+        patch("mcp_server.tools.docs_tool._build_docs_agent") as mock_build,
+    ):
+        from agents.agent_10_docs import DocsAgent
+        mock_agent = MagicMock(spec=DocsAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_run)
+        mock_build.return_value = mock_agent
+
+        result = await generate_docs(
+            project_id="p1", scope="full",
+            ctx=mock_ctx, human_confirmation="100% GO",
+        )
+    assert isinstance(result, dict)
+    assert result["status"] in ("complete", "awaiting_confirmation")
+    assert "project_id" in result
 
 
 @pytest.mark.asyncio
