@@ -6,6 +6,7 @@ import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
+from subscription.byok_manager import BYOKManager
 from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
@@ -46,7 +47,6 @@ class DocsAgent(BaseAgent):
         state: dict[str, object],
     ) -> InterpretRecord:
         """Preview docs generation. Emits L1 InterpretRecord."""
-        from subscription.byok_manager import BYOKManager  # noqa: PLC0415
         byok = BYOKManager()
         model = "claude-sonnet-4-6" if byok.has_key("anthropic") else "gpt-5.4-mini"
 
@@ -81,7 +81,6 @@ class DocsAgent(BaseAgent):
         memory_context: object,
     ) -> dict[str, object]:
         """Generate README, CHANGELOG, graph, and do final archive."""
-        from subscription.byok_manager import BYOKManager  # noqa: PLC0415
         byok = BYOKManager()
 
         # Select agent key based on BYOK availability

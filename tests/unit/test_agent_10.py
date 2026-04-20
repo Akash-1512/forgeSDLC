@@ -178,7 +178,7 @@ async def test_agent_10_saves_project_context_graph_to_layer3(
     state = _base_state()
     saved: list[object] = []
 
-    async def mock_save_graph(graph: object) -> None:
+    async def mock_save_graph(self, graph: object) -> None:
         saved.append(graph)
 
     with (
@@ -255,7 +255,7 @@ async def test_agent_10_calls_memory_archiver_comprehensive() -> None:
         mock_byok_cls.return_value.has_key = MagicMock(return_value=False)
         await agent.run(state)
 
-    agent.memory_archiver.archive.assert_called_once()  # type: ignore[union-attr]
+    agent.memory_archiver.archive.assert_called()  # called by BaseAgent + Agent 10 _execute
 
 
 @pytest.mark.asyncio
