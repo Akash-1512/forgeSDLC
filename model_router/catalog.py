@@ -18,6 +18,7 @@ AGENT_MODELS: dict[str, str | None] = {
     "agent_8_deploy":          "gpt-5.4-mini",
     "agent_9_monitor":         "groq/llama-3.3-70b-specdec", # ← GROQ, NOT gpt-5.4-mini
     "agent_10_docs":           "gpt-5.4-mini",               # BYOK Claude overrides via tier
+    "agent_10_docs_byok":      "claude-sonnet-4-6",          # BYOK only — better README prose
     "agent_11_integration":    "gemini-3.1-pro-preview",     # 1M context
     "agent_12_contracts":      "gpt-5.4",
     "agent_13_platform":       "gpt-5.4-mini",
