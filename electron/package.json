@@ -1,6 +1,6 @@
 {
   "name": "forgesdlc-desktop",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "forgeSDLC Desktop — SDLC intelligence layer for your AI coding tools",
   "main": "main.js",
   "scripts": {
