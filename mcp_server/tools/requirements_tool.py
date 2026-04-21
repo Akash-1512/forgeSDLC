@@ -168,6 +168,34 @@ async def gather_requirements(
         state = _build_initial_state(prompt, project_id)
 
 
+    # Simple JSON state persistence (SqliteSaver reads but doesn't auto-save here)
+    import json as _json  # noqa: PLC0415
+    _state_file = f"./data/state_{project_id}.json"
+
+    def _save_state(s: dict) -> None:
+        try:
+            import json as j, pathlib as pl  # noqa: PLC0415
+            pl.Path("./data").mkdir(parents=True, exist_ok=True)
+            pl.Path(_state_file).write_text(j.dumps(s, default=str))
+        except Exception:
+            pass
+
+    def _load_state() -> dict | None:
+        try:
+            import json as j, pathlib as pl  # noqa: PLC0415
+            p = pl.Path(_state_file)
+            if p.exists():
+                return j.loads(p.read_text())
+        except Exception:
+            pass
+        return None
+
+    # Try to restore from JSON file first (more reliable than SqliteSaver)
+    _saved = _load_state()
+    if _saved:
+        state = _saved
+        logger.info("gather_requirements.json_state_restored", project_id=project_id)
+
     # Apply human confirmation and correction to state
     state["human_confirmation"] = human_confirmation
     if correction:
@@ -186,7 +214,8 @@ async def gather_requirements(
     if not state.get("service_graph"):
         await ctx.report_progress(10, 100, "Analysing project scope")
         state = await agent_0.run(state)
-        if not state.get("adr"):
+        _save_state(state)
+        if not state.get("service_graph"):
             return {
                 "status": "awaiting_confirmation",
                 "stage": "decomposition",
@@ -223,7 +252,7 @@ async def gather_requirements(
             }
 
     # ── Agent 2: Tech Stack ───────────────────────────────────────────────
-    if not state.get("adr"):
+    if not state.get("service_graph"):
         state["human_confirmation"] = human_confirmation
         await ctx.report_progress(70, 100, "Recommending tech stack")
         state = await agent_2.run(state)
@@ -259,3 +288,5 @@ async def gather_requirements(
         "interpret_log": state.get("interpret_log", []),
         "interpret_rounds": int(state.get("interpret_round", 0) or 0),
     }
+
+

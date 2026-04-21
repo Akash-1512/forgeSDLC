@@ -6,8 +6,8 @@ from __future__ import annotations
 # Agent 9 = groq: NOT gpt-5.4-mini — a v3 catalog error fixed here.
 
 AGENT_MODELS: dict[str, str | None] = {
-    "agent_0_decompose":       "groq/llama-3.3-70b-specdec",
-    "agent_1_requirements":    "groq/llama-3.3-70b-specdec",
+    "agent_0_decompose":       "groq/llama-3.3-70b-versatile",
+    "agent_1_requirements":    "groq/llama-3.3-70b-versatile",
     "agent_2_stack":           "gpt-5.4-mini",
     "agent_3_architecture":    "gpt-5.4",
     "agent_4_tool_router":     None,                         # NO LLM — raises if routed
@@ -16,7 +16,7 @@ AGENT_MODELS: dict[str, str | None] = {
     "agent_6_test_coord":      "gpt-5.4-mini",
     "agent_7_cicd":            "gpt-5.4-mini",
     "agent_8_deploy":          "gpt-5.4-mini",
-    "agent_9_monitor":         "groq/llama-3.3-70b-specdec", # ← GROQ, NOT gpt-5.4-mini
+    "agent_9_monitor":         "groq/llama-3.3-70b-versatile", # ← GROQ, NOT gpt-5.4-mini
     "agent_10_docs":           "gpt-5.4-mini",               # BYOK Claude overrides via tier
     "agent_10_docs_byok":      "claude-sonnet-4-6",          # BYOK only — better README prose
     "agent_11_integration":    "gemini-3.1-pro-preview",     # 1M context
@@ -41,5 +41,5 @@ ALWAYS_BYOK_MODELS: frozenset[str] = frozenset({
 BUDGET_DOWNGRADE_CHAIN: list[str] = [
     "gpt-5.4",
     "gpt-5.4-mini",
-    "groq/llama-3.3-70b-specdec",
+    "groq/llama-3.3-70b-versatile",
 ]
