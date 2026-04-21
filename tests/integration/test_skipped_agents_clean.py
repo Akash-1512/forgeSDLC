@@ -69,14 +69,6 @@ def _build_agent(AgentClass: type) -> object:
         diff_engine=mock_diff,
     )
 
-    # Agent 11 requires tool_router
-    if AgentClass is IntegrationAgent:
-        from tool_router.router import ToolRouter
-        mock_tool_router = MagicMock(spec=ToolRouter)
-        mock_tool_router.detect_available_tools = AsyncMock(return_value=[])
-        mock_tool_router.route = AsyncMock(return_value=MagicMock())
-        kwargs["tool_router"] = mock_tool_router
-
     return AgentClass(**kwargs)
 
 

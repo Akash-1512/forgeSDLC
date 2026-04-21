@@ -13,6 +13,21 @@ from memory.organisational_memory import OrgMemory
 from memory.schemas import OrgMemoryEntry
 
 
+def _postgres_available() -> bool:
+    import socket
+    try:
+        with socket.create_connection(("localhost", 5432), timeout=1):
+            return True
+    except OSError:
+        return False
+
+
+_SKIP_POSTGRES = pytest.mark.skipif(
+    not _postgres_available(),
+    reason="PostgreSQL not running — start with: docker run -p 5432:5432 -e POSTGRES_PASSWORD=forgesdlc postgres:16",
+)
+
+
 @pytest.mark.asyncio
 async def test_decision_survives_orgmemory_reinstantiation() -> None:
     """
@@ -86,6 +101,7 @@ async def test_architecture_decision_retrievable_by_different_query() -> None:
 
 
 @pytest.mark.asyncio
+@_SKIP_POSTGRES
 async def test_pipeline_history_survives_store_reinstantiation(
     tmp_path: object,
 ) -> None:
@@ -156,7 +172,7 @@ async def test_project_context_graph_survives_reinstantiation(
     await store1.save_graph(graph)
 
     store2 = ProjectContextGraphStore()
-    result = await store2.get_graph(project_id)
+    result = await store2.load_graph(project_id)
 
     assert result is not None, (
         "ProjectContextGraph not found after store reinstantiation."
