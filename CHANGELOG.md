@@ -99,7 +99,7 @@ Format: `## [version] — Session NN — N tests — capability`
 ### Added
 - Agent 8 (DeployAgent): HardGate (`hard_gate=True`), security gate pre-check before interpret_node
 - Cold start warning always shown in Agent 8 interpret (content varies by tier, presence is invariant)
-- Agent 9 (MonitoringAgent): groq/llama-3.3-70b-specdec (regression guard test), SLOs from PRD NFRs
+- Agent 9 (MonitoringAgent): groq/groq/llama-3.3-70b-versatile (regression guard test), SLOs from PRD NFRs
 - RenderTool: L8 InterpretRecord before every webhook call and health poll
 - PostMortem written to Layer 5 on deployment failure
 - Dockerfile: multi-stage, non-root UID 1000, HEALTHCHECK on /health

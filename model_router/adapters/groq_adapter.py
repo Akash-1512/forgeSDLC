@@ -11,7 +11,7 @@ logger = structlog.get_logger()
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
 _MODEL_METADATA: dict[str, dict[str, object]] = {
-    "groq/llama-3.3-70b-specdec": {
+    "groq/llama-3.3-70b-versatile": {
         "context_window": 128_000,
         "cost_per_1k_input": 0.00059,
         "cost_per_1k_output": 0.00079,
@@ -31,10 +31,10 @@ class GroqAdapter:
     Always available as final fallback in ModelRouter.
     """
 
-    def __init__(self, model: str = "groq/llama-3.3-70b-specdec") -> None:
+    def __init__(self, model: str = "groq/llama-3.3-70b-versatile") -> None:
         self._model = model
         self._api_key = os.getenv("GROQ_API_KEY", "")
-        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["groq/llama-3.3-70b-specdec"])
+        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["groq/llama-3.3-70b-versatile"])
         self._context_window = int(meta["context_window"])
         self._cost_input = float(meta["cost_per_1k_input"])
         self._cost_output = float(meta["cost_per_1k_output"])

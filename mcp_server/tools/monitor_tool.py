@@ -115,7 +115,7 @@ async def setup_monitoring(
 ) -> dict[str, object]:
     """Generate SLO definitions, runbook, on-call playbook, and OTel config.
 
-    Model: groq/llama-3.3-70b-specdec (NOT gpt-5.4-mini).
+    Model: groq/llama-3.3-70b-versatile (NOT gpt-5.4-mini).
     SLOs extracted from PRD NFRs (keyword-based, zero LLM).
     Runbook written to docs/ops/runbook.md via DiffEngine.
 

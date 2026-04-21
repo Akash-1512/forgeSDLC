@@ -10,17 +10,17 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-# CRITICAL: groq/llama-3.3-70b-specdec — NOT gpt-5.4-mini.
+# CRITICAL: groq/llama-3.3-70b-versatile — NOT gpt-5.4-mini.
 # This is the most commonly confused agent-model assignment in the catalog.
-# AGENT_MODELS["agent_9_monitor"] = "groq/llama-3.3-70b-specdec"
+# AGENT_MODELS["agent_9_monitor"] = "groq/llama-3.3-70b-versatile"
 # test_agent_9_uses_groq_not_gpt_mini enforces this with two assertions.
-_MODEL = "groq/llama-3.3-70b-specdec"
+_MODEL = "groq/llama-3.3-70b-versatile"
 
 
 class MonitoringAgent(BaseAgent):
     """Agent 9 — SLO definitions, runbook, on-call playbook, OTel config.
 
-    Model: groq/llama-3.3-70b-specdec (NOT gpt-5.4-mini — regression guard test).
+    Model: groq/llama-3.3-70b-versatile (NOT gpt-5.4-mini — regression guard test).
     SLOs extracted from PRD NFR section via keyword matching (zero LLM).
     Runbook generated via groq and written via DiffEngine.
     """
@@ -81,9 +81,9 @@ class MonitoringAgent(BaseAgent):
         # Extract SLOs from PRD NFRs — deterministic, zero LLM
         slos = self._extract_slos(prd)
 
-        # Generate runbook via groq/llama-3.3-70b-specdec via ModelRouter
+        # Generate runbook via groq/llama-3.3-70b-versatile via ModelRouter
         adapter = await self.model_router.route(
-            agent="agent_9_monitor",           # → groq/llama-3.3-70b-specdec
+            agent="agent_9_monitor",           # → groq/llama-3.3-70b-versatile
             task_type="documentation",
             estimated_tokens=int(len(rfc.split()) * 2),
             subscription_tier=str(state.get("subscription_tier", "free")),

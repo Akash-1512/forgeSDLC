@@ -95,10 +95,10 @@ class ModelRouter:
                 agent=agent,
                 model=default_model,
                 tier=subscription_tier,
-                fallback="groq/llama-3.3-70b-specdec",
+                fallback="groq/llama-3.3-70b-versatile",
             )
             from model_router.adapters.groq_adapter import GroqAdapter  # noqa: PLC0415
-            return GroqAdapter(model="groq/llama-3.3-70b-specdec")
+            return GroqAdapter(model="groq/llama-3.3-70b-versatile")
 
         # Step 7: Claude BYOK gate
         if default_model in ALWAYS_BYOK_MODELS:

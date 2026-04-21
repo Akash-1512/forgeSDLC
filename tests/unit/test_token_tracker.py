@@ -13,7 +13,7 @@ from token_tracker.tracker import TokenTracker
 
 def _make_record(
     agent: str = "Agent1",
-    model: str = "groq/llama-3.3-70b-specdec",
+    model: str = "groq/llama-3.3-70b-versatile",
     provider: str = "groq",
     input_tokens: int = 100,
     output_tokens: int = 50,
@@ -94,7 +94,7 @@ def test_tracker_appends_record_to_state_session_token_records() -> None:
         state=state,
         agent="Agent1",
         task="write tests",
-        model="groq/llama-3.3-70b-specdec",
+        model="groq/llama-3.3-70b-versatile",
         provider="groq",
         input_tokens=100,
         output_tokens=50,
@@ -125,13 +125,13 @@ def test_aggregator_groups_by_agent_correctly() -> None:
 def test_aggregator_groups_by_model_correctly() -> None:
     agg = TokenAggregator()
     records = [
-        _make_record(model="groq/llama-3.3-70b-specdec", cost_usd=0.001),
+        _make_record(model="groq/llama-3.3-70b-versatile", cost_usd=0.001),
         _make_record(model="gpt-5.4-mini", cost_usd=0.01),
         _make_record(model="gpt-5.4-mini", cost_usd=0.01),
     ]
     result = agg.by_model(records)
     assert result["gpt-5.4-mini"]["calls"] == 2
-    assert result["groq/llama-3.3-70b-specdec"]["calls"] == 1
+    assert result["groq/llama-3.3-70b-versatile"]["calls"] == 1
 
 
 @pytest.mark.asyncio

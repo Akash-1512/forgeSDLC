@@ -221,7 +221,7 @@ async def test_claude_raises_when_no_byok_key() -> None:
 
 
 def test_agent_models_catalog_has_correct_agent_9() -> None:
-    assert AGENT_MODELS["agent_9_monitor"] == "groq/llama-3.3-70b-specdec"
+    assert AGENT_MODELS["agent_9_monitor"] == "groq/llama-3.3-70b-versatile"
 
 
 def test_agent_models_catalog_agent_4_is_none() -> None:

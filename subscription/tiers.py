@@ -85,7 +85,7 @@ def model_allowed_for_tier(model: str, tier: SubscriptionTier) -> bool:
     """Return True if the model matches any allowed pattern for this tier.
 
     Uses fnmatch for glob-style pattern matching:
-      "groq/*"    matches "groq/llama-3.3-70b-specdec"
+      "groq/*"    matches "groq/llama-3.3-70b-versatile"
       "gpt-5.4*"  matches "gpt-5.4" and "gpt-5.4-mini"
       "*"         matches everything (Enterprise)
     """

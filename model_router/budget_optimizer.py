@@ -11,7 +11,7 @@ logger = structlog.get_logger()
 class BudgetOptimizer:
     """Auto-downgrades expensive models when BudgetMonitor returns OPTIMISE.
 
-    Downgrade chain: gpt-5.4 → gpt-5.4-mini → groq/llama-3.3-70b-specdec
+    Downgrade chain: gpt-5.4 → gpt-5.4-mini → groq/llama-3.3-70b-versatile
     interpret_node and context_compressor are already on groq — never downgraded.
     Triggered at ≥80% budget used (BUDGET_OPTIMISE_THRESHOLD from constants.py).
     """

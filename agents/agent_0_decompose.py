@@ -11,13 +11,13 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "groq/llama-3.3-70b-specdec"
+_MODEL = "groq/llama-3.3-70b-versatile"
 
 
 class ServiceDecompositionAgent(BaseAgent):
     """Agent 0 — decides monolith vs multi-service architecture.
 
-    Model: groq/llama-3.3-70b-specdec (free backbone)
+    Model: groq/llama-3.3-70b-versatile (free backbone)
     Memory reads: Layer 3 (ProjectContextGraphs), Layer 4 (UserPreferences)
     Output: state["service_graph"] populated
     """

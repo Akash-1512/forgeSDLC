@@ -46,7 +46,7 @@ def _make_store(tmp_path: Path) -> ProjectContextGraphStore:
 def test_graph_exists_returns_false_for_new_project(tmp_path: Path) -> None:
     store = _make_store(tmp_path)
     import asyncio
-    result = asyncio.get_event_loop().run_until_complete(
+    result = asyncio.run(
         store.graph_exists("nonexistent-proj")
     )
     assert result is False
