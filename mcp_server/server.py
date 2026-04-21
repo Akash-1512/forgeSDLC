@@ -20,7 +20,7 @@ logger = structlog.get_logger()
 
 mcp = FastMCP(
     name="forgesdlc",
-    version="0.1.0",
+    version="1.0.0",
     instructions=(
         "I am the SDLC intelligence layer for your AI coding tools. "
         "Use gather_requirements() to start any project. "

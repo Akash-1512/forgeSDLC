@@ -1,5 +1,59 @@
 # Changelog
 
+## [1.0.0] — Session 20 — 392 tests — PUBLIC RELEASE
+
+### Products Shipped
+- **forgeSDLC MCP Server v1.0.0** — `@forgesdlc/agent` on npm, `forgesdlc-mcp` on pip
+- **forgeSDLC Desktop v1.0.0** — `.exe` (Windows NSIS) / `.dmg` (macOS) / `.deb` (Linux)
+- **forgeSDLC VS Code Extension v0.1.0** — VS Code Marketplace (`Akash-1512.forgesdlc`)
+
+### Full Single-Service Pipeline (8 HITL-gated stages)
+`gather_requirements` → `design_architecture` → `route_code_generation` →
+`run_security_scan` → `generate_cicd` → `deploy_project` → `setup_monitoring` →
+`generate_docs`
+
+### Multi-Service Pipeline (Agents 11-13, fires on multi_service architecture)
+Cross-service integration tests (gemini 1M ctx) → Pact consumer contracts →
+OTel trace propagation + Docker Compose (topological deploy order)
+
+### Infrastructure Highlights
+- 5-layer cross-tool memory: OrgMemory (ChromaDB) + PostgreSQL + ProjectContextGraph
+  + UserPreferences + PostMortemRecords
+- 13 InterpretRecord layers — zero silent executions
+- 14 agents (0-13) — each owns one SDLC phase
+- ToolRouter: Cursor → Claude Code → Devin → Direct LLM fallback chain
+- ModelRouter: 9 adapters, budget-aware routing, long-context (gemini >100K tokens)
+- AntiPatternDetector: 7 deterministic AST rules, zero LLM
+- STRIDE threat model via o3-mini (Responses API)
+- ContextWindowManager: 14 AgentContextSpecs, compression, token estimation
+
+### Security
+- SAST: bandit + semgrep (p/python + p/security — never --config=auto)
+- DAST: uvicorn subprocess (RUN_DAST=true)
+- Secrets: detect-secrets scan
+- Gate: HIGH/CRITICAL findings block deployment via graph conditional edge
+
+### Electron Desktop
+- contextIsolation: true, nodeIntegration: false (non-negotiable)
+- System tray with HITL gate notifications
+- [✅ Approve] → "100% GO" (internal — never shown in UI)
+- ServerManager: PYTHON_PATH → "python" fallback, auto-restart on crash
+- first_launch: writes ~/.cursor/mcp.json (global Cursor config)
+
+### MCP Registry Listings
+- mcp.so
+- Smithery (smithery.yaml in repo root)
+- mcpservers.org
+
+### Legal
+- EU AI Act: GPAI classification, Articles 52-55 documented
+- GDPR DPA template for enterprise customers
+- Privacy policy: API keys in OS keychain, no central servers
+- Cursor API: documented stance, CURSOR_API_VERIFIED guard
+
+---
+
+
 All notable changes to forgeSDLC are documented here.
 Format: `## [version] — Session NN — N tests — capability`
 

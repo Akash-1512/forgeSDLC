@@ -1,0 +1,78 @@
+name: forgesdlc
+description: The missing SDLC layer for your AI coding tools — requirements, architecture, 5-layer memory, security, CI/CD, deploy, monitor
+version: 1.0.0
+author: Akash Chaudhari
+email: ag.chaudhari.1512@gmail.com
+license: MIT
+homepage: https://github.com/Akash-1512/forgesdlc
+repository: https://github.com/Akash-1512/forgesdlc
+
+install:
+  npm: "@forgesdlc/agent"
+  pip: "forgesdlc-mcp"
+
+mcp:
+  endpoint: http://localhost:8080/mcp
+  transport: streamable-http
+  health: http://localhost:8080/health
+
+tools:
+  - name: gather_requirements
+    description: Generate PRD and NFRs from a prompt with HITL approval gate
+    tier: pro
+  - name: design_architecture
+    description: RFC + ADR + service decomposition with anti-pattern detection
+    tier: pro
+  - name: recall_context
+    description: Retrieve project memory across AI tool sessions (semantic search)
+    tier: free
+  - name: save_decision
+    description: Persist architectural decisions to 5-layer cross-tool memory
+    tier: free
+  - name: route_code_generation
+    description: Delegate code generation to Cursor/Claude Code/Copilot/Windsurf
+    tier: pro
+  - name: run_security_scan
+    description: SAST (bandit + semgrep) + DAST + STRIDE threat model via o3-mini
+    tier: pro
+  - name: generate_cicd
+    description: GitHub Actions workflow with verified action versions
+    tier: pro
+  - name: deploy_project
+    description: Render or Docker deployment with health check gate
+    tier: pro
+  - name: setup_monitoring
+    description: SLO definitions + runbook + OTel trace propagation config
+    tier: pro
+  - name: generate_docs
+    description: README + CHANGELOG + ProjectContextGraph — completes pipeline
+    tier: pro
+  - name: track_progress
+    description: Pipeline status across all 14 agents
+    tier: pro
+
+pricing:
+  free:
+    tools: [recall_context, save_decision]
+    models: [groq]
+    price: "$0"
+  pro:
+    tools: all
+    models: [groq, gpt-5.4-mini, gemini]
+    price: "$20/month"
+  enterprise:
+    tools: all
+    models: all
+    extras: [devin, sla]
+    price: "$80/seat/month"
+
+tags:
+  - sdlc
+  - ai-coding
+  - mcp
+  - cursor
+  - claude-code
+  - copilot
+  - architecture
+  - memory
+  - security
