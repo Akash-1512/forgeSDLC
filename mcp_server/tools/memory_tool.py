@@ -57,10 +57,10 @@ async def recall_context(
     return {
         "status": "ok",
         "project_id": project_id,
-        "org_memory": [e.model_dump() for e in context["org_memory"]],
-        "similar_runs": [r.model_dump() for r in context["similar_runs"]],
-        "layers_queried": context["layers_queried"],
-        "assembled_at": context["assembled_at"],
+        "org_memory": [e.model_dump() for e in context.relevant_patterns],
+        "similar_runs": [r.model_dump() for r in context.similar_runs],
+        "layers_queried": context.layers_queried,
+        "assembled_at": context.assembled_at,
         "interpret_record": record.model_dump(),
     }
 

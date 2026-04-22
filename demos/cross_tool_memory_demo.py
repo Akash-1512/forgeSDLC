@@ -1,173 +1,114 @@
 #!/usr/bin/env python3
-"""
-forgeSDLC Cross-Tool Memory Demo
-==================================
-Demonstrates the core forgeSDLC value proposition:
-  A decision saved in one tool session is recalled by a completely
-  different tool session — with no shared state.
-
-Narrative:
-  Step 1 — "Cursor" saves an architecture decision via save_decision()
-  Step 2 — "Claude Code" (new session) recalls it via recall_context()
-
-Requirements:
-  MCP server running on port 8080.
-  Start with: make run-mcp   OR   python -m mcp_server.server --port 8080
-
-Usage:
-  python demos/cross_tool_memory_demo.py
-"""
-from __future__ import annotations
-
 import asyncio
+import httpx
+import json
 import sys
 import time
 
-import httpx
-
 SERVER = "http://localhost:8080"
+H = {
+    "Content-Type": "application/json",
+    "Accept": "application/json, text/event-stream",
+}
 
 
-async def demo() -> int:
-    """Run the cross-tool memory demonstration. Returns exit code."""
+async def mcp_init(client):
+    r = await client.post(
+        f"{SERVER}/mcp",
+        headers=H,
+        json={
+            "jsonrpc": "2.0",
+            "id": 0,
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2024-11-05",
+                "clientInfo": {"name": "demo", "version": "1.0"},
+                "capabilities": {},
+            },
+        },
+    )
+    return r.headers.get("mcp-session-id", "")
 
-    print("\n" + "=" * 60)
+
+async def mcp_call(client, sid, tool, args):
+    r = await client.post(
+        f"{SERVER}/mcp",
+        headers={**H, "mcp-session-id": sid},
+        json={
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": tool, "arguments": args},
+        },
+    )
+    for line in r.text.splitlines():
+        if line.startswith("data:"):
+            d = json.loads(line[5:])
+            c = d.get("result", {}).get("content", [{}])
+            t = c[0].get("text", "") if c else ""
+            try:
+                return json.loads(t)
+            except Exception:
+                return {"raw": t}
+    return {}
+
+
+async def demo():
+    print("=" * 60)
     print("  forgeSDLC Cross-Tool Memory Demo")
     print("=" * 60)
 
-    # ── Health check first — fail fast with clear message ────────────────────
-    print("\n📡 Checking MCP server...")
+    # Health check
     try:
-        r = httpx.get(f"{SERVER}/health", timeout=2)
-        if r.status_code != 200:
-            print(f"❌ MCP server returned {r.status_code}. Expected 200.")
+        r = httpx.get(f"{SERVER}/mcp", timeout=2,
+                      headers={"Accept": "application/json, text/event-stream"})
+        if r.status_code not in (200, 400, 405, 406, 422):
+            print(f"Server returned unexpected status {r.status_code}")
             return 1
-        print(f"   Server healthy at {SERVER}")
-    except Exception:
-        print(
-            f"❌ MCP server not running at {SERVER}\n"
-            "   Start with:  make run-mcp\n"
-            "   Or:          python -m mcp_server.server "
-            "--transport streamable-http --port 8080"
-        )
+        print(f"Server OK at {SERVER}")
+    except Exception as e:
+        print(f"Server not running: {e}")
+        print("Start with: python -m mcp_server.server --transport streamable-http --port 8080")
         return 1
 
     project_id = f"demo-{int(time.time())}"
-    print(f"\n   Project ID: {project_id}")
-    print("   (unique per run — proves no shared state between steps)\n")
+    print(f"Project: {project_id}")
 
     async with httpx.AsyncClient(timeout=30) as client:
-
-        # ── Step 1: Cursor saves decision ─────────────────────────────────────
-        print("─" * 60)
-        print("STEP 1 — Cursor saves an architecture decision")
-        print("─" * 60)
-        print("  Tool:    save_decision()")
-        print("  Simulating: developer in Cursor documents a stack choice\n")
-
-        try:
-            r = await client.post(
-                f"{SERVER}/call",
-                json={
-                    "name": "save_decision",
-                    "arguments": {
-                        "decision": (
-                            "Use PostgreSQL with asyncpg for all database operations"
-                        ),
-                        "rationale": (
-                            "ACID compliance, native async support, "
-                            "compatible with Supabase for scalability"
-                        ),
-                        "project_id": project_id,
-                        "category": "architecture",
-                    },
-                },
-            )
-            result = r.json()
-            entry_id = result.get("entry_id", result.get("id", "n/a"))
-            print(f"  ✅ Decision saved")
-            print(f"     Entry ID:  {entry_id}")
-            print(f"     Category:  architecture")
-            print(f"     Decision:  Use PostgreSQL with asyncpg")
-        except Exception as exc:
-            print(f"  ❌ save_decision() failed: {exc}")
-            return 1
-
-        # Brief pause — let ChromaDB index the embedding
-        print("\n  ⏳ Waiting 1s for ChromaDB to index...")
+        # Step 1: save_decision
+        print("\nSTEP 1 - Cursor saves an architecture decision")
+        sid1 = await mcp_init(client)
+        r1 = await mcp_call(client, sid1, "save_decision", {
+            "decision": "Use PostgreSQL with asyncpg",
+            "rationale": "ACID compliance and async support",
+            "project_id": project_id,
+        })
+        print("save_decision result:", str(r1)[:120])
         await asyncio.sleep(1)
 
-        # ── Step 2: Claude Code (new session) recalls ─────────────────────────
-        print("\n" + "─" * 60)
-        print("STEP 2 — Claude Code recalls project context (new session)")
-        print("─" * 60)
-        print("  Tool:    recall_context()")
-        print("  Simulating: developer opens Claude Code, asks about the DB stack")
-        print("  Query:   'What database should I use?'\n")
+        # Step 2: recall_context (fresh session)
+        print("\nSTEP 2 - Claude Code recalls (new session)")
+        sid2 = await mcp_init(client)
+        r2 = await mcp_call(client, sid2, "recall_context", {
+            "query": "What database should I use?",
+            "project_id": project_id,
+        })
+        mem = r2.get("org_memory", [])
+        print(f"Recalled {len(mem)} entries")
+        for e in mem[:3]:
+            print(" -", str(e.get("content", ""))[:100])
 
-        try:
-            r2 = await client.post(
-                f"{SERVER}/call",
-                json={
-                    "name": "recall_context",
-                    "arguments": {
-                        "query": "What database should I use?",
-                        "project_id": project_id,
-                    },
-                },
-            )
-            result2 = r2.json()
-        except Exception as exc:
-            print(f"  ❌ recall_context() failed: {exc}")
-            return 1
-
-        org_memory = result2.get("org_memory", [])
-        pipeline_history = result2.get("pipeline_history", [])
-
-        print(f"  Org memory entries returned: {len(org_memory)}")
-        print(f"  Pipeline history entries:    {len(pipeline_history)}\n")
-
-        if org_memory:
-            print("  Retrieved decisions:")
-            for entry in org_memory[:3]:
-                content = str(entry.get("content", ""))[:120]
-                category = entry.get("category", "unknown")
-                print(f"  • [{category}] {content}")
-        else:
-            print("  (no org memory entries returned)")
-
-        # ── Result ────────────────────────────────────────────────────────────
+        found = any("PostgreSQL" in str(e.get("content", "")) for e in mem)
         print("\n" + "=" * 60)
-        found = any(
-            "PostgreSQL" in str(e.get("content", ""))
-            for e in org_memory
-        )
-
         if found:
-            print("✅  Cross-tool memory works!")
-            print()
-            print("   The decision saved in Step 1 (Cursor) was retrieved")
-            print("   in Step 2 (Claude Code) with no shared Python state.")
-            print()
-            print("   This is what forgeSDLC does:")
-            print("   → Every decision, pattern, and failure compounds into")
-            print("     a living project memory accessible from any AI tool.")
-            print("=" * 60 + "\n")
-            return 0
+            print("Cross-tool memory: WORKS")
+            print("Decision saved in Step 1 retrieved in Step 2")
         else:
-            print("⚠️   Decision saved but not found in recall_context() results.")
-            print()
-            print("   Possible causes:")
-            print("   • ChromaDB embedding not yet indexed (try increasing sleep)")
-            print("   • recall_context() query didn't match semantically")
-            print("   • org_memory disabled for this subscription tier")
-            print("=" * 60 + "\n")
-            return 0  # Not a hard failure — demo ran successfully
+            print("Decision not found in recall yet")
+        print("=" * 60)
 
-
-def main() -> int:
-    return asyncio.run(demo())
+    return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(asyncio.run(demo()))
