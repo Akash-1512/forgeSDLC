@@ -136,23 +136,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
-          body: |
-            ## forgeSDLC v1.0.0
-
-            The missing SDLC layer for your AI coding tools.
-
-            ### Install
-```bash
-            npx @forgesdlc/agent
-            # or: pip install forgesdlc-mcp
-```
-
-            ### Downloads
-            - **Windows:** `forgesdlc-setup-1.0.0.exe`
-            - **macOS:** `forgesdlc-1.0.0.dmg`
-            - **Linux:** `forgesdlc-1.0.0.deb`
-
-            See [CHANGELOG.md](CHANGELOG.md) for full release notes.
+          body_path: docs/RELEASE_NOTES.md
           draft: false
           prerelease: false
         env:
