@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import asyncio
-import httpx
 import json
 import sys
 import time
+
+import httpx
 
 SERVER = "http://localhost:8080"
 H = {
@@ -60,8 +61,9 @@ async def demo():
 
     # Health check
     try:
-        r = httpx.get(f"{SERVER}/mcp", timeout=2,
-                      headers={"Accept": "application/json, text/event-stream"})
+        r = httpx.get(
+            f"{SERVER}/mcp", timeout=2, headers={"Accept": "application/json, text/event-stream"}
+        )
         if r.status_code not in (200, 400, 405, 406, 422):
             print(f"Server returned unexpected status {r.status_code}")
             return 1
@@ -78,21 +80,31 @@ async def demo():
         # Step 1: save_decision
         print("\nSTEP 1 - Cursor saves an architecture decision")
         sid1 = await mcp_init(client)
-        r1 = await mcp_call(client, sid1, "save_decision", {
-            "decision": "Use PostgreSQL with asyncpg",
-            "rationale": "ACID compliance and async support",
-            "project_id": project_id,
-        })
+        r1 = await mcp_call(
+            client,
+            sid1,
+            "save_decision",
+            {
+                "decision": "Use PostgreSQL with asyncpg",
+                "rationale": "ACID compliance and async support",
+                "project_id": project_id,
+            },
+        )
         print("save_decision result:", str(r1)[:120])
         await asyncio.sleep(1)
 
         # Step 2: recall_context (fresh session)
         print("\nSTEP 2 - Claude Code recalls (new session)")
         sid2 = await mcp_init(client)
-        r2 = await mcp_call(client, sid2, "recall_context", {
-            "query": "What database should I use?",
-            "project_id": project_id,
-        })
+        r2 = await mcp_call(
+            client,
+            sid2,
+            "recall_context",
+            {
+                "query": "What database should I use?",
+                "project_id": project_id,
+            },
+        )
         mem = r2.get("org_memory", [])
         print(f"Recalled {len(mem)} entries")
         for e in mem[:3]:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
@@ -65,9 +65,7 @@ class ContextFileManager:
         )
         return written
 
-    def _emit_record(
-        self, filename: str, project_id: str, workspace_path: str
-    ) -> InterpretRecord:
+    def _emit_record(self, filename: str, project_id: str, workspace_path: str) -> InterpretRecord:
         record = InterpretRecord(
             layer="context_file_manager",
             component="ContextFileManager",
@@ -81,7 +79,7 @@ class ContextFileManager:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[filename],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.context_file_manager",

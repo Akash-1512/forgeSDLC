@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -16,7 +16,7 @@ def _make_entry(project_id: str = "proj-1") -> OrgMemoryEntry:
         content="DECISION: use postgres\nRATIONALE: scalability",
         category="architecture",
         source_run_id="manual",
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
 
@@ -35,6 +35,7 @@ def _make_org_memory(chroma_path: str = "./test_chroma") -> object:
         mock_emb.return_value = MagicMock()
 
         from memory.organisational_memory import OrgMemory
+
         org = OrgMemory(chroma_path=chroma_path)
         return org
 
@@ -51,10 +52,13 @@ def test_chromadb_uses_persistent_client_not_in_memory() -> None:
             mock_collection
         )
         from memory.organisational_memory import OrgMemory
+
         OrgMemory(chroma_path="./test_chroma")
         mock_chroma.PersistentClient.assert_called_once_with(path="./test_chroma")
         mock_chroma.Client.assert_not_called() if hasattr(mock_chroma, "Client") else None
-        mock_chroma.EphemeralClient.assert_not_called() if hasattr(mock_chroma, "EphemeralClient") else None
+        mock_chroma.EphemeralClient.assert_not_called() if hasattr(
+            mock_chroma, "EphemeralClient"
+        ) else None
 
 
 @pytest.mark.asyncio
@@ -71,6 +75,7 @@ async def test_upsert_emits_interpret_record_before_write() -> None:
         mock_emb.return_value.embed_documents.return_value = [[0.1] * 384]
 
         from memory.organisational_memory import OrgMemory
+
         org = OrgMemory(chroma_path="./test_chroma")
 
         emitted: list[str] = []
@@ -103,6 +108,7 @@ async def test_upsert_stores_entry_in_chromadb() -> None:
         mock_emb.return_value.embed_documents.return_value = [[0.1] * 384]
 
         from memory.organisational_memory import OrgMemory
+
         org = OrgMemory(chroma_path="./test_chroma")
         entry = _make_entry()
         await org.upsert(entry)
@@ -125,6 +131,7 @@ async def test_search_returns_empty_list_for_new_project() -> None:
         )
 
         from memory.organisational_memory import OrgMemory
+
         org = OrgMemory(chroma_path="./test_chroma")
         result = await org.search("tech stack", project_id="new-proj")
         assert result == []
@@ -144,6 +151,7 @@ async def test_search_emits_interpret_record_before_read() -> None:
         )
 
         from memory.organisational_memory import OrgMemory
+
         org = OrgMemory(chroma_path="./test_chroma")
 
         emitted: list[str] = []
@@ -177,7 +185,7 @@ async def test_search_returns_relevant_entries_by_semantic_similarity() -> None:
                         "project_id": "proj-1",
                         "category": "architecture",
                         "source_run_id": "manual",
-                        "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+                        "timestamp": datetime.now(tz=UTC).isoformat(),
                     }
                 ]
             ],
@@ -189,6 +197,7 @@ async def test_search_returns_relevant_entries_by_semantic_similarity() -> None:
         mock_emb.return_value.embed_query.return_value = [0.1] * 384
 
         from memory.organisational_memory import OrgMemory
+
         org = OrgMemory(chroma_path="./test_chroma")
         results = await org.search("database driver", project_id="proj-1")
 

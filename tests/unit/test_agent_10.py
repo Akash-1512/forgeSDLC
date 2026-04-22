@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agents.agent_10_docs import DocsAgent, _ATTRIBUTION
+from agents.agent_10_docs import _ATTRIBUTION, DocsAgent
 
 
 def _make_agent_10() -> DocsAgent:
@@ -84,11 +82,18 @@ def _base_state(human_confirmation: str = "100% GO") -> dict:
 
 def test_readme_contains_all_required_sections_in_order() -> None:
     from agents.agent_10_docs import _README_SECTIONS
+
     # Verify all required sections are defined
     required = [
-        "Quick Start", "Installation", "Usage", "Architecture",
-        "API Reference", "Known Limitations", "Development",
-        "Contributing", "License",
+        "Quick Start",
+        "Installation",
+        "Usage",
+        "Architecture",
+        "API Reference",
+        "Known Limitations",
+        "Development",
+        "Contributing",
+        "License",
     ]
     for section in required:
         assert section in _README_SECTIONS
@@ -107,9 +112,7 @@ async def test_attribution_appended_even_when_model_omits_it() -> None:
     # Override mock to return README without attribution
     no_attr_readme = "# My Project\nA cool app.\n\n## License\nMIT"
     agent.model_router.route = AsyncMock(  # type: ignore[method-assign]
-        return_value=MagicMock(
-            ainvoke=AsyncMock(return_value=MagicMock(content=no_attr_readme))
-        )
+        return_value=MagicMock(ainvoke=AsyncMock(return_value=MagicMock(content=no_attr_readme)))
     )
 
     with patch("agents.agent_10_docs.BYOKManager") as mock_byok_cls:
@@ -120,15 +123,18 @@ async def test_attribution_appended_even_when_model_omits_it() -> None:
     # Check content passed to diff_engine.generate_diff
     calls = agent.diff_engine.generate_diff.call_args_list  # type: ignore[union-attr]
     readme_call = next(
-        (c for c in calls if "README" in str(c.kwargs.get("filepath", "")) or
-         "README" in str(c.args[0] if c.args else "")),
+        (
+            c
+            for c in calls
+            if "README" in str(c.kwargs.get("filepath", ""))
+            or "README" in str(c.args[0] if c.args else "")
+        ),
         calls[0] if calls else None,
     )
     assert readme_call is not None
     # Content arg is second positional or new_content kwarg
-    content = (
-        readme_call.kwargs.get("new_content")
-        or (readme_call.args[1] if len(readme_call.args) > 1 else "")
+    content = readme_call.kwargs.get("new_content") or (
+        readme_call.args[1] if len(readme_call.args) > 1 else ""
     )
     assert "Built with forgeSDLC" in str(content), (
         "Attribution must be appended even when model omits it"
@@ -174,6 +180,7 @@ async def test_agent_10_saves_project_context_graph_to_layer3(
     tmp_path: Path,
 ) -> None:
     from memory.project_context_graph import ProjectContextGraphStore
+
     agent = _make_agent_10()
     state = _base_state()
     saved: list[object] = []
@@ -213,7 +220,8 @@ async def test_project_context_graph_layer3_write_emits_l6_interpret_record(
     with (
         patch.object(InterpretRecord, "__init__", capturing_init),
         patch.object(
-            ProjectContextGraphStore, "save_graph",
+            ProjectContextGraphStore,
+            "save_graph",
             AsyncMock(),
         ),
         patch("agents.agent_10_docs.BYOKManager") as mock_byok_cls,

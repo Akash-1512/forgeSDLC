@@ -13,6 +13,7 @@ def _build_deploy_state(
     project_id: str, environment: str, human_confirmation: str
 ) -> dict[str, object]:
     import uuid
+
     return {
         "user_prompt": f"Deploy to {environment}",
         "mcp_session_id": project_id,
@@ -23,7 +24,9 @@ def _build_deploy_state(
         "interpret_log": [],
         "trace_id": str(uuid.uuid4()),
         "mode": "mcp",
-        "prd": "", "adr": "", "rfc": "",
+        "prd": "",
+        "adr": "",
+        "rfc": "",
         "service_graph": {"services": []},
         "generated_files": [],
         "review_findings": [],
@@ -44,7 +47,6 @@ def _build_deploy_state(
         "workspace_context": None,
         "memory_context": None,
         "arch_validation": None,
-        "security_findings": None,
         "test_coverage": 0.0,
         "project_context_graph": None,
         "hitl_required": False,
@@ -73,7 +75,9 @@ def _build_deploy_infrastructure() -> tuple:
     estimator = TokenEstimator()
     compressor = ContextCompressor()
     cwm = ContextWindowManager(
-        estimator=estimator, compressor=compressor, specs=AGENT_CONTEXT_SPECS,
+        estimator=estimator,
+        compressor=compressor,
+        specs=AGENT_CONTEXT_SPECS,
     )
     l1 = PipelineHistoryStore()
     l2 = OrgMemory()
@@ -87,16 +91,27 @@ def _build_deploy_infrastructure() -> tuple:
     diff_engine = DiffEngine()
 
     return (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     )
 
 
 def _build_deploy_agent(infra: tuple) -> object:
     from agents.agent_8_deploy import DeployAgent
+
     (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
     return DeployAgent(
         name="agent_8_deploy",
@@ -142,6 +157,7 @@ async def deploy_project(
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": f"deploy-{project_id}"}}
         existing = checkpointer.get(config)
@@ -190,8 +206,7 @@ async def deploy_project(
             "displayed_interpretation": state.get("displayed_interpretation", ""),
             "project_id": project_id,
             "instructions": (
-                "Review the deployment plan. "
-                "Pass human_confirmation='100% GO' to proceed."
+                "Review the deployment plan. Pass human_confirmation='100% GO' to proceed."
             ),
         }
 

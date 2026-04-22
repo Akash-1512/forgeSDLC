@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
@@ -41,7 +40,7 @@ async def recall_context(
         tool_delegated_to=None,
         reversible=True,
         workspace_files_affected=[],
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
     logger.info(
         "recall_context.interpret_record",
@@ -84,7 +83,7 @@ async def save_decision(
         content=f"DECISION: {decision}\nRATIONALE: {rationale}",
         category="architecture",
         source_run_id="manual",
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     record = InterpretRecord(
@@ -100,7 +99,7 @@ async def save_decision(
         tool_delegated_to=None,
         reversible=False,
         workspace_files_affected=[],
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
     logger.info(
         "save_decision.interpret_record",

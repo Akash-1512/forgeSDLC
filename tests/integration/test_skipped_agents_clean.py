@@ -2,6 +2,7 @@
 Verifies Agents 11-13 leave NO interpret_log entries on monolith architecture.
 The silent skip at the top of run() must return before super().run() is called.
 """
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -29,7 +30,9 @@ def _make_monolith_state() -> dict[str, object]:
         "budget_used_usd": 0.0,
         "budget_remaining_usd": 999.0,
         "subscription_tier": "free",
-        "prd": "", "adr": "", "rfc": "",
+        "prd": "",
+        "adr": "",
+        "rfc": "",
     }
 
 
@@ -47,9 +50,7 @@ def _build_agent(AgentClass: type) -> object:
     mock_workspace = MagicMock()
     mock_workspace.get_context = AsyncMock(return_value=MagicMock(root_path="."))
     mock_diff = MagicMock()
-    mock_diff.generate_diff = AsyncMock(
-        return_value=MagicMock(filepath="out.py", new_content="")
-    )
+    mock_diff.generate_diff = AsyncMock(return_value=MagicMock(filepath="out.py", new_content=""))
     mock_diff.apply_diff = AsyncMock()
     mock_memory_builder = MagicMock()
     mock_memory_builder.build = AsyncMock(return_value=MagicMock())
@@ -58,29 +59,30 @@ def _build_agent(AgentClass: type) -> object:
     mock_adapter.ainvoke = AsyncMock(return_value=MagicMock(content="generated"))
     mock_model_router.route = AsyncMock(return_value=mock_adapter)
 
-    kwargs = dict(
-        name=AgentClass.__name__,
-        context_window_manager=mock_cwm,
-        model_router=mock_model_router,
-        memory_archiver=mock_archiver,
-        memory_context_builder=mock_memory_builder,
-        context_file_manager=mock_cfm,
-        workspace_bridge=mock_workspace,
-        diff_engine=mock_diff,
-    )
+    kwargs = {
+        "name": AgentClass.__name__,
+        "context_window_manager": mock_cwm,
+        "model_router": mock_model_router,
+        "memory_archiver": mock_archiver,
+        "memory_context_builder": mock_memory_builder,
+        "context_file_manager": mock_cfm,
+        "workspace_bridge": mock_workspace,
+        "diff_engine": mock_diff,
+    }
 
     return AgentClass(**kwargs)
 
 
-@pytest.mark.parametrize("AgentClass,skip_key", [
-    (IntegrationAgent, "agent_11_integration_skipped"),
-    (ContractAgent, "agent_12_contracts_skipped"),
-    (PlatformAgent, "agent_13_platform_skipped"),
-])
+@pytest.mark.parametrize(
+    "AgentClass,skip_key",
+    [
+        (IntegrationAgent, "agent_11_integration_skipped"),
+        (ContractAgent, "agent_12_contracts_skipped"),
+        (PlatformAgent, "agent_13_platform_skipped"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_agent_skips_silently_on_monolith(
-    AgentClass: type, skip_key: str
-) -> None:
+async def test_agent_skips_silently_on_monolith(AgentClass: type, skip_key: str) -> None:
     """Agent skips, adds NO interpret_log entry, sets skipped marker."""
     agent = _build_agent(AgentClass)
     state = _make_monolith_state()
@@ -94,20 +96,20 @@ async def test_agent_skips_silently_on_monolith(
         f"Silent skip must not call super().run()."
     )
     assert result.get(skip_key) is True, (
-        f"Expected {skip_key}=True in state after skip. "
-        f"Got: {result.get(skip_key)}"
+        f"Expected {skip_key}=True in state after skip. Got: {result.get(skip_key)}"
     )
 
 
-@pytest.mark.parametrize("AgentClass,skip_key", [
-    (IntegrationAgent, "agent_11_integration_skipped"),
-    (ContractAgent, "agent_12_contracts_skipped"),
-    (PlatformAgent, "agent_13_platform_skipped"),
-])
+@pytest.mark.parametrize(
+    "AgentClass,skip_key",
+    [
+        (IntegrationAgent, "agent_11_integration_skipped"),
+        (ContractAgent, "agent_12_contracts_skipped"),
+        (PlatformAgent, "agent_13_platform_skipped"),
+    ],
+)
 @pytest.mark.asyncio
-async def test_agent_does_not_modify_state_on_skip(
-    AgentClass: type, skip_key: str
-) -> None:
+async def test_agent_does_not_modify_state_on_skip(AgentClass: type, skip_key: str) -> None:
     """Skipped agents must not mutate state beyond setting the skip marker."""
     agent = _build_agent(AgentClass)
     state = _make_monolith_state()

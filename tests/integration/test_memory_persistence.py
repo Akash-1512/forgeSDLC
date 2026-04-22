@@ -9,7 +9,7 @@ Run with:
 
 import shutil
 import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -25,7 +25,7 @@ def _make_entry(project_id: str, content: str) -> OrgMemoryEntry:
         content=content,
         category="architecture",
         source_run_id="integration-test",
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
 

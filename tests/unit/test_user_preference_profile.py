@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -17,13 +17,14 @@ def _make_profile(user_id: str = "user-1") -> UserPreferenceProfile:
         byok_providers=["openai"],
         recurring_security_findings=["sql_injection"],
         recurring_anti_patterns=["no_error_handling"],
-        last_updated=datetime.now(tz=timezone.utc),
+        last_updated=datetime.now(tz=UTC),
     )
 
 
 def _make_store() -> object:
     with patch("memory.user_preference_profile.create_async_engine"):
         from memory.user_preference_profile import UserPreferenceStore
+
         store = UserPreferenceStore()
         store._engine = MagicMock()
         store._session_factory = MagicMock()

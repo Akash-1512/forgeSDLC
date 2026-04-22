@@ -20,4 +20,3 @@ print("Decoded payload:", payload)
 assert payload["user_id"] == "user-001"
 assert payload["tier"] == "pro"
 print("JWT encode/decode: PASS")
-

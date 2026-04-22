@@ -11,4 +11,5 @@ async def init():
     await PostMortemStore().init_db()
     print("All tables created")
 
+
 asyncio.run(init())

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import structlog
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
@@ -59,10 +59,7 @@ class OpenAIReasoningAdapter:
         # Responses API: input=[...], max_output_tokens=N (NOT max_tokens)
         response = await client.responses.create(
             model=self._model,
-            input=[
-                {"role": self._map_role(m.type), "content": str(m.content)}
-                for m in messages
-            ],
+            input=[{"role": self._map_role(m.type), "content": str(m.content)} for m in messages],
             max_output_tokens=max_tokens,  # NOT max_tokens — Responses API param
         )
         content = response.output_text or ""
@@ -81,14 +78,14 @@ class OpenAIReasoningAdapter:
         temperature: float = 0.0,
     ) -> AsyncIterator[AIMessageChunk]:
         response = await self.ainvoke(messages, max_tokens=max_tokens)
+
         async def _gen() -> AsyncIterator[AIMessageChunk]:
             yield AIMessageChunk(content=str(response.content))
+
         return _gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:
-        raise NotImplementedError(
-            "Reasoning models do not support FIM. Use CodestralAdapter."
-        )
+        raise NotImplementedError("Reasoning models do not support FIM. Use CodestralAdapter.")
 
     @property
     def model_name(self) -> str:

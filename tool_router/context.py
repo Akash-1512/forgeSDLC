@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
 
-class AvailableTool(str, Enum):
-    CURSOR      = "cursor_background_agent"
+class AvailableTool(StrEnum):
+    CURSOR = "cursor_background_agent"
     CLAUDE_CODE = "claude_code_cli"
-    DEVIN       = "devin_api"
-    DIRECT_LLM  = "direct_llm"
+    DEVIN = "devin_api"
+    DIRECT_LLM = "direct_llm"
 
 
 class ToolResult(BaseModel):
@@ -32,4 +32,4 @@ class ToolRouterContext(BaseModel):
     user_claude_code_available: bool
     user_devin_available: bool
     fallback_to_direct_llm: bool
-    context_files_written: list[str]   # files ContextFileManager wrote
+    context_files_written: list[str]  # files ContextFileManager wrote

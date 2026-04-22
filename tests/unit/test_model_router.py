@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import os
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from model_router.catalog import AGENT_MODELS
-from model_router.adapters.base_adapter import BaseLLMAdapter
 
 
 def _make_router() -> object:
     from model_router.router import ModelRouter
+
     return ModelRouter()
 
 
@@ -35,6 +34,7 @@ async def test_route_agent_0_returns_groq_adapter() -> None:
             budget_total=5.0,
         )
     from model_router.adapters.groq_adapter import GroqAdapter
+
     assert isinstance(adapter, GroqAdapter)
 
 
@@ -52,6 +52,7 @@ async def test_route_agent_3_returns_gpt_5_4_adapter() -> None:
             budget_total=5.0,
         )
     from model_router.adapters.openai_adapter import OpenAIAdapter
+
     assert isinstance(adapter, OpenAIAdapter)
     assert adapter.model_name == "gpt-5.4"
 
@@ -71,6 +72,7 @@ async def test_route_agent_9_returns_groq_not_gpt_mini() -> None:
             budget_total=5.0,
         )
     from model_router.adapters.groq_adapter import GroqAdapter
+
     assert isinstance(adapter, GroqAdapter), (
         f"Agent 9 must use GroqAdapter, got {type(adapter).__name__}"
     )
@@ -81,6 +83,7 @@ async def test_route_agent_9_returns_groq_not_gpt_mini() -> None:
 async def test_route_agent_4_raises_error() -> None:
     """Agent 4 (ToolRouter) must never be routed through ModelRouter."""
     from orchestrator.exceptions import ForgeSDLCError
+
     router = _make_router()
     with patch("subscription.byok_manager.keyring") as mk:
         mk.get_password.return_value = None
@@ -109,6 +112,7 @@ async def test_route_interpret_node_returns_groq_8b_instant() -> None:
             budget_total=0.0,
         )
     from model_router.adapters.groq_adapter import GroqAdapter
+
     assert isinstance(adapter, GroqAdapter)
     assert "8b-instant" in adapter.model_name
 
@@ -127,6 +131,7 @@ async def test_long_context_routing_over_100k_uses_gemini() -> None:
             budget_total=50.0,
         )
     from model_router.adapters.gemini_adapter import GeminiAdapter
+
     assert isinstance(adapter, GeminiAdapter)
 
 
@@ -144,8 +149,9 @@ async def test_budget_optimise_downgrades_gpt_5_4_to_mini() -> None:
             budget_used=4.25,
             budget_total=5.0,
         )
-    from model_router.adapters.openai_adapter import OpenAIAdapter
     from model_router.adapters.groq_adapter import GroqAdapter
+    from model_router.adapters.openai_adapter import OpenAIAdapter
+
     # Should be downgraded — either gpt-5.4-mini or groq
     assert isinstance(adapter, (OpenAIAdapter, GroqAdapter))
     if isinstance(adapter, OpenAIAdapter):
@@ -167,12 +173,12 @@ async def test_free_tier_forces_groq_for_openai_agents() -> None:
             budget_total=0.0,
         )
     from model_router.adapters.groq_adapter import GroqAdapter
+
     assert isinstance(adapter, GroqAdapter)
 
 
 @pytest.mark.asyncio
 async def test_route_emits_interpret_record_layer4_before_selection() -> None:
-    from interpret.record import InterpretRecord
     router = _make_router()
     emitted: list[str] = []
     original_emit = router._emit_record  # type: ignore[union-attr]
@@ -199,7 +205,7 @@ async def test_route_emits_interpret_record_layer4_before_selection() -> None:
 @pytest.mark.asyncio
 async def test_claude_raises_when_no_byok_key() -> None:
     from model_router.adapters.claude_adapter import ClaudeNotConfiguredError
-    from model_router.catalog import ALWAYS_BYOK_MODELS
+
     router = _make_router()
     with (
         patch("subscription.byok_manager.keyring") as mk,

@@ -22,7 +22,10 @@ TOOL_CALLS = [
     ("gather_requirements", {"prompt": "build a REST API", "project_id": "smoke-test"}),
     ("design_architecture", {"project_id": "smoke-test", "prd": "stub prd"}),
     ("recall_context", {"query": "tech stack", "project_id": "smoke-test"}),
-    ("save_decision", {"decision": "use postgres", "rationale": "scale", "project_id": "smoke-test"}),
+    (
+        "save_decision",
+        {"decision": "use postgres", "rationale": "scale", "project_id": "smoke-test"},
+    ),
     ("route_code_generation", {"project_id": "smoke-test", "task": "write models", "context": ""}),
     ("run_security_scan", {"project_id": "smoke-test", "target_path": "./src"}),
     ("generate_cicd", {"project_id": "smoke-test", "stack": "fastapi"}),
@@ -58,6 +61,7 @@ async def main() -> None:
                 # result.content is a list of TextContent/etc
                 content = result.content[0].text if result.content else ""
                 import json
+
                 try:
                     parsed = json.loads(content)
                     status = parsed.get("status")

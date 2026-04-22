@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from workspace.diff_engine import DiffEngine, UnifiedDiff
+from workspace.diff_engine import DiffEngine
 
 
 def _make_engine() -> DiffEngine:
@@ -16,6 +16,7 @@ async def test_generate_diff_emits_interpret_record_layer3_before_read(
     tmp_path: Path,
 ) -> None:
     from unittest.mock import patch
+
     from interpret.record import InterpretRecord
 
     engine = _make_engine()
@@ -41,6 +42,7 @@ async def test_apply_diff_emits_interpret_record_layer3_before_write(
     tmp_path: Path,
 ) -> None:
     from unittest.mock import patch
+
     from interpret.record import InterpretRecord
 
     engine = _make_engine()
@@ -139,4 +141,5 @@ async def test_apply_diff_creates_parent_dirs_if_missing(tmp_path: Path) -> None
 
 def test_bak_extension_is_dot_forgesdlc_dot_bak() -> None:
     from workspace.diff_engine import _BAK_EXTENSION
+
     assert _BAK_EXTENSION == ".forgesdlc.bak"

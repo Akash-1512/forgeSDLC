@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -53,7 +53,8 @@ def _base_state(human_confirmation: str = "100% GO") -> dict:
         "interpret_log": [],
         "interpret_round": 0,
         "prd": "## Non-Functional Requirements\n99.9% uptime and < 200ms latency.",
-        "adr": "", "rfc": "# RFC-001\nFastAPI service.",
+        "adr": "",
+        "rfc": "# RFC-001\nFastAPI service.",
         "deployment_url": "https://myapp.onrender.com",
         "budget_used_usd": 0.0,
         "budget_remaining_usd": 999.0,
@@ -69,15 +70,18 @@ def test_agent_9_uses_groq_not_gpt_mini() -> None:
         "NOT gpt-5.4-mini. This is the most commonly confused assignment."
     )
     # Assertion 2: agent passes correct name to ModelRouter
-    agent = _make_agent_9()
+    _make_agent_9()
     # model_selected in interpret record
     from agents.agent_9_monitoring import _MODEL
+
     assert _MODEL == "groq/llama-3.3-70b-versatile"
 
 
 def test_agent_9_model_selected_in_interpret_is_groq() -> None:
     import asyncio
+
     from agents.agent_9_monitoring import _MODEL
+
     agent = _make_agent_9()
     state = _base_state(human_confirmation="")
     result = asyncio.run(agent.run(state))
@@ -87,7 +91,6 @@ def test_agent_9_model_selected_in_interpret_is_groq() -> None:
 
 
 def test_agent_9_extracts_slo_from_99_9_nfr() -> None:
-    from agents.agent_9_monitoring import MonitoringAgent
     agent = _make_agent_9()
     prd = "System must achieve 99.9% uptime and < 200ms latency."
     slos = agent._extract_slos(prd)  # type: ignore[union-attr]
@@ -122,4 +125,3 @@ async def test_monitoring_config_stored_in_state() -> None:
     assert "slo_definitions" in config
     assert "runbook_path" in config
     assert config.get("otel_configured") is True
-

@@ -38,9 +38,7 @@ def _make_agent_6(coverage: float = 85.0) -> object:
     mock_model_router = MagicMock(spec=ModelRouter)
 
     mock_tool_router = MagicMock(spec=ToolRouter)
-    mock_tool_router.detect_available_tools = AsyncMock(
-        return_value=[AvailableTool.DIRECT_LLM]
-    )
+    mock_tool_router.detect_available_tools = AsyncMock(return_value=[AvailableTool.DIRECT_LLM])
     mock_tool_router.route = AsyncMock(return_value=_make_tool_result())
 
     agent = TestCoordinatorAgent(
@@ -90,6 +88,7 @@ async def test_agent_6_delegates_test_gen_via_tool_router() -> None:
 async def test_agent_6_uses_sys_executable_not_hardcoded_python() -> None:
     """pytest subprocess must use sys.executable, not 'python' or 'python3'."""
     from agents.agent_6_test_coordinator import TestCoordinatorAgent  # add this
+
     agent = _make_agent_6(coverage=85.0)
     agent._measure_coverage = TestCoordinatorAgent._measure_coverage.__get__(agent)  # type: ignore[method-assign]
 
@@ -153,5 +152,6 @@ async def test_agent_6_proceeds_when_coverage_meets_80() -> None:
 def test_agent_6_tool_router_context_in_context_spec() -> None:
     """Verify Session 08 spec: tool_router_context required for Agent 6."""
     from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
+
     spec = AGENT_CONTEXT_SPECS["agent_6_test_coord"]
     assert "tool_router_context" in spec.required_fields

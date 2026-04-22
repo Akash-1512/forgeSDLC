@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import difflib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
@@ -22,7 +22,7 @@ class UnifiedDiff(BaseModel):
     filepath: str
     diff: str
     reason: str
-    original_content: str   # stored for backup and restore
+    original_content: str  # stored for backup and restore
     new_content: str
 
 
@@ -58,7 +58,7 @@ class DiffEngine:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[filepath],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         p = Path(filepath)
         current = p.read_text(encoding="utf-8") if p.exists() else ""
@@ -97,9 +97,9 @@ class DiffEngine:
             external_calls=[],
             model_selected=None,
             tool_delegated_to=None,
-            reversible=True,   # backup exists — restore_from_backup() reverts
+            reversible=True,  # backup exists — restore_from_backup() reverts
             workspace_files_affected=[diff.filepath],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
 
         # Write backup FIRST — only if original file exists
@@ -127,9 +127,7 @@ class DiffEngine:
         logger.info("diff_engine.restored_from_backup", filepath=filepath)
         return True
 
-    def _compute_diff(
-        self, original: str, new: str, filepath: str
-    ) -> str:
+    def _compute_diff(self, original: str, new: str, filepath: str) -> str:
         """Compute unified diff between original and new content."""
         lines_old = original.splitlines(keepends=True)
         lines_new = new.splitlines(keepends=True)

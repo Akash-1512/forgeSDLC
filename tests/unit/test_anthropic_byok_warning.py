@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from subscription.anthropic_tos_warning import AnthropicTosWarning
 from subscription.byok_manager import BYOKManager
 

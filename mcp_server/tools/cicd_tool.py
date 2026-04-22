@@ -6,15 +6,12 @@ from pathlib import Path
 import structlog
 from fastmcp import Context
 
-from interpret.gate import check_gate
-
 logger = structlog.get_logger()
 
 
-def _build_cicd_state(
-    project_id: str, stack: str, human_confirmation: str
-) -> dict[str, object]:
+def _build_cicd_state(project_id: str, stack: str, human_confirmation: str) -> dict[str, object]:
     import uuid
+
     return {
         "user_prompt": f"Generate CI/CD for {stack}",
         "mcp_session_id": project_id,
@@ -98,8 +95,14 @@ def _build_cicd_infrastructure() -> tuple:
     diff_engine = DiffEngine()
 
     return (
-        model_router, tool_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        tool_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     )
 
 
@@ -108,8 +111,14 @@ def _build_cicd_agents(infra: tuple) -> tuple:
     from agents.agent_7_cicd import CICDAgent
 
     (
-        model_router, tool_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        tool_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
 
     base_kwargs = {
@@ -176,6 +185,7 @@ async def generate_cicd(
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": f"cicd-{project_id}"}}
         existing = checkpointer.get(config)
@@ -208,8 +218,7 @@ async def generate_cicd(
                 "displayed_interpretation": state.get("displayed_interpretation", ""),
                 "project_id": project_id,
                 "instructions": (
-                    "Review the test generation plan. "
-                    "Pass human_confirmation='100% GO' to proceed."
+                    "Review the test generation plan. Pass human_confirmation='100% GO' to proceed."
                 ),
             }
 

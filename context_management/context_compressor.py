@@ -19,16 +19,17 @@ class ContextCompressor:
     async def compress(self, content: str, field_name: str) -> str:
         """Summarise content to under 200 words. Routes via ModelRouter."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
         from model_router.router import ModelRouter  # noqa: PLC0415
 
         router = ModelRouter()
         adapter = await router.route(
-            agent="context_compressor",     # → groq/llama-3.1-8b-instant always free
+            agent="context_compressor",  # → groq/llama-3.1-8b-instant always free
             task_type="compression",
             estimated_tokens=int(len(content.split()) * 1.33) + 50,
             subscription_tier="free",
             budget_used=0.0,
-            budget_total=999.0,             # no budget constraint for compression
+            budget_total=999.0,  # no budget constraint for compression
         )
 
         response = await adapter.ainvoke(

@@ -11,11 +11,14 @@ async def test():
         r = await client.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-            json={"model": "llama-3.3-70b-versatile",
-                  "messages": [{"role": "user", "content": "say hi"}],
-                  "max_tokens": 10}
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": "say hi"}],
+                "max_tokens": 10,
+            },
         )
         print("Status:", r.status_code)
         print("Body:", r.text[:500])
+
 
 asyncio.run(test())

@@ -46,6 +46,4 @@ MCP_TOOL_TIMEOUT_SECONDS: int = 300
 # Database — PostgreSQL everywhere (local Docker postgres:16)
 # SQLite is used only by LangGraph HITL checkpointing internally
 # ---------------------------------------------------------------------------
-LOCAL_DB_URL: str = (
-    "postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc"
-)
+LOCAL_DB_URL: str = "postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc"

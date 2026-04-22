@@ -13,6 +13,7 @@ def _build_monitor_state(
     project_id: str, deployment_url: str, human_confirmation: str
 ) -> dict[str, object]:
     import uuid
+
     return {
         "user_prompt": f"Setup monitoring for {deployment_url}",
         "mcp_session_id": project_id,
@@ -23,7 +24,9 @@ def _build_monitor_state(
         "interpret_log": [],
         "trace_id": str(uuid.uuid4()),
         "mode": "mcp",
-        "prd": "", "adr": "", "rfc": "",
+        "prd": "",
+        "adr": "",
+        "rfc": "",
         "service_graph": {"services": []},
         "deployment_url": deployment_url or None,
         "monitoring_config": None,
@@ -70,7 +73,9 @@ def _build_monitor_infrastructure() -> tuple:
     estimator = TokenEstimator()
     compressor = ContextCompressor()
     cwm = ContextWindowManager(
-        estimator=estimator, compressor=compressor, specs=AGENT_CONTEXT_SPECS,
+        estimator=estimator,
+        compressor=compressor,
+        specs=AGENT_CONTEXT_SPECS,
     )
     l1 = PipelineHistoryStore()
     l2 = OrgMemory()
@@ -84,16 +89,27 @@ def _build_monitor_infrastructure() -> tuple:
     diff_engine = DiffEngine()
 
     return (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     )
 
 
 def _build_monitor_agent(infra: tuple) -> object:
     from agents.agent_9_monitoring import MonitoringAgent
+
     (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
     return MonitoringAgent(
         name="agent_9_monitor",
@@ -138,6 +154,7 @@ async def setup_monitoring(
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": f"monitor-{project_id}"}}
         existing = checkpointer.get(config)
@@ -163,9 +180,7 @@ async def setup_monitoring(
         return {
             "status": "awaiting_confirmation",
             "stage": "monitoring_setup",
-            "interpretation": (
-                state["interpret_log"][-1] if state.get("interpret_log") else {}
-            ),
+            "interpretation": (state["interpret_log"][-1] if state.get("interpret_log") else {}),
             "displayed_interpretation": state.get("displayed_interpretation", ""),
             "project_id": project_id,
             "instructions": (

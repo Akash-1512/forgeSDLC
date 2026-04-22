@@ -13,6 +13,7 @@ def _build_security_state(
     project_id: str, workspace_path: str, human_confirmation: str
 ) -> dict[str, object]:
     import uuid
+
     return {
         "user_prompt": f"Security scan for project {project_id}",
         "mcp_session_id": project_id,
@@ -86,8 +87,13 @@ def _build_security_infrastructure() -> tuple:
     diff_engine = DiffEngine()
 
     return (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     )
 
 
@@ -95,8 +101,13 @@ def _build_security_agent(infra: tuple, workspace_path: str) -> object:
     from agents.agent_5b_security import SecurityAgent
 
     (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
 
     # Pre-initialise workspace bridge to the scan path
@@ -162,6 +173,7 @@ async def run_security_scan(
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": f"security-{project_id}"}}
         existing = checkpointer.get(config)
@@ -193,13 +205,10 @@ async def run_security_scan(
         return {
             "status": "awaiting_confirmation",
             "project_id": project_id,
-            "interpretation": (
-                state["interpret_log"][-1] if state.get("interpret_log") else {}
-            ),
+            "interpretation": (state["interpret_log"][-1] if state.get("interpret_log") else {}),
             "displayed_interpretation": state.get("displayed_interpretation", ""),
             "instructions": (
-                "Review the security scan plan. "
-                "Pass human_confirmation='100% GO' to run all tools."
+                "Review the security scan plan. Pass human_confirmation='100% GO' to run all tools."
             ),
         }
 

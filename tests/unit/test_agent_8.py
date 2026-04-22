@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -52,8 +53,13 @@ def _base_state(
         "human_corrections": [],
         "interpret_log": [],
         "interpret_round": 0,
-        "prd": "", "adr": "", "rfc": "",
-        "security_gate": {"blocked": gate_blocked, "reason": "2 HIGH findings" if gate_blocked else None},
+        "prd": "",
+        "adr": "",
+        "rfc": "",
+        "security_gate": {
+            "blocked": gate_blocked,
+            "reason": "2 HIGH findings" if gate_blocked else None,
+        },
         "budget_used_usd": 0.0,
         "budget_remaining_usd": 999.0,
         "subscription_tier": "free",
@@ -81,7 +87,7 @@ async def test_agent_8_security_pre_check_does_not_call_super_when_blocked() -> 
     state = _base_state(gate_blocked=True)
 
     super_called = []
-    original_super_run = DeployAgent.__bases__[0].run  # BaseAgent.run
+    DeployAgent.__bases__[0].run  # BaseAgent.run
 
     async def spy_super(*args: object, **kwargs: object) -> object:
         super_called.append(True)
@@ -108,7 +114,9 @@ async def test_agent_8_interpret_always_contains_cold_start_warning() -> None:
     """Cold start warning must appear regardless of tier or deployment target."""
     agent = _make_agent_8()
     # Test free tier (no RENDER_DEPLOY_HOOK_URL)
-    env = {k: v for k, v in os.environ.items() if k not in ("RENDER_DEPLOY_HOOK_URL", "RENDER_TIER")}
+    env = {
+        k: v for k, v in os.environ.items() if k not in ("RENDER_DEPLOY_HOOK_URL", "RENDER_TIER")
+    }
     with patch.dict(os.environ, env, clear=True):
         state = _base_state(human_confirmation="")
         result = await agent.run(state)
@@ -119,10 +127,13 @@ async def test_agent_8_interpret_always_contains_cold_start_warning() -> None:
 @pytest.mark.asyncio
 async def test_agent_8_interpret_cold_start_warning_free_tier() -> None:
     agent = _make_agent_8()
-    with patch.dict(os.environ, {
-        "RENDER_DEPLOY_HOOK_URL": "https://hook.render.com/test",
-        "RENDER_TIER": "free",
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "RENDER_DEPLOY_HOOK_URL": "https://hook.render.com/test",
+            "RENDER_TIER": "free",
+        },
+    ):
         state = _base_state(human_confirmation="")
         result = await agent.run(state)
     action = result["interpret_log"][0]["action"]
@@ -132,10 +143,13 @@ async def test_agent_8_interpret_cold_start_warning_free_tier() -> None:
 @pytest.mark.asyncio
 async def test_agent_8_interpret_cold_start_warning_paid_tier() -> None:
     agent = _make_agent_8()
-    with patch.dict(os.environ, {
-        "RENDER_DEPLOY_HOOK_URL": "https://hook.render.com/test",
-        "RENDER_TIER": "starter",
-    }):
+    with patch.dict(
+        os.environ,
+        {
+            "RENDER_DEPLOY_HOOK_URL": "https://hook.render.com/test",
+            "RENDER_TIER": "starter",
+        },
+    ):
         state = _base_state(human_confirmation="")
         result = await agent.run(state)
     action = result["interpret_log"][0]["action"]
@@ -166,6 +180,7 @@ def test_agent_8_dockerfile_contains_healthcheck() -> None:
 @pytest.mark.asyncio
 async def test_agent_8_writes_post_mortem_on_deployment_failure() -> None:
     from memory.post_mortem_records import PostMortemStore
+
     agent = _make_agent_8()
 
     with (
@@ -178,9 +193,7 @@ async def test_agent_8_writes_post_mortem_on_deployment_failure() -> None:
         mock_render_cls.return_value = mock_render
 
         state = _base_state(human_confirmation="100% GO")
-        try:
+        with contextlib.suppress(Exception):
             await agent.run(state)
-        except Exception:
-            pass
 
         mock_save.assert_called_once()

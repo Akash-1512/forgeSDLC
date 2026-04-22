@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 import structlog
 
@@ -13,11 +13,11 @@ from orchestrator.constants import (
 logger = structlog.get_logger()
 
 
-class BudgetStatus(str, Enum):
-    OK       = "ok"        # < 50% — all clear
-    WARN     = "warn"      # ≥ 50% — yellow in status bar
+class BudgetStatus(StrEnum):
+    OK = "ok"  # < 50% — all clear
+    WARN = "warn"  # ≥ 50% — yellow in status bar
     OPTIMISE = "optimise"  # ≥ 80% — orange + ModelRouter auto-downgrade trigger
-    ALERT    = "alert"     # ≥ 90% — red + confirm before calls > $0.01
+    ALERT = "alert"  # ≥ 90% — red + confirm before calls > $0.01
 
 
 class BudgetMonitor:
@@ -30,9 +30,7 @@ class BudgetMonitor:
     All thresholds imported from constants.py — zero magic numbers here.
     """
 
-    async def check(
-        self, budget_used: float, budget_total: float
-    ) -> BudgetStatus:
+    async def check(self, budget_used: float, budget_total: float) -> BudgetStatus:
         """Return the current budget status based on spend ratio."""
         if budget_total <= 0:
             # Free tier or unset — no spend tracking needed
@@ -66,9 +64,7 @@ class BudgetMonitor:
 
         return BudgetStatus.OK
 
-    async def should_auto_downgrade(
-        self, budget_used: float, budget_total: float
-    ) -> bool:
+    async def should_auto_downgrade(self, budget_used: float, budget_total: float) -> bool:
         """True when ModelRouter should substitute expensive models automatically."""
         status = await self.check(budget_used, budget_total)
         return status in (BudgetStatus.OPTIMISE, BudgetStatus.ALERT)

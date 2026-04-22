@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -98,16 +98,23 @@ class ModelRouter:
                 fallback="groq/llama-3.3-70b-versatile",
             )
             from model_router.adapters.groq_adapter import GroqAdapter  # noqa: PLC0415
+
             return GroqAdapter(model="groq/llama-3.3-70b-versatile")
 
         # Step 7: Claude BYOK gate
         if default_model in ALWAYS_BYOK_MODELS:
             if not self._byok_manager.has_key("anthropic"):
-                from model_router.adapters.claude_adapter import ClaudeNotConfiguredError  # noqa: PLC0415
+                from model_router.adapters.claude_adapter import (
+                    ClaudeNotConfiguredError,  # noqa: PLC0415
+                )
+
                 raise ClaudeNotConfiguredError(
                     "Claude requires BYOK. Configure your Anthropic API key in Settings → API Keys."
                 )
-            from model_router.adapters.claude_adapter import ClaudeAdapter  # noqa: PLC0415
+            from model_router.adapters.claude_adapter import (
+                ClaudeAdapter,  # noqa: PLC0415
+            )
+
             return ClaudeAdapter(byok_manager=self._byok_manager, model=default_model)
 
         # Step 8: Normal per-agent selection
@@ -139,7 +146,7 @@ class ModelRouter:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.model_router",

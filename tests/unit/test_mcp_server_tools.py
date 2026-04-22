@@ -25,12 +25,14 @@ def _assert_valid_stub(result: dict[str, object], tool: str) -> None:
 
 def test_server_instantiates_without_error() -> None:
     from mcp_server.server import mcp
+
     assert mcp.name == "forgesdlc"
 
 
 @pytest.mark.asyncio
 async def test_gather_requirements_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
     with patch("mcp_server.tools.requirements_tool._build_infrastructure"):
@@ -63,8 +65,7 @@ async def test_gather_requirements_stub_returns_valid_dict() -> None:
             mock_build.return_value = (mock_a0, mock_a1, mock_a2)
 
             result = await gather_requirements(
-                prompt="build an API", project_id="p1",
-                ctx=mock_ctx, human_confirmation="100% GO"
+                prompt="build an API", project_id="p1", ctx=mock_ctx, human_confirmation="100% GO"
             )
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation")
@@ -74,14 +75,20 @@ async def test_gather_requirements_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_design_architecture_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
     with (
         patch(
             "mcp_server.tools.architecture_tool._build_arch_infrastructure",
             return_value=(
-                MagicMock(), MagicMock(), MagicMock(),
-                MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
             ),
         ),
         patch(
@@ -89,19 +96,26 @@ async def test_design_architecture_stub_returns_valid_dict() -> None:
         ) as mock_build,
     ):
         from agents.agent_3_architecture import ArchitectureAgent
+
         mock_agent = MagicMock(spec=ArchitectureAgent)
 
         async def fake_run(state: dict) -> dict:
             state["arch_validation"] = {
                 "gate_blocked": False,
                 "anti_pattern_result": {
-                    "high_count": 0, "medium_count": 0,
-                    "all_clear": True, "findings": [],
+                    "high_count": 0,
+                    "medium_count": 0,
+                    "all_clear": True,
+                    "findings": [],
                 },
                 "nfr_checks": [],
                 "architecture_score": {
-                    "scalability": 1, "reliability": 1, "security": 1,
-                    "maintainability": 1, "cost": 1, "overall": 1.0,
+                    "scalability": 1,
+                    "reliability": 1,
+                    "security": 1,
+                    "maintainability": 1,
+                    "cost": 1,
+                    "overall": 1.0,
                 },
             }
             state["rfc"] = "# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```"
@@ -111,7 +125,9 @@ async def test_design_architecture_stub_returns_valid_dict() -> None:
         mock_agent.run = AsyncMock(side_effect=fake_run)
         mock_build.return_value = mock_agent
         result = await design_architecture(
-            requirements="some requirements", project_id="p1", ctx=mock_ctx,
+            requirements="some requirements",
+            project_id="p1",
+            ctx=mock_ctx,
             human_confirmation="100% GO",
         )
     assert isinstance(result, dict)
@@ -122,6 +138,7 @@ async def test_design_architecture_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_recall_context_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     from memory.memory_context_builder import MemoryContext
 
     mock_ctx = MagicMock()
@@ -150,6 +167,7 @@ async def test_recall_context_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_save_decision_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
     with patch("mcp_server.tools.memory_tool.OrgMemory") as mock_org:
@@ -170,8 +188,14 @@ async def test_route_code_generation_stub_returns_valid_dict() -> None:
     mock_ctx.report_progress = AsyncMock()
 
     infra_tuple = (
-        MagicMock(), MagicMock(), MagicMock(),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
     )
 
     async def fake_a4_run(state: dict) -> dict:
@@ -197,6 +221,7 @@ async def test_route_code_generation_stub_returns_valid_dict() -> None:
     ):
         from agents.agent_4_tool_router import ToolRouterAgent
         from agents.agent_5_coord_review import CoordinatedReview
+
         mock_a4 = MagicMock(spec=ToolRouterAgent)
         mock_a4.run = AsyncMock(side_effect=fake_a4_run)
         mock_a5 = MagicMock(spec=CoordinatedReview)
@@ -204,8 +229,10 @@ async def test_route_code_generation_stub_returns_valid_dict() -> None:
         mock_build.return_value = (mock_a4, mock_a5)
 
         result = await route_code_generation(
-            task="build something", project_id="p1",
-            ctx=mock_ctx, human_confirmation="100% GO",
+            task="build something",
+            project_id="p1",
+            ctx=mock_ctx,
+            human_confirmation="100% GO",
         )
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
@@ -215,19 +242,28 @@ async def test_route_code_generation_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_run_security_scan_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
 
     infra_tuple = (
-        MagicMock(), MagicMock(), MagicMock(),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
     )
 
     async def fake_run(state: dict) -> dict:
         state["security_findings"] = {
-            "bandit_findings": [], "semgrep_findings": [],
-            "pip_audit_findings": [], "dast_findings": [],
-            "detect_secrets_findings": [], "threat_model_path": None,
+            "bandit_findings": [],
+            "semgrep_findings": [],
+            "pip_audit_findings": [],
+            "dast_findings": [],
+            "detect_secrets_findings": [],
+            "threat_model_path": None,
             "gate_blocked": False,
         }
         state["security_gate"] = {"blocked": False, "reason": None}
@@ -244,13 +280,16 @@ async def test_run_security_scan_stub_returns_valid_dict() -> None:
         ) as mock_build,
     ):
         from agents.agent_5b_security import SecurityAgent
+
         mock_agent = MagicMock(spec=SecurityAgent)
         mock_agent.run = AsyncMock(side_effect=fake_run)
         mock_build.return_value = mock_agent
 
         result = await run_security_scan(
-            project_id="p1", target_path="./src",
-            ctx=mock_ctx, human_confirmation="100% GO",
+            project_id="p1",
+            target_path="./src",
+            ctx=mock_ctx,
+            human_confirmation="100% GO",
         )
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation")
@@ -260,12 +299,19 @@ async def test_run_security_scan_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_generate_cicd_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
 
     infra_tuple = (
-        MagicMock(), MagicMock(), MagicMock(),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
     )
 
     async def fake_a6_run(state: dict) -> dict:
@@ -293,6 +339,7 @@ async def test_generate_cicd_stub_returns_valid_dict() -> None:
     ):
         from agents.agent_6_test_coordinator import TestCoordinatorAgent
         from agents.agent_7_cicd import CICDAgent
+
         mock_a6 = MagicMock(spec=TestCoordinatorAgent)
         mock_a6.run = AsyncMock(side_effect=fake_a6_run)
         mock_a7 = MagicMock(spec=CICDAgent)
@@ -300,8 +347,10 @@ async def test_generate_cicd_stub_returns_valid_dict() -> None:
         mock_build.return_value = (mock_a6, mock_a7)
 
         result = await generate_cicd(
-            project_id="p1", stack="fastapi",
-            ctx=mock_ctx, human_confirmation="100% GO",
+            project_id="p1",
+            stack="fastapi",
+            ctx=mock_ctx,
+            human_confirmation="100% GO",
         )
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
@@ -311,12 +360,18 @@ async def test_generate_cicd_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_deploy_project_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
 
     infra_tuple = (
-        MagicMock(), MagicMock(), MagicMock(),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
     )
 
     async def fake_run(state: dict) -> dict:
@@ -333,12 +388,15 @@ async def test_deploy_project_stub_returns_valid_dict() -> None:
         patch("mcp_server.tools.deploy_tool._build_deploy_agent") as mock_build,
     ):
         from agents.agent_8_deploy import DeployAgent
+
         mock_agent = MagicMock(spec=DeployAgent)
         mock_agent.run = AsyncMock(side_effect=fake_run)
         mock_build.return_value = mock_agent
         result = await deploy_project(
-            project_id="p1", environment="staging",
-            ctx=mock_ctx, human_confirmation="100% GO",
+            project_id="p1",
+            environment="staging",
+            ctx=mock_ctx,
+            human_confirmation="100% GO",
         )
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation", "blocked")
@@ -348,12 +406,18 @@ async def test_deploy_project_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_setup_monitoring_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
 
     infra_tuple = (
-        MagicMock(), MagicMock(), MagicMock(),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
     )
 
     async def fake_run(state: dict) -> dict:
@@ -373,6 +437,7 @@ async def test_setup_monitoring_stub_returns_valid_dict() -> None:
         patch("mcp_server.tools.monitor_tool._build_monitor_agent") as mock_build,
     ):
         from agents.agent_9_monitoring import MonitoringAgent
+
         mock_agent = MagicMock(spec=MonitoringAgent)
         mock_agent.run = AsyncMock(side_effect=fake_run)
         mock_build.return_value = mock_agent
@@ -390,12 +455,18 @@ async def test_setup_monitoring_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_generate_docs_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
 
     infra_tuple = (
-        MagicMock(), MagicMock(), MagicMock(),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
     )
 
     async def fake_run(state: dict) -> dict:
@@ -411,13 +482,16 @@ async def test_generate_docs_stub_returns_valid_dict() -> None:
         patch("mcp_server.tools.docs_tool._build_docs_agent") as mock_build,
     ):
         from agents.agent_10_docs import DocsAgent
+
         mock_agent = MagicMock(spec=DocsAgent)
         mock_agent.run = AsyncMock(side_effect=fake_run)
         mock_build.return_value = mock_agent
 
         result = await generate_docs(
-            project_id="p1", scope="full",
-            ctx=mock_ctx, human_confirmation="100% GO",
+            project_id="p1",
+            scope="full",
+            ctx=mock_ctx,
+            human_confirmation="100% GO",
         )
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation")

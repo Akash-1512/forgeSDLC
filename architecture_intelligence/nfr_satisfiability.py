@@ -14,7 +14,7 @@ class NFRCheck(BaseModel):
 
     nfr: str
     satisfied: bool
-    evidence: str | None        # RFC keyword that satisfies the NFR
+    evidence: str | None  # RFC keyword that satisfies the NFR
     failure_reason: str | None
 
 
@@ -31,35 +31,53 @@ class NFRSatisfiabilityChecker:
         {
             "signals": ["99.9%", "99.9 %", "three nines", "high availability"],
             "required_keywords": [
-                "multi-az", "replica", "load balancer", "failover", "redundancy",
+                "multi-az",
+                "replica",
+                "load balancer",
+                "failover",
+                "redundancy",
             ],
             "failure": "99.9% uptime requires replica/multi-AZ/load balancer in RFC",
         },
         {
             "signals": ["< 200ms", "200 ms", "low latency", "p95"],
             "required_keywords": [
-                "cache", "cdn", "async", "index", "connection pool",
+                "cache",
+                "cdn",
+                "async",
+                "index",
+                "connection pool",
             ],
             "failure": "Sub-200ms latency requires caching/CDN/async in RFC",
         },
         {
             "signals": ["10,000 concurrent", "10000 concurrent", "high concurrency"],
             "required_keywords": [
-                "horizontal scaling", "auto-scaling", "queue", "load balancer",
+                "horizontal scaling",
+                "auto-scaling",
+                "queue",
+                "load balancer",
             ],
             "failure": "High concurrency requires horizontal scaling/queue in RFC",
         },
         {
             "signals": ["gdpr", "data protection", "right to erasure"],
             "required_keywords": [
-                "encrypt", "deletion", "anonymi", "data retention", "gdpr",
+                "encrypt",
+                "deletion",
+                "anonymi",
+                "data retention",
+                "gdpr",
             ],
             "failure": "GDPR requires encryption + deletion mechanism in RFC",
         },
         {
             "signals": ["hipaa", "phi", "health data"],
             "required_keywords": [
-                "audit log", "access control", "encrypt", "hipaa",
+                "audit log",
+                "access control",
+                "encrypt",
+                "hipaa",
             ],
             "failure": "HIPAA requires audit log + access control in RFC",
         },

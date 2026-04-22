@@ -2,9 +2,10 @@
 Verifies that memory persists across store reinstantiation (simulates server restart).
 Core value proposition: decisions saved in one pipeline run are retrievable in the next.
 """
+
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
@@ -15,6 +16,7 @@ from memory.schemas import OrgMemoryEntry
 
 def _postgres_available() -> bool:
     import socket
+
     try:
         with socket.create_connection(("localhost", 5432), timeout=1):
             return True
@@ -45,7 +47,7 @@ async def test_decision_survives_orgmemory_reinstantiation() -> None:
         ),
         category="architecture",
         source_run_id="test-run-1",
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     # Instance 1: save decision
@@ -54,9 +56,7 @@ async def test_decision_survives_orgmemory_reinstantiation() -> None:
 
     # Instance 2: new instantiation (simulates process restart / new tool session)
     org2 = OrgMemory()
-    results = await org2.search(
-        "PostgreSQL database decision", project_id, limit=5
-    )
+    results = await org2.search("PostgreSQL database decision", project_id, limit=5)
 
     assert len(results) > 0, (
         "No results returned after OrgMemory reinstantiation. "
@@ -82,7 +82,7 @@ async def test_architecture_decision_retrievable_by_different_query() -> None:
         ),
         category="architecture",
         source_run_id="test-run-semantic",
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
     org1 = OrgMemory()
@@ -90,14 +90,10 @@ async def test_architecture_decision_retrievable_by_different_query() -> None:
 
     # Different query wording — semantic search should still find it
     org2 = OrgMemory()
-    results = await org2.search(
-        "web framework selection backend API", project_id, limit=5
-    )
+    results = await org2.search("web framework selection backend API", project_id, limit=5)
 
     # Semantic search may or may not match — verify at least no crash
-    assert isinstance(results, list), (
-        "search() must return a list, even if empty"
-    )
+    assert isinstance(results, list), "search() must return a list, even if empty"
 
 
 @pytest.mark.asyncio
@@ -112,7 +108,7 @@ async def test_pipeline_history_survives_store_reinstantiation(
     project_id = f"test-hist-{uuid4().hex[:8]}"
     record = PipelineRunRecord(
         run_id=str(uuid4()),
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
         project_id=project_id,
         user_prompt="Build a REST API with FastAPI",
         stack_chosen="FastAPI + PostgreSQL",
@@ -150,14 +146,16 @@ async def test_project_context_graph_survives_reinstantiation(
     graph = ProjectContextGraph(
         project_id=project_id,
         repo_url=None,
-        services=[ServiceNode(
-            name="api",
-            responsibility="REST endpoints",
-            exposes=["GET /users", "POST /users"],
-            depends_on=["db"],
-            owns_data=False,
-            database=None,
-        )],
+        services=[
+            ServiceNode(
+                name="api",
+                responsibility="REST endpoints",
+                exposes=["GET /users", "POST /users"],
+                depends_on=["db"],
+                owns_data=False,
+                database=None,
+            )
+        ],
         api_contracts=["docs/openapi.yaml"],
         architectural_decisions=["Use FastAPI"],
         dependencies=["fastapi", "asyncpg"],
@@ -165,7 +163,7 @@ async def test_project_context_graph_survives_reinstantiation(
         deployment_config={"target": "render"},
         slo_definitions=["99.9% uptime"],
         workspace_path=str(tmp_path),
-        last_updated=datetime.now(tz=timezone.utc),
+        last_updated=datetime.now(tz=UTC),
     )
 
     store1 = ProjectContextGraphStore()
@@ -174,9 +172,7 @@ async def test_project_context_graph_survives_reinstantiation(
     store2 = ProjectContextGraphStore()
     result = await store2.load_graph(project_id)
 
-    assert result is not None, (
-        "ProjectContextGraph not found after store reinstantiation."
-    )
+    assert result is not None, "ProjectContextGraph not found after store reinstantiation."
     assert result.project_id == project_id
     assert len(result.services) == 1
     assert result.services[0].name == "api"

@@ -55,11 +55,11 @@ def execute_node(confirmation: str, fn: object, *args: object) -> object:
     """
     if not check_gate(confirmation):
         raise GateNotPassedError(
-            f"execute_node blocked — gate phrase not matched. "
-            f"Received: {confirmation!r}"
+            f"execute_node blocked — gate phrase not matched. Received: {confirmation!r}"
         )
     logger.info("execute_node — gate passed, executing")
     # TODO: replace cast with proper callable protocol in Session 09
     import collections.abc  # noqa: PLC0415
+
     assert isinstance(fn, collections.abc.Callable)  # noqa: S101
     return fn(*args)

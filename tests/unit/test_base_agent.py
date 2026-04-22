@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from datetime import UTC, datetime
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -22,7 +22,7 @@ def _make_interpret_record(action: str = "test action") -> InterpretRecord:
         tool_delegated_to=None,
         reversible=True,
         workspace_files_affected=[],
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
 
@@ -56,13 +56,12 @@ def _make_agent(interpretation_action: str = "test interpret action") -> object:
     mock_cfm.write_all = AsyncMock(return_value=["AGENTS.md"])
 
     mock_workspace = MagicMock()
-    mock_workspace.get_context = AsyncMock(
-        return_value=MagicMock(root_path=".")
-    )
+    mock_workspace.get_context = AsyncMock(return_value=MagicMock(root_path="."))
 
     mock_diff = MagicMock()
 
     from model_router.router import ModelRouter
+
     mock_model_router = MagicMock(spec=ModelRouter)
 
     return ConcreteAgent(

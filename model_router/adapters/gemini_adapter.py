@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import structlog
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
@@ -55,9 +55,7 @@ class GeminiAdapter:
             for m in messages
             if m.type != "system"
         ]
-        system_text = " ".join(
-            str(m.content) for m in messages if m.type == "system"
-        )
+        system_text = " ".join(str(m.content) for m in messages if m.type == "system")
         payload: dict[str, object] = {
             "contents": contents,
             "generationConfig": {
@@ -70,8 +68,7 @@ class GeminiAdapter:
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(
-                f"{_GEMINI_BASE_URL}/models/{self._model}:generateContent"
-                f"?key={self._api_key}",
+                f"{_GEMINI_BASE_URL}/models/{self._model}:generateContent?key={self._api_key}",
                 json=payload,
             )
             response.raise_for_status()
@@ -93,8 +90,10 @@ class GeminiAdapter:
         temperature: float = 0.0,
     ) -> AsyncIterator[AIMessageChunk]:
         response = await self.ainvoke(messages, max_tokens=max_tokens, temperature=temperature)
+
         async def _gen() -> AsyncIterator[AIMessageChunk]:
             yield AIMessageChunk(content=str(response.content))
+
         return _gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:

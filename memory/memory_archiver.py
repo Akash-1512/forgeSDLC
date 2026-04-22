@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
@@ -61,7 +61,7 @@ class MemoryArchiver:
     async def _archive_layer1(self, state: SDLCState) -> None:
         record = PipelineRunRecord(
             run_id=str(uuid4()),
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             project_id=state.get("mcp_session_id") or "default",
             user_prompt=state.get("user_prompt") or "",
             stack_chosen=state.get("adr") or None,
@@ -71,9 +71,7 @@ class MemoryArchiver:
             human_corrections=state.get("human_corrections") or [],
             lessons_learned=[],
             tool_delegated_to=state.get("tool_delegated_to"),
-            workspace_path=str(
-                (state.get("workspace_context") or {}).get("path", ".")
-            ),
+            workspace_path=str((state.get("workspace_context") or {}).get("path", ".")),
         )
         await self.l1.save_run(record)  # l1 emits InterpretRecord before write
         logger.info("memory_archiver.layer1_archived", run_id=record.run_id)
@@ -91,9 +89,11 @@ class MemoryArchiver:
         run_id = str(uuid4())
 
         try:
-            from langchain_core.messages import HumanMessage  # noqa: PLC0415
-            from model_router.router import ModelRouter  # noqa: PLC0415
             import json  # noqa: PLC0415
+
+            from langchain_core.messages import HumanMessage  # noqa: PLC0415
+
+            from model_router.router import ModelRouter  # noqa: PLC0415
 
             router = ModelRouter()
             adapter = await router.route(
@@ -143,7 +143,7 @@ class MemoryArchiver:
                     content=content,
                     category=category,  # type: ignore[arg-type]
                     source_run_id=run_id,
-                    timestamp=datetime.now(tz=timezone.utc),
+                    timestamp=datetime.now(tz=UTC),
                 )
                 await self.l2.upsert(entry)
 
@@ -168,7 +168,7 @@ class MemoryArchiver:
             security = state.get("security_findings") or {}
             if isinstance(security, dict) and security.get("high_count", 0) > 0:
                 facts.append(f"SECURITY: {security['high_count']} HIGH findings in this run")
-            for correction in (state.get("human_corrections") or []):
+            for correction in state.get("human_corrections") or []:
                 if correction:
                     facts.append(f"CORRECTION: {str(correction)[:150]}")
             for fact in facts[:5]:
@@ -178,7 +178,7 @@ class MemoryArchiver:
                     content=fact,
                     category=self._classify_fact(fact),  # type: ignore[arg-type]
                     source_run_id=run_id,
-                    timestamp=datetime.now(tz=timezone.utc),
+                    timestamp=datetime.now(tz=UTC),
                 )
                 await self.l2.upsert(entry)
         facts: list[str] = []
@@ -193,11 +193,9 @@ class MemoryArchiver:
 
         security = state.get("security_findings") or {}
         if isinstance(security, dict) and security.get("high_count", 0) > 0:
-            facts.append(
-                f"SECURITY: {security['high_count']} HIGH findings in this run"
-            )
+            facts.append(f"SECURITY: {security['high_count']} HIGH findings in this run")
 
-        for correction in (state.get("human_corrections") or []):
+        for correction in state.get("human_corrections") or []:
             if correction:
                 facts.append(f"CORRECTION: {correction[:150]}")
 
@@ -208,7 +206,7 @@ class MemoryArchiver:
                 content=fact,
                 category=self._classify_fact(fact),  # type: ignore[arg-type]
                 source_run_id=run_id,
-                timestamp=datetime.now(tz=timezone.utc),
+                timestamp=datetime.now(tz=UTC),
             )
             await self.l2.upsert(entry)  # l2 emits InterpretRecord before write
 
@@ -224,7 +222,9 @@ class MemoryArchiver:
         """Update project graph if workspace context contains graph data."""
         graph_data = (state.get("workspace_context") or {}).get("project_graph")
         if graph_data is None:
-            logger.info("memory_archiver.layer3_skipped", reason="no project_graph in workspace_context")
+            logger.info(
+                "memory_archiver.layer3_skipped", reason="no project_graph in workspace_context"
+            )
             return
         # l3 emits InterpretRecord before write
         await self.l3.save_graph(graph_data)
@@ -257,7 +257,7 @@ class MemoryArchiver:
             prevention_rule=state.get("failure_prevention") or "none",
             stack_context=state.get("adr") or "",
             tool_involved=state.get("tool_delegated_to"),
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         await self.l5.save_post_mortem(pm)  # l5 emits InterpretRecord before write
         logger.info(
@@ -293,7 +293,7 @@ class MemoryArchiver:
             tool_delegated_to=None,
             reversible=False,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

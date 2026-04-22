@@ -29,12 +29,8 @@ class CopilotInstructionsWriter:
     ) -> Path:
         decisions = key_decisions or []
         rules = security_rules or []
-        decisions_bullets = (
-            "\n".join(f"- {d}" for d in decisions) if decisions else "- None yet"
-        )
-        security_bullets = (
-            "\n".join(f"- {r}" for r in rules) if rules else "- None yet"
-        )
+        decisions_bullets = "\n".join(f"- {d}" for d in decisions) if decisions else "- None yet"
+        security_bullets = "\n".join(f"- {r}" for r in rules) if rules else "- None yet"
 
         content = f"""# GitHub Copilot Instructions
 # Project: {project_id} | Phase: {current_phase}

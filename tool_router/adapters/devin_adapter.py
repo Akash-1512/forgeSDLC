@@ -5,7 +5,6 @@ import os
 import httpx
 import structlog
 
-from orchestrator.constants import HEALTH_CHECK_TIMEOUT_SECONDS
 from tool_router.context import AvailableTool, ToolResult
 
 logger = structlog.get_logger()
@@ -20,9 +19,7 @@ class DevinAdapter:
     Emits structured logs for every request.
     """
 
-    async def generate(
-        self, task: str, context: str, workspace_path: str
-    ) -> ToolResult:
+    async def generate(self, task: str, context: str, workspace_path: str) -> ToolResult:
         api_key = os.getenv("DEVIN_API_KEY")
         if not api_key:
             return ToolResult(

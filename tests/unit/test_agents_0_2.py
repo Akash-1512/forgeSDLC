@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
-from interpret.record import InterpretRecord
 
 
 def _make_base_kwargs() -> dict:
@@ -29,9 +26,7 @@ def _make_base_kwargs() -> dict:
     mock_cfm.write_all = AsyncMock(return_value=["AGENTS.md"])
 
     mock_workspace = MagicMock()
-    mock_workspace.get_context = AsyncMock(
-        return_value=MagicMock(root_path=".")
-    )
+    mock_workspace.get_context = AsyncMock(return_value=MagicMock(root_path="."))
 
     mock_diff = MagicMock()
     mock_diff.generate_diff = AsyncMock(
@@ -61,6 +56,7 @@ def _mock_adapter(content: str) -> object:
 @pytest.mark.asyncio
 async def test_agent_0_sets_service_graph_in_state() -> None:
     from agents.agent_0_decompose import ServiceDecompositionAgent
+
     kwargs = _make_base_kwargs()
     kwargs["model_router"].route = AsyncMock(
         return_value=_mock_adapter(
@@ -88,6 +84,7 @@ async def test_agent_0_sets_service_graph_in_state() -> None:
 @pytest.mark.asyncio
 async def test_agent_0_interpret_contains_architecture_type() -> None:
     from agents.agent_0_decompose import ServiceDecompositionAgent
+
     kwargs = _make_base_kwargs()
     kwargs["model_router"].route = AsyncMock(
         return_value=_mock_adapter(
@@ -117,6 +114,7 @@ async def test_agent_0_interpret_contains_architecture_type() -> None:
 @pytest.mark.asyncio
 async def test_agent_1_sets_prd_in_state() -> None:
     from agents.agent_1_requirements import RequirementsAgent
+
     kwargs = _make_base_kwargs()
     prd_content = (
         "# My App PRD\n"
@@ -127,9 +125,7 @@ async def test_agent_1_sets_prd_in_state() -> None:
         "## Out of Scope\nMobile app.\n"
         "## Assumptions and Risks\nInternet required.\n"
     )
-    kwargs["model_router"].route = AsyncMock(
-        return_value=_mock_adapter(prd_content)
-    )
+    kwargs["model_router"].route = AsyncMock(return_value=_mock_adapter(prd_content))
     agent = RequirementsAgent(name="agent_1_requirements", **kwargs)
     state: dict = {
         "user_prompt": "build a login system",
@@ -166,6 +162,7 @@ def test_agent_1_prd_contains_non_functional_requirements_section() -> None:
 @pytest.mark.asyncio
 async def test_agent_1_writes_prd_md_via_diff_engine() -> None:
     from agents.agent_1_requirements import RequirementsAgent
+
     kwargs = _make_base_kwargs()
     kwargs["model_router"].route = AsyncMock(
         return_value=_mock_adapter("# PRD\n## User Stories\n...")
@@ -191,6 +188,7 @@ async def test_agent_1_writes_prd_md_via_diff_engine() -> None:
 @pytest.mark.asyncio
 async def test_agent_2_sets_adr_in_state() -> None:
     from agents.agent_2_stack import TechStackAgent
+
     kwargs = _make_base_kwargs()
     adr_content = (
         "# ADR-001: Technology Stack Selection\n"
@@ -199,9 +197,7 @@ async def test_agent_2_sets_adr_in_state() -> None:
         "- **Language**: Python\n"
         "- **Framework**: FastAPI\n"
     )
-    kwargs["model_router"].route = AsyncMock(
-        return_value=_mock_adapter(adr_content)
-    )
+    kwargs["model_router"].route = AsyncMock(return_value=_mock_adapter(adr_content))
     agent = TechStackAgent(name="agent_2_stack", **kwargs)
     state: dict = {
         "user_prompt": "build a REST API",

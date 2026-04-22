@@ -6,8 +6,6 @@ from pathlib import Path
 import structlog
 from fastmcp import Context
 
-from interpret.gate import check_gate
-
 logger = structlog.get_logger()
 
 
@@ -15,6 +13,7 @@ def _build_codegen_state(
     task: str, project_id: str, workspace_path: str, human_confirmation: str
 ) -> dict[str, object]:
     import uuid
+
     return {
         "user_prompt": task,
         "mcp_session_id": project_id,
@@ -97,8 +96,14 @@ def _build_codegen_infrastructure() -> tuple:
     diff_engine = DiffEngine()
 
     return (
-        model_router, tool_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        tool_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     )
 
 
@@ -107,8 +112,14 @@ def _build_codegen_agents(infra: tuple) -> tuple:
     from agents.agent_5_coord_review import CoordinatedReview
 
     (
-        model_router, tool_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        tool_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
 
     base_kwargs = {
@@ -165,6 +176,7 @@ async def route_code_generation(
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": f"codegen-{project_id}"}}
         existing = checkpointer.get(config)
@@ -198,8 +210,7 @@ async def route_code_generation(
                     "status": "awaiting_confirmation",
                     "stage": "code_generation",
                     "interpretation": (
-                        state["interpret_log"][-1]
-                        if state.get("interpret_log") else {}
+                        state["interpret_log"][-1] if state.get("interpret_log") else {}
                     ),
                     "displayed_interpretation": state.get("displayed_interpretation", ""),
                     "project_id": project_id,
@@ -228,14 +239,12 @@ async def route_code_generation(
                 "status": "awaiting_confirmation",
                 "stage": "code_review",
                 "interpretation": (
-                    state["interpret_log"][-1]
-                    if state.get("interpret_log") else {}
+                    state["interpret_log"][-1] if state.get("interpret_log") else {}
                 ),
                 "displayed_interpretation": state.get("displayed_interpretation", ""),
                 "project_id": project_id,
                 "instructions": (
-                    "Review the code quality report. "
-                    "Pass human_confirmation='100% GO' to accept."
+                    "Review the code quality report. Pass human_confirmation='100% GO' to accept."
                 ),
             }
 
@@ -274,11 +283,13 @@ async def route_code_generation(
         "generated_files": state.get("generated_files", []),
         "review_findings": state.get("review_findings", []),
         "blocking_count": sum(
-            1 for f in list(state.get("review_findings", []) or [])
+            1
+            for f in list(state.get("review_findings", []) or [])
             if f.get("severity") == "BLOCKING"
         ),
         "advisory_count": sum(
-            1 for f in list(state.get("review_findings", []) or [])
+            1
+            for f in list(state.get("review_findings", []) or [])
             if f.get("severity") == "ADVISORY"
         ),
     }

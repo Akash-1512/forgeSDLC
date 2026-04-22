@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 
 import structlog
@@ -31,14 +30,8 @@ class CursorrulesWriter:
     ) -> Path:
         decisions = key_decisions or []
         rules = security_rules or []
-        decisions_text = (
-            "\n".join(f"  - {d}" for d in decisions)
-            if decisions else "  - None yet"
-        )
-        security_text = (
-            "\n".join(f"  - {r}" for r in rules)
-            if rules else "  - None yet"
-        )
+        decisions_text = "\n".join(f"  - {d}" for d in decisions) if decisions else "  - None yet"
+        security_text = "\n".join(f"  - {r}" for r in rules) if rules else "  - None yet"
 
         content = f"""# forgeSDLC Cursor Rules
 # Project: {project_id} | Phase: {current_phase}

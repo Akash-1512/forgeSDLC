@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
-from architecture_intelligence.anti_pattern_detector import AntiPatternDetector
-from architecture_intelligence.architecture_scorer import ArchitectureScorer
-from architecture_intelligence.nfr_satisfiability import NFRSatisfiabilityChecker
 
 
 def _make_agent_3() -> object:
@@ -28,9 +23,7 @@ def _make_agent_3() -> object:
     mock_cfm.write_all = AsyncMock(return_value=["AGENTS.md"])
 
     mock_workspace = MagicMock()
-    mock_workspace.get_context = AsyncMock(
-        return_value=MagicMock(root_path=".")
-    )
+    mock_workspace.get_context = AsyncMock(return_value=MagicMock(root_path="."))
 
     mock_diff = MagicMock()
     mock_diff.generate_diff = AsyncMock(
@@ -73,6 +66,7 @@ def _base_state(human_confirmation: str = "") -> dict:
 
 def test_agent_3_hard_gate_is_true() -> None:
     from agents.agent_3_architecture import ArchitectureAgent
+
     assert ArchitectureAgent.hard_gate is True
 
 
@@ -82,14 +76,16 @@ async def test_agent_3_blocks_execute_when_high_anti_pattern_found() -> None:
     # Service with > 5 domain keywords → HIGH God Service finding
     state = _base_state(human_confirmation="100% GO")
     state["service_graph"] = {
-        "services": [{
-            "name": "monolith",
-            "responsibility": "auth payment notification user order inventory analytics",
-            "depends_on": [],
-            "database": None,
-            "owns_data": False,
-            "exposes": [],
-        }]
+        "services": [
+            {
+                "name": "monolith",
+                "responsibility": "auth payment notification user order inventory analytics",
+                "depends_on": [],
+                "database": None,
+                "owns_data": False,
+                "exposes": [],
+            }
+        ]
     }
     result = await agent.run(state)  # type: ignore[union-attr]
     # Even with "100% GO", execute should not have fired (rfc stays empty)
@@ -103,9 +99,7 @@ async def test_agent_3_allows_execute_when_all_clear_and_nfrs_pass() -> None:
     agent.model_router.route = AsyncMock(  # type: ignore[union-attr]
         return_value=MagicMock(
             ainvoke=AsyncMock(
-                return_value=MagicMock(
-                    content="# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```"
-                )
+                return_value=MagicMock(content="# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```")
             )
         )
     )
@@ -132,12 +126,16 @@ async def test_agent_3_interpret_shows_blocking_reason_when_blocked() -> None:
     agent = _make_agent_3()
     state = _base_state(human_confirmation="100% GO")
     state["service_graph"] = {
-        "services": [{
-            "name": "mega",
-            "responsibility": "auth payment notification user order inventory analytics",
-            "depends_on": [], "database": None,
-            "owns_data": False, "exposes": [],
-        }]
+        "services": [
+            {
+                "name": "mega",
+                "responsibility": "auth payment notification user order inventory analytics",
+                "depends_on": [],
+                "database": None,
+                "owns_data": False,
+                "exposes": [],
+            }
+        ]
     }
     result = await agent.run(state)  # type: ignore[union-attr]
     arch_validation = result.get("arch_validation", {})
@@ -151,9 +149,7 @@ async def test_agent_3_writes_rfc_via_diff_engine_not_directly() -> None:
     agent.model_router.route = AsyncMock(  # type: ignore[union-attr]
         return_value=MagicMock(
             ainvoke=AsyncMock(
-                return_value=MagicMock(
-                    content="# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```"
-                )
+                return_value=MagicMock(content="# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```")
             )
         )
     )
@@ -180,7 +176,8 @@ async def test_agent_3_writes_openapi_only_when_api_service_detected() -> None:
     state["service_graph"] = {"services": [{"name": "worker", "exposes": [], "depends_on": []}]}
     await agent.run(state)  # type: ignore[union-attr]
     call_args = [
-        str(call) for call in agent.diff_engine.generate_diff.call_args_list  # type: ignore[union-attr]
+        str(call)
+        for call in agent.diff_engine.generate_diff.call_args_list  # type: ignore[union-attr]
     ]
     openapi_calls = [c for c in call_args if "openapi" in c]
     assert len(openapi_calls) == 0

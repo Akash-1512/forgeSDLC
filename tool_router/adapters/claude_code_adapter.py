@@ -21,13 +21,12 @@ class ClaudeCodeAdapter:
     cwd must be str() not Path for Windows asyncio subprocess compatibility.
     """
 
-    async def generate(
-        self, task: str, context: str, workspace_path: str
-    ) -> ToolResult:
+    async def generate(self, task: str, context: str, workspace_path: str) -> ToolResult:
         cmd = [
             "claude",
-            "--print",                        # non-interactive, output to stdout
-            "--allowedTools", "Edit,Write,Read",
+            "--print",  # non-interactive, output to stdout
+            "--allowedTools",
+            "Edit,Write,Read",
             task,
         ]
         logger.info(
@@ -38,7 +37,7 @@ class ClaudeCodeAdapter:
         try:
             proc = await asyncio.create_subprocess_exec(
                 *cmd,
-                cwd=str(workspace_path),      # str() required on Windows
+                cwd=str(workspace_path),  # str() required on Windows
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -51,7 +50,7 @@ class ClaudeCodeAdapter:
                 "Claude Code CLI not found in PATH. "
                 "Install with: npm install -g @anthropic-ai/claude-code"
             ) from exc
-        except asyncio.TimeoutError as exc:
+        except TimeoutError as exc:
             proc.kill()
             raise ToolRouterError(
                 f"Claude Code CLI timed out after {MCP_TOOL_TIMEOUT_SECONDS}s"
@@ -76,8 +75,5 @@ class ClaudeCodeAdapter:
 
     def _parse_written_files(self, output: str) -> list[str]:
         """Parse 'Wrote file: <path>' lines from Claude Code CLI output."""
-        lines = [
-            line for line in output.splitlines()
-            if line.startswith("Wrote file:")
-        ]
+        lines = [line for line in output.splitlines() if line.startswith("Wrote file:")]
         return [line.replace("Wrote file:", "").strip() for line in lines]

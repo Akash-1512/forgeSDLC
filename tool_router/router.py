@@ -2,14 +2,15 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import structlog
 
 from interpret.record import InterpretRecord
-from orchestrator.constants import HEALTH_CHECK_TIMEOUT_SECONDS, MCP_TOOL_TIMEOUT_SECONDS
-from orchestrator.exceptions import ToolRouterError
+from orchestrator.constants import (
+    HEALTH_CHECK_TIMEOUT_SECONDS,
+)
 from tool_router.adapters.claude_code_adapter import ClaudeCodeAdapter
 from tool_router.adapters.cursor_adapter import CursorAdapter
 from tool_router.adapters.devin_adapter import DevinAdapter
@@ -65,7 +66,7 @@ class ToolRouter:
         reason = self._selection_reason(selected)
 
         # Step 1: Emit InterpretRecord Layer 5 BEFORE any action
-        record = InterpretRecord(
+        InterpretRecord(
             layer="tool_router",
             component="ToolRouter",
             action=f"delegating code gen to {selected.value}",
@@ -83,7 +84,7 @@ class ToolRouter:
             tool_delegated_to=selected.value,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "tool_router.delegating",
@@ -126,15 +127,14 @@ class ToolRouter:
         """Detect Claude Code CLI by running 'claude --version'."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                "claude", "--version",
+                "claude",
+                "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            await asyncio.wait_for(
-                proc.wait(), timeout=HEALTH_CHECK_TIMEOUT_SECONDS
-            )
+            await asyncio.wait_for(proc.wait(), timeout=HEALTH_CHECK_TIMEOUT_SECONDS)
             return proc.returncode == 0
-        except (FileNotFoundError, asyncio.TimeoutError):
+        except (TimeoutError, FileNotFoundError):
             return False
 
     async def _check_devin(self) -> bool:
@@ -144,9 +144,8 @@ class ToolRouter:
             return False
         try:
             import httpx  # noqa: PLC0415
-            async with httpx.AsyncClient(
-                timeout=HEALTH_CHECK_TIMEOUT_SECONDS
-            ) as client:
+
+            async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT_SECONDS) as client:
                 response = await client.get(
                     "https://api.devin.ai/v1/health",
                     headers={"Authorization": f"Bearer {api_key}"},
@@ -154,7 +153,7 @@ class ToolRouter:
                 return response.status_code == 200
         except Exception:
             return False
-        
+
         # ------------------------------------------------------------------ helpers
 
     def _get_adapter(
@@ -164,22 +163,18 @@ class ToolRouter:
             AvailableTool,
             CursorAdapter | ClaudeCodeAdapter | DevinAdapter | DirectLLMAdapter,
         ] = {
-            AvailableTool.CURSOR:      CursorAdapter(),
+            AvailableTool.CURSOR: CursorAdapter(),
             AvailableTool.CLAUDE_CODE: ClaudeCodeAdapter(),
-            AvailableTool.DEVIN:       DevinAdapter(),
-            AvailableTool.DIRECT_LLM:  DirectLLMAdapter(),
+            AvailableTool.DEVIN: DevinAdapter(),
+            AvailableTool.DIRECT_LLM: DirectLLMAdapter(),
         }
         return adapters[tool]
 
     def _selection_reason(self, selected: AvailableTool) -> str:
         reasons: dict[AvailableTool, str] = {
-            AvailableTool.CURSOR:
-                "Cursor Background Agent API configured and verified",
-            AvailableTool.CLAUDE_CODE:
-                "Claude Code CLI detected in PATH",
-            AvailableTool.DEVIN:
-                "Devin API key configured and health check passed",
-            AvailableTool.DIRECT_LLM:
-                "No external tools configured — using direct LLM fallback",
+            AvailableTool.CURSOR: "Cursor Background Agent API configured and verified",
+            AvailableTool.CLAUDE_CODE: "Claude Code CLI detected in PATH",
+            AvailableTool.DEVIN: "Devin API key configured and health check passed",
+            AvailableTool.DIRECT_LLM: "No external tools configured — using direct LLM fallback",
         }
         return reasons[selected]

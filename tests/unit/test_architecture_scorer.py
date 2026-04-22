@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from architecture_intelligence.architecture_scorer import ArchitectureScorer
 
 
@@ -55,6 +53,7 @@ def test_overall_is_mean_of_5_dimensions() -> None:
 def test_no_llm_calls_in_scorer() -> None:
     """ArchitectureScorer must never call ModelRouter — zero LLM."""
     from model_router.router import ModelRouter
+
     with patch.object(ModelRouter, "route") as mock_route:
         scorer = ArchitectureScorer()
         scorer.score("some rfc with load balancer and replica and logging")

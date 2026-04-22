@@ -3,6 +3,7 @@ Verifies that check_gate() accepts EXACTLY "100% GO" and nothing else.
 Covers: whitespace variants, case variants, similar strings, empty string,
         None input, numeric string, and common "approval" phrases.
 """
+
 from __future__ import annotations
 
 import pytest
@@ -14,12 +15,12 @@ SHOULD_PASS = ["100% GO"]
 SHOULD_FAIL = [
     "",
     " ",
-    "100% go",           # wrong case
-    "100%GO",            # missing space
-    "100% GO ",          # trailing space
-    " 100% GO",          # leading space
-    " 100% GO ",         # both spaces
-    "100 % GO",          # space before %
+    "100% go",  # wrong case
+    "100%GO",  # missing space
+    "100% GO ",  # trailing space
+    " 100% GO",  # leading space
+    " 100% GO ",  # both spaces
+    "100 % GO",  # space before %
     "APPROVED",
     "approved",
     "yes",
@@ -34,7 +35,7 @@ SHOULD_FAIL = [
     "proceed",
     "100",
     "GO",
-    None,                # type: ignore[list-item]
+    None,  # type: ignore[list-item]
 ]
 
 
@@ -75,5 +76,6 @@ def test_gate_case_sensitive() -> None:
 def test_gate_exact_string_only() -> None:
     """Confirm the exact constant string is the only accepted value."""
     from orchestrator.constants import HUMAN_CONFIRMATION_PHRASE
+
     assert HUMAN_CONFIRMATION_PHRASE == "100% GO"
     assert check_gate(HUMAN_CONFIRMATION_PHRASE) is True

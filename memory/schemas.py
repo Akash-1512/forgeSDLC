@@ -9,7 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field
 class PipelineRunRecord(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    run_id: str                          # uuid4
+    run_id: str  # uuid4
     timestamp: datetime
     project_id: str
     user_prompt: str
@@ -19,33 +19,33 @@ class PipelineRunRecord(BaseModel):
     hitl_rounds: int = Field(ge=0)
     human_corrections: list[str]
     lessons_learned: list[str]
-    tool_delegated_to: str | None        # which ToolRouter target was used
+    tool_delegated_to: str | None  # which ToolRouter target was used
     workspace_path: str
 
 
 class OrgMemoryEntry(BaseModel):
     model_config = ConfigDict(strict=True)
 
-    entry_id: str                        # uuid4
+    entry_id: str  # uuid4
     project_id: str
-    content: str                         # learnable fact — 1-3 sentences
-    category: Literal[
-        "architecture", "security", "pattern", "failure", "preference"
-    ]
+    content: str  # learnable fact — 1-3 sentences
+    category: Literal["architecture", "security", "pattern", "failure", "preference"]
     source_run_id: str
     timestamp: datetime
     relevance_score: float | None = Field(default=None, ge=0.0, le=1.0)
 
+
 # ---------------------------------------------------------------------------
 # Layer 3 — ProjectContextGraph (filesystem JSON)
 # ---------------------------------------------------------------------------
+
 
 class ServiceNode(BaseModel):
     model_config = ConfigDict(strict=True)
 
     name: str
     responsibility: str
-    exposes: list[str]       # API endpoints or events
+    exposes: list[str]  # API endpoints or events
     depends_on: list[str]
     owns_data: bool
     database: str | None
@@ -57,8 +57,8 @@ class ProjectContextGraph(BaseModel):
     project_id: str
     repo_url: str | None
     services: list[ServiceNode]
-    api_contracts: list[str]           # OpenAPI spec paths
-    architectural_decisions: list[str] # ADR summaries
+    api_contracts: list[str]  # OpenAPI spec paths
+    architectural_decisions: list[str]  # ADR summaries
     dependencies: list[str]
     env_var_names: list[str]
     deployment_config: dict[str, object]
@@ -71,11 +71,12 @@ class ProjectContextGraph(BaseModel):
 # Layer 4 — UserPreferenceProfile (PostgreSQL)
 # ---------------------------------------------------------------------------
 
+
 class UserPreferenceProfile(BaseModel):
     model_config = ConfigDict(strict=True)
 
     user_id: str
-    preferred_code_gen_tool: str       # "cursor"|"claude_code"|"direct_llm"
+    preferred_code_gen_tool: str  # "cursor"|"claude_code"|"direct_llm"
     preferred_stack: list[str]
     subscription_tier: str
     byok_providers: list[str]
@@ -88,14 +89,14 @@ class UserPreferenceProfile(BaseModel):
 # Layer 5 — PostMortem (PostgreSQL)
 # ---------------------------------------------------------------------------
 
+
 class PostMortem(BaseModel):
     model_config = ConfigDict(strict=True)
 
     post_mortem_id: str
     run_id: str
     failure_type: Literal[
-        "tool_timeout", "security_gate", "deployment",
-        "architecture", "test_coverage"
+        "tool_timeout", "security_gate", "deployment", "architecture", "test_coverage"
     ]
     agent_that_failed: str
     root_cause: str

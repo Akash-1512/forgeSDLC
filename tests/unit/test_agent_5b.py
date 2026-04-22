@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tools.security_tools import SecurityFinding, SecurityFindings
+from tools.security_tools import SecurityFinding
 
 
 def _make_finding(severity: str, tool: str = "bandit") -> SecurityFinding:
@@ -84,26 +84,30 @@ def _base_state(human_confirmation: str = "100% GO") -> dict:
 
 
 def _patch_all_tools(
-    bandit_findings: list = [],
-    semgrep_findings: list = [],
-    pip_findings: list = [],
-    dast_findings: list = [],
-    secrets_findings: list = [],
+    bandit_findings: list = None,
+    semgrep_findings: list = None,
+    pip_findings: list = None,
+    dast_findings: list = None,
+    secrets_findings: list = None,
 ) -> object:
+    if secrets_findings is None:
+        secrets_findings = []
+    if dast_findings is None:
+        dast_findings = []
+    if pip_findings is None:
+        pip_findings = []
+    if semgrep_findings is None:
+        semgrep_findings = []
+    if bandit_findings is None:
+        bandit_findings = []
     return patch.multiple(
         "agents.agent_5b_security",
-        BanditRunner=MagicMock(return_value=MagicMock(
-            run=AsyncMock(return_value=bandit_findings)
-        )),
-        SemgrepRunner=MagicMock(return_value=MagicMock(
-            run=AsyncMock(return_value=semgrep_findings)
-        )),
-        PipAuditRunner=MagicMock(return_value=MagicMock(
-            run=AsyncMock(return_value=pip_findings)
-        )),
-        DASTRunner=MagicMock(return_value=MagicMock(
-            run=AsyncMock(return_value=dast_findings)
-        )),
+        BanditRunner=MagicMock(return_value=MagicMock(run=AsyncMock(return_value=bandit_findings))),
+        SemgrepRunner=MagicMock(
+            return_value=MagicMock(run=AsyncMock(return_value=semgrep_findings))
+        ),
+        PipAuditRunner=MagicMock(return_value=MagicMock(run=AsyncMock(return_value=pip_findings))),
+        DASTRunner=MagicMock(return_value=MagicMock(run=AsyncMock(return_value=dast_findings))),
     )
 
 
@@ -130,12 +134,12 @@ async def test_gate_blocked_true_when_any_critical_finding() -> None:
 @pytest.mark.asyncio
 async def test_gate_blocked_false_when_only_medium_and_low() -> None:
     agent = _make_agent_5b()
-    with _patch_all_tools(
-        bandit_findings=[_make_finding("MEDIUM"), _make_finding("LOW")]
+    with (
+        _patch_all_tools(bandit_findings=[_make_finding("MEDIUM"), _make_finding("LOW")]),
+        patch.object(agent, "_run_detect_secrets", AsyncMock(return_value=[])),
     ):
-        with patch.object(agent, "_run_detect_secrets", AsyncMock(return_value=[])):
-            with patch.object(agent, "_run_stride", AsyncMock(return_value=None)):
-                result = await agent.run(_base_state())
+        with patch.object(agent, "_run_stride", AsyncMock(return_value=None)):
+            result = await agent.run(_base_state())
     assert result["security_gate"]["blocked"] is False
 
 

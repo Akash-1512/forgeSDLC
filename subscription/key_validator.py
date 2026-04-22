@@ -33,6 +33,7 @@ class KeyValidator:
     async def _validate_openai(self, key: str) -> bool:
         try:
             import httpx  # noqa: PLC0415
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     "https://api.openai.com/v1/models",
@@ -48,6 +49,7 @@ class KeyValidator:
     async def _validate_anthropic(self, key: str) -> bool:
         try:
             import httpx  # noqa: PLC0415
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     "https://api.anthropic.com/v1/models",
@@ -66,6 +68,7 @@ class KeyValidator:
     async def _validate_groq(self, key: str) -> bool:
         try:
             import httpx  # noqa: PLC0415
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     "https://api.groq.com/openai/v1/models",
@@ -81,6 +84,7 @@ class KeyValidator:
     async def _validate_google(self, key: str) -> bool:
         try:
             import httpx  # noqa: PLC0415
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.get(
                     f"https://generativelanguage.googleapis.com/v1/models?key={key}",

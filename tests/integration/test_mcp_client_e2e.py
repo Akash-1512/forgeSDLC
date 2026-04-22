@@ -6,6 +6,7 @@ calls tools, and verifies responses.
 Marked @pytest.mark.slow — excluded from default test run.
 Run with: python -m pytest tests/integration/test_mcp_client_e2e.py -v
 """
+
 from __future__ import annotations
 
 import subprocess
@@ -24,9 +25,13 @@ def mcp_server():
     """Start MCP server on port 18090 for testing. Shuts down after module."""
     proc = subprocess.Popen(
         [
-            sys.executable, "-m", "mcp_server.server",
-            "--transport", "streamable-http",
-            "--port", str(TEST_PORT),
+            sys.executable,
+            "-m",
+            "mcp_server.server",
+            "--transport",
+            "streamable-http",
+            "--port",
+            str(TEST_PORT),
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -101,8 +106,7 @@ async def test_mcp_server_lists_tools(mcp_server: object) -> None:
     ]
     for name in expected_tools:
         assert name in tool_names, (
-            f"Tool '{name}' not found in MCP server tool listing.\n"
-            f"Available: {tool_names}"
+            f"Tool '{name}' not found in MCP server tool listing.\nAvailable: {tool_names}"
         )
 
 
@@ -160,15 +164,12 @@ async def test_mcp_server_recall_context_returns_dict(mcp_server: object) -> Non
 
     assert r.status_code == 200
     result = r.json()
-    assert isinstance(result, dict), (
-        f"recall_context must return a dict, got: {type(result)}"
-    )
+    assert isinstance(result, dict), f"recall_context must return a dict, got: {type(result)}"
 
 
 @pytest.mark.slow
 def test_mcp_server_starts_and_stops_cleanly(mcp_server: object) -> None:
     """Verify server process is running during fixture lifetime."""
-    import os  # noqa: PLC0415
     proc = mcp_server
     assert proc.poll() is None, (
         "MCP server process exited unexpectedly during test run. "

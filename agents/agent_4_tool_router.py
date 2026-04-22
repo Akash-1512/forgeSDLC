@@ -3,9 +3,8 @@ from __future__ import annotations
 # CRITICAL: NO import from model_router anywhere in this file.
 # ast_checker.py CI test: grep for "model_router" → FAIL
 # Agent 4 has NO internal LLM. AGENT_MODELS["agent_4_tool_router"] = None.
-
 import ast as ast_module
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -62,11 +61,11 @@ class ToolRouterAgent(BaseAgent):
             files_it_will_read=[],
             files_it_will_write=[],
             external_calls=[selected.value],
-            model_selected=None,          # NO model — delegation only
+            model_selected=None,  # NO model — delegation only
             tool_delegated_to=selected.value,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.agent",
@@ -119,9 +118,7 @@ class ToolRouterAgent(BaseAgent):
             retry_count = int(state.get("tool_retry_count", 0) or 0)
             if retry_count < 2:  # max 2 auto-retries
                 state["tool_retry_count"] = retry_count + 1
-                correction_notes = "\n".join(
-                    f"Fix required: {v['message']}" for v in blocking
-                )
+                correction_notes = "\n".join(f"Fix required: {v['message']}" for v in blocking)
                 logger.warning(
                     "agent_4.maang_violation_retry",
                     retry=retry_count + 1,
@@ -149,13 +146,10 @@ class ToolRouterAgent(BaseAgent):
         # Capture generated output
         if result.files_written:
             state["generated_files"] = [
-                {"path": f, "content": result.output}
-                for f in result.files_written
+                {"path": f, "content": result.output} for f in result.files_written
             ]
         else:
-            state["generated_files"] = [
-                {"path": "generated_code.py", "content": result.output}
-            ]
+            state["generated_files"] = [{"path": "generated_code.py", "content": result.output}]
         state["tool_delegated_to"] = result.tool.value
 
         logger.info(
@@ -181,49 +175,47 @@ class ToolRouterAgent(BaseAgent):
         try:
             tree = ast_module.parse(code)
             for node in ast_module.walk(tree):
-                if isinstance(
-                    node, (ast_module.FunctionDef, ast_module.AsyncFunctionDef)
-                ):
+                if isinstance(node, (ast_module.FunctionDef, ast_module.AsyncFunctionDef)):
                     func_lines = (node.end_lineno or 0) - node.lineno
                     if func_lines > 50:
-                        violations.append({
-                            "severity": "BLOCKING",
-                            "rule": "function_length",
-                            "message": (
-                                f"Function '{node.name}' is {func_lines} lines "
-                                f"(max 50). Split into smaller functions."
-                            ),
-                        })
-                    has_arg_annotations = any(
-                        a.annotation is not None for a in node.args.args
-                    )
+                        violations.append(
+                            {
+                                "severity": "BLOCKING",
+                                "rule": "function_length",
+                                "message": (
+                                    f"Function '{node.name}' is {func_lines} lines "
+                                    f"(max 50). Split into smaller functions."
+                                ),
+                            }
+                        )
+                    has_arg_annotations = any(a.annotation is not None for a in node.args.args)
                     if not node.returns and not has_arg_annotations:
-                        violations.append({
-                            "severity": "ADVISORY",
-                            "rule": "type_hints",
-                            "message": (
-                                f"Function '{node.name}' missing type hints."
-                            ),
-                        })
+                        violations.append(
+                            {
+                                "severity": "ADVISORY",
+                                "rule": "type_hints",
+                                "message": (f"Function '{node.name}' missing type hints."),
+                            }
+                        )
                 if isinstance(node, ast_module.ExceptHandler):
                     if node.type is None:
-                        violations.append({
-                            "severity": "BLOCKING",
-                            "rule": "bare_except",
-                            "message": (
-                                "Bare 'except:' found. Use specific exception types."
-                            ),
-                        })
+                        violations.append(
+                            {
+                                "severity": "BLOCKING",
+                                "rule": "bare_except",
+                                "message": ("Bare 'except:' found. Use specific exception types."),
+                            }
+                        )
         except SyntaxError:
             lines = code.splitlines()
             if len(lines) > 300:
-                violations.append({
-                    "severity": "BLOCKING",
-                    "rule": "file_length",
-                    "message": (
-                        f"File is {len(lines)} lines (max 300). Split into modules."
-                    ),
-                })
+                violations.append(
+                    {
+                        "severity": "BLOCKING",
+                        "rule": "file_length",
+                        "message": (f"File is {len(lines)} lines (max 300). Split into modules."),
+                    }
+                )
 
         return violations
 

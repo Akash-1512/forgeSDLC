@@ -22,11 +22,13 @@ async def test():
 
     # SemgrepRunner
     captured_args = []
+
     async def capturing_exec(*args, **kwargs):
         captured_args.extend(args)
         mock_proc = AsyncMock()
         mock_proc.communicate = AsyncMock(return_value=(b'{"results":[]}', b""))
         return mock_proc
+
     with patch("asyncio.create_subprocess_exec", side_effect=capturing_exec):
         await SemgrepRunner().run(".")
     cmd = " ".join(str(a) for a in captured_args)
@@ -38,7 +40,11 @@ async def test():
     # DASTRunner L10
     records = []
     orig = InterpretRecord.__init__
-    def col(self, **kw): orig(self, **kw); records.append(self)
+
+    def col(self, **kw):
+        orig(self, **kw)
+        records.append(self)
+
     InterpretRecord.__init__ = col
     os.environ.pop("RUN_DAST", None)
     with tempfile.TemporaryDirectory() as tmpdir:
@@ -47,5 +53,6 @@ async def test():
     l10 = [r for r in records if r.layer == "security" and r.component == "DASTRunner"]
     assert len(l10) >= 1
     print("DASTRunner: PASS — returns [] and emits L10")
+
 
 asyncio.run(test())

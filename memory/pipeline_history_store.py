@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text, select, text
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy import Column, DateTime, Float, Integer, String, Text, select
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -29,7 +29,7 @@ class _PipelineRunRow(_Base):
     project_id = Column(String, nullable=False, index=True)
     user_prompt = Column(Text, nullable=False)
     stack_chosen = Column(String, nullable=True)
-    deployment_success = Column(String, nullable=True)   # "true"/"false"/None
+    deployment_success = Column(String, nullable=True)  # "true"/"false"/None
     cost_total_usd = Column(Float, nullable=False, default=0.0)
     hitl_rounds = Column(Integer, nullable=False, default=0)
     human_corrections = Column(JSONB, nullable=False, default=list)
@@ -67,36 +67,33 @@ class PipelineHistoryStore:
     async def save_run(self, record: PipelineRunRecord) -> None:
         """Upsert a pipeline run record. Emits InterpretRecord before write."""
         self._emit_record("write", "save_run", record.run_id)
-        async with self._session_factory() as session:
-            async with session.begin():
-                # Delete existing row if present (upsert via delete+insert)
-                existing = await session.get(_PipelineRunRow, record.run_id)
-                if existing:
-                    await session.delete(existing)
-                row = _PipelineRunRow(
-                    run_id=record.run_id,
-                    timestamp=record.timestamp,
-                    project_id=record.project_id,
-                    user_prompt=record.user_prompt,
-                    stack_chosen=record.stack_chosen,
-                    deployment_success=(
-                        str(record.deployment_success).lower()
-                        if record.deployment_success is not None
-                        else None
-                    ),
-                    cost_total_usd=record.cost_total_usd,
-                    hitl_rounds=record.hitl_rounds,
-                    human_corrections=record.human_corrections,
-                    lessons_learned=record.lessons_learned,
-                    tool_delegated_to=record.tool_delegated_to,
-                    workspace_path=record.workspace_path,
-                )
-                session.add(row)
+        async with self._session_factory() as session, session.begin():
+            # Delete existing row if present (upsert via delete+insert)
+            existing = await session.get(_PipelineRunRow, record.run_id)
+            if existing:
+                await session.delete(existing)
+            row = _PipelineRunRow(
+                run_id=record.run_id,
+                timestamp=record.timestamp,
+                project_id=record.project_id,
+                user_prompt=record.user_prompt,
+                stack_chosen=record.stack_chosen,
+                deployment_success=(
+                    str(record.deployment_success).lower()
+                    if record.deployment_success is not None
+                    else None
+                ),
+                cost_total_usd=record.cost_total_usd,
+                hitl_rounds=record.hitl_rounds,
+                human_corrections=record.human_corrections,
+                lessons_learned=record.lessons_learned,
+                tool_delegated_to=record.tool_delegated_to,
+                workspace_path=record.workspace_path,
+            )
+            session.add(row)
         logger.info("pipeline_history_store.save_run", run_id=record.run_id)
 
-    async def get_similar_runs(
-        self, project_id: str, limit: int = 5
-    ) -> list[PipelineRunRecord]:
+    async def get_similar_runs(self, project_id: str, limit: int = 5) -> list[PipelineRunRecord]:
         """Fetch recent runs for a project ordered by timestamp desc.
 
         Emits InterpretRecord before read.
@@ -119,9 +116,7 @@ class PipelineHistoryStore:
                 user_prompt=row.user_prompt,
                 stack_chosen=row.stack_chosen,
                 deployment_success=(
-                    row.deployment_success == "true"
-                    if row.deployment_success is not None
-                    else None
+                    row.deployment_success == "true" if row.deployment_success is not None else None
                 ),
                 cost_total_usd=row.cost_total_usd,
                 hitl_rounds=row.hitl_rounds,
@@ -153,7 +148,7 @@ class PipelineHistoryStore:
             tool_delegated_to=None,
             reversible=(action_type == "read"),
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

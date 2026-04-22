@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
@@ -67,11 +67,11 @@ class TestCoordinatorAgent(BaseAgent):
             files_it_will_read=[],
             files_it_will_write=[],
             external_calls=[selected.value, "pytest subprocess"],
-            model_selected=None,          # delegates — no internal LLM for test gen
+            model_selected=None,  # delegates — no internal LLM for test gen
             tool_delegated_to=selected.value,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.agent",
@@ -104,7 +104,7 @@ class TestCoordinatorAgent(BaseAgent):
         task = self._build_test_task(state, retry_count)
 
         # Delegate test generation via ToolRouter (emits L5 InterpretRecord)
-        result = await self._tool_router.route(
+        await self._tool_router.route(
             task=task,
             context=str(state.get("rfc", "")),
             project_id=str(state.get("mcp_session_id", "default")),
@@ -161,8 +161,7 @@ class TestCoordinatorAgent(BaseAgent):
             if uncovered:
                 lines_str = "\n".join(f"  - {line}" for line in uncovered[:20])
                 base += (
-                    f"\n\nFix required: please add tests for these uncovered lines:\n"
-                    f"{lines_str}"
+                    f"\n\nFix required: please add tests for these uncovered lines:\n{lines_str}"
                 )
         return base
 
@@ -170,8 +169,12 @@ class TestCoordinatorAgent(BaseAgent):
         """Run pytest with coverage and return percent_covered float."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                python_exe, "-m", "pytest",
-                "--cov=.", "--cov-report=json", "-q",
+                python_exe,
+                "-m",
+                "pytest",
+                "--cov=.",
+                "--cov-report=json",
+                "-q",
                 cwd=workspace_path,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
@@ -190,9 +193,7 @@ class TestCoordinatorAgent(BaseAgent):
                 logger.warning("agent_6.coverage_parse_failed", error=str(exc))
         return 0.0
 
-    async def _get_uncovered_lines(
-        self, workspace_path: str, python_exe: str
-    ) -> list[str]:
+    async def _get_uncovered_lines(self, workspace_path: str, python_exe: str) -> list[str]:
         """Parse coverage.json to find uncovered lines for retry task."""
         cov_file = Path(workspace_path) / "coverage.json"
         uncovered: list[str] = []

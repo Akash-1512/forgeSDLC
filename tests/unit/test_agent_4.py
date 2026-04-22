@@ -1,15 +1,16 @@
 from __future__ import annotations
 
-import ast
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, call, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from tool_router.context import AvailableTool, ToolResult
 
 
-def _make_tool_result(output: str = "def foo(): pass", files: list[str] | None = None) -> ToolResult:
+def _make_tool_result(
+    output: str = "def foo(): pass", files: list[str] | None = None
+) -> ToolResult:
     return ToolResult(
         tool=AvailableTool.DIRECT_LLM,
         output=output,
@@ -44,12 +45,8 @@ def _make_agent_4(tool_result: ToolResult | None = None) -> object:
     mock_model_router = MagicMock(spec=ModelRouter)
 
     mock_tool_router = MagicMock(spec=ToolRouter)
-    mock_tool_router.detect_available_tools = AsyncMock(
-        return_value=[AvailableTool.DIRECT_LLM]
-    )
-    mock_tool_router.route = AsyncMock(
-        return_value=tool_result or _make_tool_result()
-    )
+    mock_tool_router.detect_available_tools = AsyncMock(return_value=[AvailableTool.DIRECT_LLM])
+    mock_tool_router.route = AsyncMock(return_value=tool_result or _make_tool_result())
 
     return ToolRouterAgent(
         name="agent_4_tool_router",
@@ -88,9 +85,9 @@ def test_agent_4_has_no_model_router_import() -> None:
     source = Path("agents/agent_4_tool_router.py").read_text(encoding="utf-8")
     # Check only import lines — comments explaining the rule are allowed
     import_lines = [
-        line.strip() for line in source.splitlines()
-        if line.strip().startswith(("import ", "from "))
-        and not line.strip().startswith("#")
+        line.strip()
+        for line in source.splitlines()
+        if line.strip().startswith(("import ", "from ")) and not line.strip().startswith("#")
     ]
     for line in import_lines:
         assert "model_router" not in line, (
@@ -104,9 +101,6 @@ async def test_agent_4_execute_calls_context_file_manager_before_tool_router() -
     """CFM.write_all() must be called BEFORE ToolRouter.route() — ordering invariant."""
     agent = _make_agent_4()
     call_order: list[str] = []
-
-    original_cfm_write = agent.cfm.write_all.side_effect  # type: ignore[union-attr]
-    original_tr_route = agent._tool_router.route.side_effect  # type: ignore[union-attr]
 
     async def cfm_spy(*args: object, **kwargs: object) -> object:
         call_order.append("cfm.write_all")

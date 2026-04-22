@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
-import pytest
+from datetime import UTC, datetime
 
 from workspace.context import WorkspaceContext
 from workspace.mode_router import Mode, ModeRouter
@@ -24,7 +22,7 @@ def _make_context(active_file: str | None = None) -> WorkspaceContext:
         docker_files=[],
         github_actions=[],
         context_files=[],
-        last_updated=datetime.now(tz=timezone.utc),
+        last_updated=datetime.now(tz=UTC),
     )
 
 

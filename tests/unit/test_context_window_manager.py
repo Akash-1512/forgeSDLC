@@ -6,7 +6,7 @@ import pytest
 
 from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
 from context_management.context_compressor import ContextCompressor
-from context_management.context_packet import AgentContextSpec, ContextPacket
+from context_management.context_packet import AgentContextSpec
 from context_management.context_window_manager import ContextWindowManager
 from context_management.token_estimator import TokenEstimator
 
@@ -45,7 +45,6 @@ def _base_state() -> dict[str, object]:
 async def test_build_packet_emits_interpret_record_layer11(
     tmp_path: object,
 ) -> None:
-    from interpret.record import InterpretRecord
     cwm = _make_cwm()
     emitted: list[str] = []
     original_emit = cwm._emit_record
@@ -68,8 +67,11 @@ async def test_build_packet_respects_max_context_tokens() -> None:
     state = _base_state()
     state["memory_context"] = {"data": "word " * 10_000}
     packet = await cwm.build_packet("agent_0_decompose", state)
-    assert packet.total_tokens_estimated <= AGENT_CONTEXT_SPECS["agent_0_decompose"].max_context_tokens + 500
-    
+    assert (
+        packet.total_tokens_estimated
+        <= AGENT_CONTEXT_SPECS["agent_0_decompose"].max_context_tokens + 500
+    )
+
 
 @pytest.mark.asyncio
 async def test_build_packet_excludes_fields_completely() -> None:
@@ -120,6 +122,7 @@ async def test_build_packet_compresses_large_optional_fields() -> None:
 @pytest.mark.asyncio
 async def test_build_packet_raises_for_unknown_agent_name() -> None:
     from orchestrator.exceptions import ForgeSDLCError
+
     cwm = _make_cwm()
     with pytest.raises(ForgeSDLCError, match="No AgentContextSpec"):
         await cwm.build_packet("agent_99_nonexistent", _base_state())
@@ -131,13 +134,18 @@ async def test_compression_uses_groq_via_model_router() -> None:
     with patch("subscription.byok_manager.keyring") as mk:
         mk.get_password.return_value = None
         from model_router.router import ModelRouter
+
         with patch.object(
             ModelRouter,
             "route",
-            new_callable=lambda: lambda *a, **kw: AsyncMock(
-                return_value=MagicMock(ainvoke=AsyncMock(return_value=MagicMock(content="summary")))
-            )()
-        ) as mock_route:
+            new_callable=lambda: (
+                lambda *a, **kw: AsyncMock(
+                    return_value=MagicMock(
+                        ainvoke=AsyncMock(return_value=MagicMock(content="summary"))
+                    )
+                )()
+            ),
+        ):
             compressor = ContextCompressor()
             result = await compressor.compress("some long content here", "memory_context")
     assert isinstance(result, str)

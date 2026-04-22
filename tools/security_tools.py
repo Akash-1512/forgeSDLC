@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 import structlog
@@ -55,7 +56,7 @@ def _emit_l10(component: str, action: str, code_path: str) -> None:
         tool_delegated_to=None,
         reversible=True,
         workspace_files_affected=[],
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
     logger.info("interpret_record.security", layer="security", component=component)
 
@@ -68,7 +69,12 @@ class BanditRunner:
         _emit_l10("BanditRunner", f"Running bandit SAST on {code_path}", code_path)
         try:
             proc = await asyncio.create_subprocess_exec(
-                "bandit", "-r", code_path, "-f", "json", "-q",
+                "bandit",
+                "-r",
+                code_path,
+                "-f",
+                "json",
+                "-q",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -87,16 +93,18 @@ class BanditRunner:
                 if severity not in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
                     severity = "LOW"
                 line_num = result.get("line_number")
-                findings.append(SecurityFinding(
-                    tool="bandit",
-                    rule=str(result.get("test_id", "B000")),
-                    severity=severity,  # type: ignore[arg-type]
-                    file=result.get("filename"),
-                    line=int(line_num) if line_num and int(line_num) >= 1 else None,
-                    description=str(result.get("issue_text", "")),
-                    fix_suggestion=result.get("more_info"),
-                    blocking=severity in ("CRITICAL", "HIGH"),
-                ))
+                findings.append(
+                    SecurityFinding(
+                        tool="bandit",
+                        rule=str(result.get("test_id", "B000")),
+                        severity=severity,  # type: ignore[arg-type]
+                        file=result.get("filename"),
+                        line=int(line_num) if line_num and int(line_num) >= 1 else None,
+                        description=str(result.get("issue_text", "")),
+                        fix_suggestion=result.get("more_info"),
+                        blocking=severity in ("CRITICAL", "HIGH"),
+                    )
+                )
             return findings
         except (json.JSONDecodeError, KeyError, ValueError):
             return []
@@ -115,7 +123,7 @@ class SemgrepRunner:
         try:
             proc = await asyncio.create_subprocess_exec(
                 "semgrep",
-                "--config=p/python",    # always — never --config=auto
+                "--config=p/python",  # always — never --config=auto
                 "--config=p/security",  # always — never --config=auto
                 "--json",
                 code_path,
@@ -133,22 +141,22 @@ class SemgrepRunner:
             data = json.loads(output)
             findings: list[SecurityFinding] = []
             for result in data.get("results", []):
-                severity = str(
-                    result.get("extra", {}).get("severity", "INFO")
-                ).upper()
+                severity = str(result.get("extra", {}).get("severity", "INFO")).upper()
                 if severity not in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
                     severity = "INFO"
                 line_num = result.get("start", {}).get("line")
-                findings.append(SecurityFinding(
-                    tool="semgrep",
-                    rule=str(result.get("check_id", "unknown")),
-                    severity=severity,  # type: ignore[arg-type]
-                    file=result.get("path"),
-                    line=int(line_num) if line_num and int(line_num) >= 1 else None,
-                    description=str(result.get("extra", {}).get("message", "")),
-                    fix_suggestion=result.get("extra", {}).get("fix"),
-                    blocking=severity in ("CRITICAL", "HIGH"),
-                ))
+                findings.append(
+                    SecurityFinding(
+                        tool="semgrep",
+                        rule=str(result.get("check_id", "unknown")),
+                        severity=severity,  # type: ignore[arg-type]
+                        file=result.get("path"),
+                        line=int(line_num) if line_num and int(line_num) >= 1 else None,
+                        description=str(result.get("extra", {}).get("message", "")),
+                        fix_suggestion=result.get("extra", {}).get("fix"),
+                        blocking=severity in ("CRITICAL", "HIGH"),
+                    )
+                )
             return findings
         except (json.JSONDecodeError, KeyError, ValueError):
             return []
@@ -175,7 +183,10 @@ class PipAuditRunner:
         _emit_l10("PipAuditRunner", f"Running pip-audit on {req_file}", req_file)
         try:
             proc = await asyncio.create_subprocess_exec(
-                "pip-audit", "-r", req_file, "--format=json",
+                "pip-audit",
+                "-r",
+                req_file,
+                "--format=json",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -191,19 +202,21 @@ class PipAuditRunner:
             findings: list[SecurityFinding] = []
             for dep in data if isinstance(data, list) else []:
                 for vuln in dep.get("vulns", []):
-                    findings.append(SecurityFinding(
-                        tool="pip_audit",
-                        rule=str(vuln.get("id", "CVE-UNKNOWN")),
-                        severity="HIGH",
-                        file=None,
-                        line=None,
-                        description=(
-                            f"{dep.get('name', '')} {dep.get('version', '')}: "
-                            f"{vuln.get('description', '')}"
-                        ),
-                        fix_suggestion=f"Upgrade to {vuln.get('fix_versions', ['latest'])}",
-                        blocking=True,
-                    ))
+                    findings.append(
+                        SecurityFinding(
+                            tool="pip_audit",
+                            rule=str(vuln.get("id", "CVE-UNKNOWN")),
+                            severity="HIGH",
+                            file=None,
+                            line=None,
+                            description=(
+                                f"{dep.get('name', '')} {dep.get('version', '')}: "
+                                f"{vuln.get('description', '')}"
+                            ),
+                            fix_suggestion=f"Upgrade to {vuln.get('fix_versions', ['latest'])}",
+                            blocking=True,
+                        )
+                    )
             return findings
         except (json.JSONDecodeError, KeyError, ValueError):
             return []
@@ -238,9 +251,16 @@ class DASTRunner:
         app_proc = None
         try:
             app_proc = await asyncio.create_subprocess_exec(
-                "python", "-m", "uvicorn", "main:app",
-                "--host", "127.0.0.1", "--port", "18080",
-                "--log-level", "error",
+                "python",
+                "-m",
+                "uvicorn",
+                "main:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "18080",
+                "--log-level",
+                "error",
                 cwd=workspace_path,
             )
             await self._wait_for_health(
@@ -254,13 +274,12 @@ class DASTRunner:
         finally:
             if app_proc:
                 app_proc.terminate()
-                try:
+                with contextlib.suppress(Exception):
                     await asyncio.wait_for(app_proc.wait(), timeout=5)
-                except Exception:
-                    pass
 
     async def _wait_for_health(self, url: str, timeout: int) -> None:
         import httpx  # noqa: PLC0415
+
         deadline = asyncio.get_event_loop().time() + timeout
         async with httpx.AsyncClient() as client:
             while asyncio.get_event_loop().time() < deadline:
@@ -275,6 +294,7 @@ class DASTRunner:
 
     async def _run_payloads(self) -> list[SecurityFinding]:
         import httpx  # noqa: PLC0415
+
         findings: list[SecurityFinding] = []
         async with httpx.AsyncClient(timeout=5) as client:
             for payload in self.ATTACK_PAYLOADS:
@@ -287,25 +307,29 @@ class DASTRunner:
                     pass
         return findings
 
-    def _check_response(
-        self, response: object, payload: dict[str, str]
-    ) -> SecurityFinding | None:
+    def _check_response(self, response: object, payload: dict[str, str]) -> SecurityFinding | None:
         try:
             status = getattr(response, "status_code", 999)
             text = str(getattr(response, "text", ""))
             check = payload["check"]
             if check == "status_200" and status == 200:
                 return SecurityFinding(
-                    tool="dast", rule="auth_bypass",
-                    severity="HIGH", file=None, line=None,
+                    tool="dast",
+                    rule="auth_bypass",
+                    severity="HIGH",
+                    file=None,
+                    line=None,
                     description=f"Admin endpoint accessible: {payload['path']}",
                     fix_suggestion="Add authentication middleware",
                     blocking=True,
                 )
             if check == "root_in_body" and "root:" in text:
                 return SecurityFinding(
-                    tool="dast", rule="path_traversal",
-                    severity="CRITICAL", file=None, line=None,
+                    tool="dast",
+                    rule="path_traversal",
+                    severity="CRITICAL",
+                    file=None,
+                    line=None,
                     description="Path traversal vulnerability detected",
                     fix_suggestion="Sanitise file path inputs",
                     blocking=True,

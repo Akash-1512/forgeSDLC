@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import structlog
@@ -42,7 +42,7 @@ class DocsFetcher:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info("docs_fetcher.fetch", url=url[:60], description=description)
 
@@ -55,6 +55,7 @@ class DocsFetcher:
         # Fetch from network
         try:
             import httpx  # noqa: PLC0415
+
             async with httpx.AsyncClient(timeout=10) as client:
                 r = await client.get(url, follow_redirects=True)
                 r.raise_for_status()
@@ -80,8 +81,8 @@ class DocsFetcher:
             cached_at = datetime.fromisoformat(data["cached_at"])
             # Make timezone-aware if naive
             if cached_at.tzinfo is None:
-                cached_at = cached_at.replace(tzinfo=timezone.utc)
-            now = datetime.now(tz=timezone.utc)
+                cached_at = cached_at.replace(tzinfo=UTC)
+            now = datetime.now(tz=UTC)
             if now - cached_at < timedelta(hours=_CACHE_TTL_HOURS):
                 return str(data["content"])
         except Exception as exc:
@@ -92,11 +93,13 @@ class DocsFetcher:
         _CACHE_DIR.mkdir(parents=True, exist_ok=True)
         p = Path(self._cache_path(url))
         p.write_text(
-            json.dumps({
-                "url": url,
-                "content": content,
-                "cached_at": datetime.now(tz=timezone.utc).isoformat(),
-            }),
+            json.dumps(
+                {
+                    "url": url,
+                    "content": content,
+                    "cached_at": datetime.now(tz=UTC).isoformat(),
+                }
+            ),
             encoding="utf-8",
         )
         logger.debug("docs_fetcher.cached", url=url[:60])

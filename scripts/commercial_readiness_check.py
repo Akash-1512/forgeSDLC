@@ -17,6 +17,7 @@ Hard checks: DATABASE_URL not sqlite, GROQ_API_KEY, OPENAI_API_KEY,
 
 Advisory checks: EU AI Act deadline, RENDER_DEPLOY_HOOK_URL
 """
+
 from __future__ import annotations
 
 import os
@@ -78,10 +79,7 @@ def main() -> int:
     check(
         "SECRET_KEY >= 32 chars",
         len(secret) >= 32,
-        (
-            "Generate a secure key:\n"
-            "     python -c \"import secrets; print(secrets.token_hex(32))\""
-        ),
+        ('Generate a secure key:\n     python -c "import secrets; print(secrets.token_hex(32))"'),
     )
 
     legal_files = [
@@ -154,10 +152,7 @@ def main() -> int:
         print()
 
     if hard_failures:
-        print(
-            f"❌ {len(hard_failures)} hard failure(s). "
-            "Resolve before tagging v1.0.0.\n"
-        )
+        print(f"❌ {len(hard_failures)} hard failure(s). Resolve before tagging v1.0.0.\n")
         return 1
 
     if FAILURES:

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import ast
 import inspect
-import tempfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
@@ -33,7 +32,7 @@ def _make_graph(project_id: str = "proj-test") -> ProjectContextGraph:
         deployment_config={"platform": "render", "tier": "starter"},
         slo_definitions=["p99 < 200ms"],
         workspace_path="C:/projects/myapp",
-        last_updated=datetime.now(tz=timezone.utc),
+        last_updated=datetime.now(tz=UTC),
     )
 
 
@@ -46,9 +45,8 @@ def _make_store(tmp_path: Path) -> ProjectContextGraphStore:
 def test_graph_exists_returns_false_for_new_project(tmp_path: Path) -> None:
     store = _make_store(tmp_path)
     import asyncio
-    result = asyncio.run(
-        store.graph_exists("nonexistent-proj")
-    )
+
+    result = asyncio.run(store.graph_exists("nonexistent-proj"))
     assert result is False
 
 
@@ -109,6 +107,7 @@ async def test_load_graph_emits_interpret_record_layer_memory_before_read(
 def test_save_graph_uses_pathlib_not_os_path() -> None:
     """AST check — os.path must not appear in project_context_graph.py."""
     import memory.project_context_graph as module
+
     source = inspect.getsource(module)
     tree = ast.parse(source)
     for node in ast.walk(tree):

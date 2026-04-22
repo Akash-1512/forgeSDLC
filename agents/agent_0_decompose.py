@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -99,7 +99,7 @@ class ServiceDecompositionAgent(BaseAgent):
             "reasoning": reasoning,
             "confidence": confidence,
             "generated_by": "agent_0_decompose",
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            "timestamp": datetime.now(tz=UTC).isoformat(),
         }
         logger.info(
             "agent_0.executed",

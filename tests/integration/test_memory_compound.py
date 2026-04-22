@@ -9,14 +9,12 @@ Run with:
 
 import shutil
 import tempfile
-from datetime import datetime, timezone
 from uuid import uuid4
 
 import pytest
 
 from memory.memory_archiver import MemoryArchiver
 from memory.organisational_memory import OrgMemory
-from memory.schemas import OrgMemoryEntry
 
 
 def _make_archiver_with_real_org(chroma_path: str) -> tuple[MemoryArchiver, OrgMemory]:

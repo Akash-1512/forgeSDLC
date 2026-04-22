@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -13,7 +13,7 @@ from memory.schemas import PipelineRunRecord
 def _make_record(project_id: str = "proj-1") -> PipelineRunRecord:
     return PipelineRunRecord(
         run_id=str(uuid4()),
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
         project_id=project_id,
         user_prompt="build a REST API",
         stack_chosen="fastapi",
@@ -29,9 +29,7 @@ def _make_record(project_id: str = "proj-1") -> PipelineRunRecord:
 
 def _make_store() -> PipelineHistoryStore:
     """Return a PipelineHistoryStore with mocked engine and session factory."""
-    with patch(
-        "memory.pipeline_history_store.create_async_engine"
-    ) as mock_engine:
+    with patch("memory.pipeline_history_store.create_async_engine") as mock_engine:
         mock_engine.return_value = MagicMock()
         store = PipelineHistoryStore()
         store._engine = MagicMock()
@@ -41,10 +39,11 @@ def _make_store() -> PipelineHistoryStore:
 
 def test_pipeline_run_record_validates_cost_ge_zero() -> None:
     import pydantic
+
     with pytest.raises(pydantic.ValidationError):
         PipelineRunRecord(
             run_id=str(uuid4()),
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             project_id="p1",
             user_prompt="x",
             stack_chosen=None,
@@ -60,10 +59,11 @@ def test_pipeline_run_record_validates_cost_ge_zero() -> None:
 
 def test_pipeline_run_record_validates_hitl_rounds_ge_zero() -> None:
     import pydantic
+
     with pytest.raises(pydantic.ValidationError):
         PipelineRunRecord(
             run_id=str(uuid4()),
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             project_id="p1",
             user_prompt="x",
             stack_chosen=None,
@@ -78,8 +78,10 @@ def test_pipeline_run_record_validates_hitl_rounds_ge_zero() -> None:
 
 
 def test_storage_factory_raises_if_url_not_postgresql() -> None:
-    from providers.factories.storage_factory import get_db_url
     import os
+
+    from providers.factories.storage_factory import get_db_url
+
     original = os.environ.get("DATABASE_URL")
     try:
         os.environ["DATABASE_URL"] = "sqlite:///test.db"
@@ -172,7 +174,7 @@ async def test_get_similar_runs_returns_ordered_by_timestamp() -> None:
 
     from memory.pipeline_history_store import _PipelineRunRow
 
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     rows = [
         _PipelineRunRow(
             run_id="r1",

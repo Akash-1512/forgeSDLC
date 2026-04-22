@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import chromadb
 import structlog
@@ -61,9 +61,7 @@ class OrgMemory:
             category=entry.category,
         )
 
-    async def search(
-        self, query: str, project_id: str, limit: int = 10
-    ) -> list[OrgMemoryEntry]:
+    async def search(self, query: str, project_id: str, limit: int = 10) -> list[OrgMemoryEntry]:
         """Semantic similarity search filtered by project_id.
 
         Emits InterpretRecord before read.
@@ -90,7 +88,7 @@ class OrgMemory:
         distances = results.get("distances", [[]])[0]
 
         for entry_id, content, meta, distance in zip(
-            ids, documents, metadatas, distances
+            ids, documents, metadatas, distances, strict=False
         ):
             # Cosine distance → similarity score (0=identical, 2=opposite)
             relevance = max(0.0, 1.0 - (distance / 2.0))
@@ -128,7 +126,7 @@ class OrgMemory:
             tool_delegated_to=None,
             reversible=(action_type == "read"),
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

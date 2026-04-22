@@ -18,6 +18,7 @@ logger = structlog.get_logger()
 
 # ── Conditional edge routers ─────────────────────────────────────────────────
 
+
 def _security_gate_router(state: dict[str, object]) -> str:
     """Route after Agent 5b based on security gate status.
 
@@ -42,6 +43,7 @@ def _security_gate_router(state: dict[str, object]) -> str:
 
 # ── Graph builder ─────────────────────────────────────────────────────────────
 
+
 def build_graph() -> object:
     """Build and return the forgeSDLC StateGraph.
 
@@ -65,8 +67,8 @@ def build_graph() -> object:
     graph = StateGraph(dict)
 
     # ── Placeholder nodes (replaced in later sessions) ────────────────────
-    graph.add_node("hitl_node", lambda state: state)          # Session 17
-    graph.add_node("agent_7_cicd", lambda state: state)       # Session 13
+    graph.add_node("hitl_node", lambda state: state)  # Session 17
+    graph.add_node("agent_7_cicd", lambda state: state)  # Session 13
     graph.add_node("agent_5b_security", lambda state: state)  # real agent injected
 
     # ── Security gate conditional edge (Session 12) ───────────────────────

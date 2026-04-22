@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from pathlib import Path
 
 import structlog
@@ -31,12 +30,8 @@ class ClaudeMdWriter:
     ) -> Path:
         decisions = key_decisions or []
         rules = security_rules or []
-        decisions_bullets = (
-            "\n".join(f"- {d}" for d in decisions) if decisions else "- None yet"
-        )
-        security_bullets = (
-            "\n".join(f"- {r}" for r in rules) if rules else "- None yet"
-        )
+        decisions_bullets = "\n".join(f"- {d}" for d in decisions) if decisions else "- None yet"
+        security_bullets = "\n".join(f"- {r}" for r in rules) if rules else "- None yet"
 
         content = f"""# forgeSDLC Context for Claude Code
 # Project: {project_id} | Phase: {current_phase}

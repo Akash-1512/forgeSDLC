@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import fnmatch
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -74,10 +74,7 @@ _TIERS: dict[str, SubscriptionTier] = {
 def get_tier(name: str) -> SubscriptionTier:
     """Return tier by name. Raises KeyError for unknown tiers."""
     if name not in _TIERS:
-        raise KeyError(
-            f"Unknown subscription tier: {name!r}. "
-            f"Valid tiers: {list(_TIERS.keys())}"
-        )
+        raise KeyError(f"Unknown subscription tier: {name!r}. Valid tiers: {list(_TIERS.keys())}")
     return _TIERS[name]
 
 

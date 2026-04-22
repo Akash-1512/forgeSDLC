@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+import contextlib
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
-from watchdog.events import FileSystemEventHandler
 from git import InvalidGitRepositoryError, Repo
+from watchdog.events import FileSystemEventHandler
 from watchdog.observers import Observer
 
 from interpret.record import InterpretRecord
@@ -62,7 +63,7 @@ class WorkspaceBridge:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         if self._context is None:
             await self._refresh()
@@ -88,9 +89,7 @@ class WorkspaceBridge:
                     sha=c.hexsha[:8],
                     message=c.message.strip()[:72],
                     author=str(c.author),
-                    timestamp=datetime.fromtimestamp(
-                        c.committed_date, tz=timezone.utc
-                    ),
+                    timestamp=datetime.fromtimestamp(c.committed_date, tz=UTC),
                 )
                 for c in list(repo.iter_commits())[:5]
             ]
@@ -142,11 +141,9 @@ class WorkspaceBridge:
             docker_files=self._find_files(
                 p, ["Dockerfile", "docker-compose.yml", "docker-compose.yaml"]
             ),
-            github_actions=[
-                str(f) for f in p.glob(".github/workflows/*.yml")
-            ],
+            github_actions=[str(f) for f in p.glob(".github/workflows/*.yml")],
             context_files=context_files,
-            last_updated=datetime.now(tz=timezone.utc),
+            last_updated=datetime.now(tz=UTC),
         )
         logger.info(
             "workspace_bridge.refreshed",
@@ -171,15 +168,17 @@ class WorkspaceBridge:
         try:
             for item in sorted(base.iterdir()):
                 if item.name.startswith(".") or item.name in (
-                    "__pycache__", "node_modules", ".venv", "venv"
+                    "__pycache__",
+                    "node_modules",
+                    ".venv",
+                    "venv",
                 ):
                     continue
                 if item.is_dir():
                     tree[item.name] = {
                         child.name: "file"
                         for child in sorted(item.iterdir())[:10]
-                        if not child.name.startswith(".")
-                        and child.name != "__pycache__"
+                        if not child.name.startswith(".") and child.name != "__pycache__"
                     }
                 else:
                     tree[item.name] = "file"
@@ -194,15 +193,11 @@ class _RefreshHandler(FileSystemEventHandler):
     def __init__(self, bridge: WorkspaceBridge) -> None:
         self._bridge = bridge
         self._loop: asyncio.AbstractEventLoop | None = None
-        try:
+        with contextlib.suppress(RuntimeError):
             self._loop = asyncio.get_event_loop()
-        except RuntimeError:
-            pass
 
     def on_any_event(self, event: object) -> None:
         if hasattr(event, "is_directory") and event.is_directory:  # type: ignore[union-attr]
             return
         if self._loop and self._loop.is_running():
-            asyncio.run_coroutine_threadsafe(
-                self._bridge._refresh(), self._loop
-            )
+            asyncio.run_coroutine_threadsafe(self._bridge._refresh(), self._loop)

@@ -20,6 +20,7 @@ dependencies = [
     "langgraph-checkpoint-sqlite>=3.0.3",
     "chromadb>=0.5",
     "sentence-transformers>=3.0",
+    "langchain-huggingface>=0.1",
     "watchdog>=4.0",
     "gitpython>=3.1",
     "pyjwt>=2.8",
@@ -58,13 +59,20 @@ ignore = [
     "SIM105",
     "SIM115",
     "B006",
+    "B007",
     "B018",
+    "B905",
     "UP042",
     "UP017",
     "UP041",
+    "UP035",
     "E402",
+    "E401",
     "SIM102",
     "E702",
+    "F601",
+    "F811",
+    "F841",
 ]
 exclude = [".venv", "data", "test_chroma"]
 

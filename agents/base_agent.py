@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -157,7 +157,7 @@ class BaseAgent(ABC):
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=files_write or [],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.agent",

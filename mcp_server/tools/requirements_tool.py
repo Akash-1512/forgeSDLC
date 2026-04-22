@@ -3,15 +3,13 @@ from __future__ import annotations
 import structlog
 from fastmcp import Context
 
-from interpret.gate import check_gate
-
 logger = structlog.get_logger()
 
 
 def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
     """Build a fresh SDLCState for a new project."""
     import uuid
-    from datetime import datetime, timezone
+
     return {
         "user_prompt": prompt,
         "mcp_session_id": project_id,
@@ -86,8 +84,13 @@ def _build_infrastructure() -> tuple:
     diff_engine = DiffEngine()
 
     return (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     )
 
 
@@ -97,7 +100,9 @@ def _build_agents(infra: tuple) -> tuple:
     from agents.agent_1_requirements import RequirementsAgent
     from agents.agent_2_stack import TechStackAgent
 
-    model_router, cwm, memory_archiver, memory_ctx_builder, cfm, workspace_bridge, diff_engine = infra
+    model_router, cwm, memory_archiver, memory_ctx_builder, cfm, workspace_bridge, diff_engine = (
+        infra
+    )
 
     kwargs = {
         "context_window_manager": cwm,
@@ -150,10 +155,13 @@ async def gather_requirements(
     # SqliteSaver for LangGraph HITL checkpointing
     # NOTE: SqliteSaver is LangGraph's checkpoint mechanism — NOT our application DB
     try:
-        from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
         from pathlib import Path  # noqa: PLC0415
+
+        from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         Path("./data").mkdir(parents=True, exist_ok=True)
         import sqlite3  # noqa: PLC0415
+
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": project_id}}
@@ -167,14 +175,14 @@ async def gather_requirements(
         logger.warning("gather_requirements.checkpointer_failed", error=str(exc))
         state = _build_initial_state(prompt, project_id)
 
-
     # Simple JSON state persistence (SqliteSaver reads but doesn't auto-save here)
-    import json as _json  # noqa: PLC0415
     _state_file = f"./data/state_{project_id}.json"
 
     def _save_state(s: dict) -> None:
         try:
-            import json as j, pathlib as pl  # noqa: PLC0415
+            import json as j
+            import pathlib as pl  # noqa: PLC0415
+
             pl.Path("./data").mkdir(parents=True, exist_ok=True)
             pl.Path(_state_file).write_text(j.dumps(s, default=str))
         except Exception:
@@ -182,7 +190,9 @@ async def gather_requirements(
 
     def _load_state() -> dict | None:
         try:
-            import json as j, pathlib as pl  # noqa: PLC0415
+            import json as j
+            import pathlib as pl  # noqa: PLC0415
+
             p = pl.Path(_state_file)
             if p.exists():
                 return j.loads(p.read_text())
@@ -288,5 +298,3 @@ async def gather_requirements(
         "interpret_log": state.get("interpret_log", []),
         "interpret_rounds": int(state.get("interpret_round", 0) or 0),
     }
-
-

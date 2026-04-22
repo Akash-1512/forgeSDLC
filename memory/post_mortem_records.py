@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -30,7 +30,7 @@ class _PostMortemRow(_Base):
     resolution = Column(String, nullable=False)
     prevention_rule = Column(String, nullable=False)
     stack_context = Column(String, nullable=False)
-    tool_involved = Column(String, nullable=True)   # v4: ToolRouter target that failed
+    tool_involved = Column(String, nullable=True)  # v4: ToolRouter target that failed
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
 
 
@@ -57,24 +57,23 @@ class PostMortemStore:
     async def save_post_mortem(self, pm: PostMortem) -> None:
         """Insert a post-mortem record. Emits InterpretRecord before write."""
         self._emit("write", "save_post_mortem", pm.post_mortem_id)
-        async with self._session_factory() as session:
-            async with session.begin():
-                existing = await session.get(_PostMortemRow, pm.post_mortem_id)
-                if existing:
-                    await session.delete(existing)
-                row = _PostMortemRow(
-                    post_mortem_id=pm.post_mortem_id,
-                    run_id=pm.run_id,
-                    failure_type=pm.failure_type,
-                    agent_that_failed=pm.agent_that_failed,
-                    root_cause=pm.root_cause,
-                    resolution=pm.resolution,
-                    prevention_rule=pm.prevention_rule,
-                    stack_context=pm.stack_context,
-                    tool_involved=pm.tool_involved,
-                    timestamp=pm.timestamp,
-                )
-                session.add(row)
+        async with self._session_factory() as session, session.begin():
+            existing = await session.get(_PostMortemRow, pm.post_mortem_id)
+            if existing:
+                await session.delete(existing)
+            row = _PostMortemRow(
+                post_mortem_id=pm.post_mortem_id,
+                run_id=pm.run_id,
+                failure_type=pm.failure_type,
+                agent_that_failed=pm.agent_that_failed,
+                root_cause=pm.root_cause,
+                resolution=pm.resolution,
+                prevention_rule=pm.prevention_rule,
+                stack_context=pm.stack_context,
+                tool_involved=pm.tool_involved,
+                timestamp=pm.timestamp,
+            )
+            session.add(row)
         logger.info(
             "post_mortem_store.saved",
             post_mortem_id=pm.post_mortem_id,
@@ -82,9 +81,7 @@ class PostMortemStore:
             tool_involved=pm.tool_involved,
         )
 
-    async def get_recent_failures(
-        self, project_id: str, limit: int = 5
-    ) -> list[PostMortem]:
+    async def get_recent_failures(self, project_id: str, limit: int = 5) -> list[PostMortem]:
         """Fetch recent post-mortems for a project ordered by timestamp desc.
 
         Emits InterpretRecord before read.
@@ -95,9 +92,7 @@ class PostMortemStore:
         self._emit("read", "get_recent_failures", project_id)
         async with self._session_factory() as session:
             result = await session.execute(
-                select(_PostMortemRow)
-                .order_by(_PostMortemRow.timestamp.desc())
-                .limit(limit)
+                select(_PostMortemRow).order_by(_PostMortemRow.timestamp.desc()).limit(limit)
             )
             rows = result.scalars().all()
 
@@ -137,7 +132,7 @@ class PostMortemStore:
             tool_delegated_to=None,
             reversible=(action_type == "read"),
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

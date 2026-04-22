@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -21,6 +19,7 @@ async def _make_context(tmp_path: Path) -> WorkspaceContext:
 @pytest.mark.asyncio
 async def test_get_context_emits_interpret_record_layer2(tmp_path: Path) -> None:
     from interpret.record import InterpretRecord
+
     bridge = WorkspaceBridge()
     bridge._path = tmp_path
     await bridge._refresh()
@@ -108,6 +107,7 @@ async def test_workspace_bridge_never_writes_files(tmp_path: Path) -> None:
     """Structural test: every InterpretRecord from WorkspaceBridge must have
     files_it_will_write == [] — read-only contract enforced at semantic layer."""
     from interpret.record import InterpretRecord
+
     bridge = WorkspaceBridge()
     bridge._path = tmp_path
     await bridge._refresh()

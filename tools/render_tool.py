@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -45,19 +45,18 @@ class RenderTool:
             tool_delegated_to=None,
             reversible=False,  # deployment is irreversible until manually rolled back
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info("render_tool.trigger_deploy", hook_url=hook_url[:40])
 
         import httpx  # noqa: PLC0415
+
         async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT_SECONDS) as client:
             r = await client.post(hook_url)
             r.raise_for_status()
             return r.text
 
-    async def wait_for_health(
-        self, url: str | None, timeout_seconds: int = 60
-    ) -> bool:
+    async def wait_for_health(self, url: str | None, timeout_seconds: int = 60) -> bool:
         """Poll {url}/health every 10s until 200 or timeout.
 
         Returns True if healthy within timeout.
@@ -79,7 +78,7 @@ class RenderTool:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
 
         if not url:
@@ -90,6 +89,7 @@ class RenderTool:
         deadline = asyncio.get_event_loop().time() + timeout_seconds
 
         import httpx  # noqa: PLC0415
+
         async with httpx.AsyncClient() as client:
             while asyncio.get_event_loop().time() < deadline:
                 try:

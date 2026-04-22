@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -85,9 +84,7 @@ async def test_write_all_emits_interpret_record_layer13_before_each_write(
     emitted: list[str] = []
     original_emit = cfm._emit_record
 
-    def capturing_emit(
-        filename: str, project_id: str, workspace_path: str
-    ) -> object:
+    def capturing_emit(filename: str, project_id: str, workspace_path: str) -> object:
         ir = original_emit(filename, project_id, workspace_path)
         emitted.append(ir.layer)
         return ir
@@ -118,9 +115,6 @@ async def test_write_all_is_idempotent(tmp_path: Path) -> None:
 
     # Strip the timestamp line before comparing (it will differ between calls)
     def strip_timestamp(text: str) -> str:
-        return "\n".join(
-            line for line in text.splitlines()
-            if "Last Updated:" not in line
-        )
+        return "\n".join(line for line in text.splitlines() if "Last Updated:" not in line)
 
     assert strip_timestamp(content_first) == strip_timestamp(content_second)

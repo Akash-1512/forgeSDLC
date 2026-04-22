@@ -1,21 +1,31 @@
 from __future__ import annotations
 
-import os
-from unittest.mock import patch
-
 import pytest
 
 from providers.manifest import ProviderManifest
 from providers.resolver import ProviderResolver
 
 _ALL_ENV_VARS = [
-    "DATABASE_URL", "OPENAI_API_KEY", "GROQ_API_KEY",
-    "AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT",
-    "AZURE_AI_SEARCH_ENDPOINT", "AZURE_STORAGE_CONNECTION_STRING",
-    "APPLICATIONINSIGHTS_CONNECTION_STRING", "AZURE_ML_WORKSPACE",
-    "GOOGLE_API_KEY", "MISTRAL_CODESTRAL_KEY", "MISTRAL_API_KEY",
-    "RENDER_API_KEY", "TAVILY_API_KEY", "DEVIN_API_KEY",
-    "CURSOR_API_KEY", "CURSOR_API_VERIFIED", "REDIS_URL", "SECRET_KEY",
+    "DATABASE_URL",
+    "OPENAI_API_KEY",
+    "GROQ_API_KEY",
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_OPENAI_ENDPOINT",
+    "AZURE_OPENAI_DEPLOYMENT",
+    "AZURE_AI_SEARCH_ENDPOINT",
+    "AZURE_STORAGE_CONNECTION_STRING",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING",
+    "AZURE_ML_WORKSPACE",
+    "GOOGLE_API_KEY",
+    "MISTRAL_CODESTRAL_KEY",
+    "MISTRAL_API_KEY",
+    "RENDER_API_KEY",
+    "TAVILY_API_KEY",
+    "DEVIN_API_KEY",
+    "CURSOR_API_KEY",
+    "CURSOR_API_VERIFIED",
+    "REDIS_URL",
+    "SECRET_KEY",
 ]
 
 
@@ -60,9 +70,12 @@ def test_resolve_db_falls_back_to_local_db_url_when_no_env(
     resolver = ProviderResolver()
     selection = resolver._resolve_db()
     from orchestrator.constants import LOCAL_DB_URL
-    assert "postgresql" in selection.connection_string or \
-           selection.connection_string == LOCAL_DB_URL or \
-           "forgesdlc" in selection.connection_string
+
+    assert (
+        "postgresql" in selection.connection_string
+        or selection.connection_string == LOCAL_DB_URL
+        or "forgesdlc" in selection.connection_string
+    )
 
 
 def test_print_table_outputs_all_13_services(
@@ -75,9 +88,19 @@ def test_print_table_outputs_all_13_services(
     resolver.print_table()
     captured = capsys.readouterr()
     services = [
-        "llm", "embeddings", "vector_store", "database",
-        "blob_storage", "monitoring", "experiment", "deployment",
-        "docs_fetcher", "connected_tools", "auth", "mcp", "cache",
+        "llm",
+        "embeddings",
+        "vector_store",
+        "database",
+        "blob_storage",
+        "monitoring",
+        "experiment",
+        "deployment",
+        "docs_fetcher",
+        "connected_tools",
+        "auth",
+        "mcp",
+        "cache",
     ]
     for service in services:
         assert service in captured.out, f"Service '{service}' missing from print_table output"

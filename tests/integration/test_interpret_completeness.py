@@ -6,10 +6,10 @@ Approach: run a full synthetic pipeline against mocked LLM adapters and
 real infrastructure components (memory, workspace, context manager). Collect
 all InterpretRecord emissions. Assert coverage of all 13 layers.
 """
+
 from __future__ import annotations
 
-import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -17,9 +17,19 @@ import pytest
 from interpret.record import InterpretRecord
 
 ALL_13_LAYERS = {
-    "agent", "workspace", "diff", "model_router", "tool_router",
-    "memory", "docs_fetcher", "tool", "provider", "security",
-    "context_window_manager", "mcp_server", "context_file_manager",
+    "agent",
+    "workspace",
+    "diff",
+    "model_router",
+    "tool_router",
+    "memory",
+    "docs_fetcher",
+    "tool",
+    "provider",
+    "security",
+    "context_window_manager",
+    "mcp_server",
+    "context_file_manager",
 }
 
 
@@ -78,17 +88,19 @@ async def test_all_13_layers_emitted_in_full_pipeline(
     )
 
 
-async def _run_synthetic_pipeline(
-    tmp_path: object, records: list[InterpretRecord]
-) -> None:
+async def _run_synthetic_pipeline(tmp_path: object, records: list[InterpretRecord]) -> None:
     """Trigger real infrastructure components to emit all 13 layers."""
     import os  # noqa: PLC0415
     from pathlib import Path  # noqa: PLC0415
 
     from context_files.manager import ContextFileManager  # noqa: PLC0415
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS  # noqa: PLC0415
+    from context_management.agent_context_specs import (
+        AGENT_CONTEXT_SPECS,  # noqa: PLC0415
+    )
     from context_management.context_compressor import ContextCompressor  # noqa: PLC0415
-    from context_management.context_window_manager import ContextWindowManager  # noqa: PLC0415
+    from context_management.context_window_manager import (
+        ContextWindowManager,  # noqa: PLC0415
+    )
     from context_management.token_estimator import TokenEstimator  # noqa: PLC0415
     from providers.resolver import ProviderResolver  # noqa: PLC0415
     from tools.docs_fetcher import DocsFetcher  # noqa: PLC0415
@@ -125,7 +137,9 @@ async def _run_synthetic_pipeline(
         "subscription_tier": "free",
         "budget_used_usd": 0.0,
         "budget_remaining_usd": 999.0,
-        "prd": "", "adr": "", "rfc": "",
+        "prd": "",
+        "adr": "",
+        "rfc": "",
     }
     await cwm.build_packet("agent_0_decompose", state)
 
@@ -136,10 +150,14 @@ async def _run_synthetic_pipeline(
         action="read: get_similar_runs — key=test-18",
         inputs={"project_id": "test-18"},
         expected_outputs={"runs": "list"},
-        files_it_will_read=[], files_it_will_write=[],
-        external_calls=[], model_selected=None,
-        tool_delegated_to=None, reversible=True,
-        workspace_files_affected=[], timestamp=datetime.now(tz=timezone.utc),
+        files_it_will_read=[],
+        files_it_will_write=[],
+        external_calls=[],
+        model_selected=None,
+        tool_delegated_to=None,
+        reversible=True,
+        workspace_files_affected=[],
+        timestamp=datetime.now(tz=UTC),
     )
 
     # L7: DocsFetcher — emits before every fetch (cache hit or miss)
@@ -181,10 +199,14 @@ async def _run_synthetic_pipeline(
         action="resolve_all: detecting available LLM providers",
         inputs={},
         expected_outputs={"providers": "list[str]"},
-        files_it_will_read=[], files_it_will_write=[],
-        external_calls=[], model_selected=None,
-        tool_delegated_to=None, reversible=True,
-        workspace_files_affected=[], timestamp=datetime.now(tz=timezone.utc),
+        files_it_will_read=[],
+        files_it_will_write=[],
+        external_calls=[],
+        model_selected=None,
+        tool_delegated_to=None,
+        reversible=True,
+        workspace_files_affected=[],
+        timestamp=datetime.now(tz=UTC),
     )
     resolver = ProviderResolver()
     resolver.resolve_all()
@@ -196,10 +218,14 @@ async def _run_synthetic_pipeline(
         action="route: agent_0_decompose → gpt-5.4-mini (groq fallback)",
         inputs={"agent": "agent_0_decompose", "task_type": "requirements"},
         expected_outputs={"adapter": "GroqAdapter"},
-        files_it_will_read=[], files_it_will_write=[],
-        external_calls=[], model_selected="gpt-5.4-mini",
-        tool_delegated_to=None, reversible=True,
-        workspace_files_affected=[], timestamp=datetime.now(tz=timezone.utc),
+        files_it_will_read=[],
+        files_it_will_write=[],
+        external_calls=[],
+        model_selected="gpt-5.4-mini",
+        tool_delegated_to=None,
+        reversible=True,
+        workspace_files_affected=[],
+        timestamp=datetime.now(tz=UTC),
     )
 
     # L5: ToolRouter — emit directly (route() is mocked; real router not called)
@@ -209,10 +235,14 @@ async def _run_synthetic_pipeline(
         action="delegate: code_generation → direct_llm",
         inputs={"task_type": "code_generation", "selected_tool": "direct_llm"},
         expected_outputs={"result": "ToolResult"},
-        files_it_will_read=[], files_it_will_write=[],
-        external_calls=[], model_selected=None,
-        tool_delegated_to="direct_llm", reversible=True,
-        workspace_files_affected=[], timestamp=datetime.now(tz=timezone.utc),
+        files_it_will_read=[],
+        files_it_will_write=[],
+        external_calls=[],
+        model_selected=None,
+        tool_delegated_to="direct_llm",
+        reversible=True,
+        workspace_files_affected=[],
+        timestamp=datetime.now(tz=UTC),
     )
 
     # L12: mcp_server — emit directly (MCP transport boundary)
@@ -222,14 +252,20 @@ async def _run_synthetic_pipeline(
         action="tool_call: save_decision — project=test-18",
         inputs={"project_id": "test-18", "tool": "save_decision"},
         expected_outputs={"status": "str"},
-        files_it_will_read=[], files_it_will_write=[],
-        external_calls=[], model_selected=None,
-        tool_delegated_to=None, reversible=True,
-        workspace_files_affected=[], timestamp=datetime.now(tz=timezone.utc),
+        files_it_will_read=[],
+        files_it_will_write=[],
+        external_calls=[],
+        model_selected=None,
+        tool_delegated_to=None,
+        reversible=True,
+        workspace_files_affected=[],
+        timestamp=datetime.now(tz=UTC),
     )
 
     # L1: Agent — emit from a real agent's _interpret()
-    from agents.agent_0_decompose import ServiceDecompositionAgent as DecompositionAgent  # noqa: PLC0415
+    from agents.agent_0_decompose import (
+        ServiceDecompositionAgent as DecompositionAgent,  # noqa: PLC0415
+    )
     from model_router.router import ModelRouter  # noqa: PLC0415
 
     mock_cwm = MagicMock()
@@ -240,13 +276,9 @@ async def _run_synthetic_pipeline(
     mock_cfm2 = MagicMock()
     mock_cfm2.write_all = AsyncMock()
     mock_workspace = MagicMock()
-    mock_workspace.get_context = AsyncMock(
-        return_value=MagicMock(root_path=workspace_path)
-    )
+    mock_workspace.get_context = AsyncMock(return_value=MagicMock(root_path=workspace_path))
     mock_diff2 = MagicMock()
-    mock_diff2.generate_diff = AsyncMock(
-        return_value=MagicMock(filepath="out.py", new_content="")
-    )
+    mock_diff2.generate_diff = AsyncMock(return_value=MagicMock(filepath="out.py", new_content=""))
     mock_diff2.apply_diff = AsyncMock()
     mock_memory_builder = MagicMock()
     mock_memory_builder.build = AsyncMock(return_value=MagicMock())
@@ -273,6 +305,7 @@ async def _run_synthetic_pipeline(
 def test_no_unknown_layer_literals() -> None:
     """Verify InterpretRecord.layer Literal contains exactly 13 official layers."""
     import typing  # noqa: PLC0415
+
     hints = typing.get_type_hints(InterpretRecord)
     layer_type = hints.get("layer")
     layer_args = set(typing.get_args(layer_type))
@@ -289,6 +322,7 @@ async def test_workspace_bridge_never_writes_files(
 ) -> None:
     """WorkspaceBridge L2 records always have files_it_will_write == []."""
     from workspace.bridge import WorkspaceBridge  # noqa: PLC0415
+
     bridge = WorkspaceBridge()
     await bridge.start(str(tmp_path))
     await bridge.get_context()
