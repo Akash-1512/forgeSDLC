@@ -16,9 +16,15 @@ ignore = [
     "E402",   # module import not at top — intentional in integration tests
     "SIM102", # nested if — intentional for readability in AST walkers
     "E702",   # semicolon — intentional in test fixtures
+    "SIM115", # context manager for open — intentional in one-off scripts
+
+    "SIM115", # context manager for open — intentional in one-off scripts
+
 
 
 ]
 exclude = [".venv", "data", "test_chroma"]
+
+
 
 
