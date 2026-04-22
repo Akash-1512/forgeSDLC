@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
-from unittest.mock import patch
 from mcp_server.tools.architecture_tool import design_architecture
 from mcp_server.tools.cicd_tool import generate_cicd
 from mcp_server.tools.code_generation_tool import route_code_generation
@@ -68,7 +69,7 @@ async def test_gather_requirements_stub_returns_valid_dict() -> None:
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation")
     assert "project_id" in result
-    
+
 
 @pytest.mark.asyncio
 async def test_design_architecture_stub_returns_valid_dict() -> None:
@@ -91,7 +92,18 @@ async def test_design_architecture_stub_returns_valid_dict() -> None:
         mock_agent = MagicMock(spec=ArchitectureAgent)
 
         async def fake_run(state: dict) -> dict:
-            state["arch_validation"] = {"gate_blocked": False, "anti_pattern_result": {"high_count": 0, "medium_count": 0, "all_clear": True, "findings": []}, "nfr_checks": [], "architecture_score": {"scalability": 1, "reliability": 1, "security": 1, "maintainability": 1, "cost": 1, "overall": 1.0}}
+            state["arch_validation"] = {
+                "gate_blocked": False,
+                "anti_pattern_result": {
+                    "high_count": 0, "medium_count": 0,
+                    "all_clear": True, "findings": [],
+                },
+                "nfr_checks": [],
+                "architecture_score": {
+                    "scalability": 1, "reliability": 1, "security": 1,
+                    "maintainability": 1, "cost": 1, "overall": 1.0,
+                },
+            }
             state["rfc"] = "# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```"
             state["human_confirmation"] = ""
             return state
@@ -106,22 +118,28 @@ async def test_design_architecture_stub_returns_valid_dict() -> None:
     assert result["status"] in ("complete", "awaiting_confirmation", "blocked")
     assert "project_id" in result
 
+
 @pytest.mark.asyncio
 async def test_recall_context_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
+    from memory.memory_context_builder import MemoryContext
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
     with (
         patch("mcp_server.tools.memory_tool.MemoryContextBuilder") as mock_builder,
     ):
-        mock_context = {
-            "org_memory": [],
-            "similar_runs": [],
-            "layers_queried": ["pipeline_history_store", "org_memory"],
-            "assembled_at": "2026-01-01T00:00:00+00:00",
-        }
+        mock_context = MemoryContext(
+            project_id="p1",
+            query="what stack?",
+            similar_runs=[],
+            relevant_patterns=[],
+            project_graph=None,
+            user_preferences=None,
+            past_failures=[],
+            layers_queried=["pipeline_history_store", "org_memory"],
+            assembled_at="2026-01-01T00:00:00+00:00",
+        )
         mock_builder.return_value.build = AsyncMock(return_value=mock_context)
         result = await recall_context(query="what stack?", project_id="p1", ctx=mock_ctx)
     assert isinstance(result, dict)
@@ -147,7 +165,7 @@ async def test_save_decision_stub_returns_valid_dict() -> None:
 @pytest.mark.asyncio
 async def test_route_code_generation_stub_returns_valid_dict() -> None:
     from unittest.mock import AsyncMock, MagicMock
-    from tool_router.context import AvailableTool, ToolResult
+
     mock_ctx = MagicMock()
     mock_ctx.report_progress = AsyncMock()
 
@@ -192,7 +210,7 @@ async def test_route_code_generation_stub_returns_valid_dict() -> None:
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
     assert "project_id" in result
-    
+
 
 @pytest.mark.asyncio
 async def test_run_security_scan_stub_returns_valid_dict() -> None:
@@ -237,7 +255,7 @@ async def test_run_security_scan_stub_returns_valid_dict() -> None:
     assert isinstance(result, dict)
     assert result["status"] in ("complete", "awaiting_confirmation")
     assert "project_id" in result
-    
+
 
 @pytest.mark.asyncio
 async def test_generate_cicd_stub_returns_valid_dict() -> None:
@@ -251,7 +269,9 @@ async def test_generate_cicd_stub_returns_valid_dict() -> None:
     )
 
     async def fake_a6_run(state: dict) -> dict:
-        state["generated_files"] = [{"path": "tests/test_main.py", "content": "def test_x(): pass"}]
+        state["generated_files"] = [
+            {"path": "tests/test_main.py", "content": "def test_x(): pass"},
+        ]
         state["test_coverage"] = 85.0
         state["test_retry_needed"] = False
         state["human_confirmation"] = ""
