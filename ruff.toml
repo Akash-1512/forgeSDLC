@@ -1,0 +1,24 @@
+line-length = 100
+target-version = "py312"
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "SIM", "B"]
+ignore = [
+    "E501",   # line too long — handled by formatter
+    "SIM117", # nested with — intentional in tests
+    "SIM108", # ternary — readability preference
+    "SIM105", # contextlib.suppress — explicit try/except clearer
+    "B006",   # mutable default args — test fixtures only
+    "B018",   # useless expression — test fixtures only
+    "UP042",  # StrEnum — breaks Python 3.10 compat
+    "UP017",  # datetime.UTC — style preference
+    "UP041",  # TimeoutError alias — explicit is clearer
+    "E402",   # module import not at top — intentional in integration tests
+    "SIM102", # nested if — intentional for readability in AST walkers
+    "E702",   # semicolon — intentional in test fixtures
+
+
+]
+exclude = [".venv", "data", "test_chroma"]
+
+
