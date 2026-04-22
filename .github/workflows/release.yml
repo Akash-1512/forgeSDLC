@@ -13,6 +13,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_PASSWORD: forgesdlc
+          POSTGRES_DB: forgesdlc
         ports:
           - 5432:5432
         options: >-
@@ -161,3 +162,4 @@ jobs:
         # Extension ID: Akash-1512.forgesdlc
         # Requires VSCE_PAT secret: dev.azure.com → Personal Access Tokens
         #   → Marketplace (Publish) scope
+
