@@ -66,9 +66,9 @@ class PipelineHistoryStore:
 
     async def save_run(self, record: PipelineRunRecord) -> None:
         """Upsert a pipeline run record. Emits InterpretRecord before write."""
+        await self.init_db()
         self._emit_record("write", "save_run", record.run_id)
         async with self._session_factory() as session, session.begin():
-            # Delete existing row if present (upsert via delete+insert)
             existing = await session.get(_PipelineRunRow, record.run_id)
             if existing:
                 await session.delete(existing)
@@ -93,11 +93,14 @@ class PipelineHistoryStore:
             session.add(row)
         logger.info("pipeline_history_store.save_run", run_id=record.run_id)
 
-    async def get_similar_runs(self, project_id: str, limit: int = 5) -> list[PipelineRunRecord]:
+    async def get_similar_runs(
+        self, project_id: str, limit: int = 5
+    ) -> list[PipelineRunRecord]:
         """Fetch recent runs for a project ordered by timestamp desc.
 
         Emits InterpretRecord before read.
         """
+        await self.init_db()
         self._emit_record("read", "get_similar_runs", project_id)
         async with self._session_factory() as session:
             result = await session.execute(
@@ -116,7 +119,9 @@ class PipelineHistoryStore:
                 user_prompt=row.user_prompt,
                 stack_chosen=row.stack_chosen,
                 deployment_success=(
-                    row.deployment_success == "true" if row.deployment_success is not None else None
+                    row.deployment_success == "true"
+                    if row.deployment_success is not None
+                    else None
                 ),
                 cost_total_usd=row.cost_total_usd,
                 hitl_rounds=row.hitl_rounds,
@@ -134,7 +139,9 @@ class PipelineHistoryStore:
         )
         return records
 
-    def _emit_record(self, action_type: str, action: str, key: str) -> InterpretRecord:
+    def _emit_record(
+        self, action_type: str, action: str, key: str
+    ) -> InterpretRecord:
         record = InterpretRecord(
             layer="memory",
             component="PipelineHistoryStore",
@@ -156,5 +163,3 @@ class PipelineHistoryStore:
             layer=record.layer,
         )
         return record
-
-
