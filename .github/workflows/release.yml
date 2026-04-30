@@ -104,7 +104,7 @@ jobs:
           node-version: '24'
 
       - name: Install electron dependencies
-        run: cd electron && npm ci
+        run: cd electron && npm install
 
       - name: Build Electron app
         run: cd electron && npx electron-builder --${{ matrix.platform }} --publish never
@@ -162,5 +162,6 @@ jobs:
         # Extension ID: Akash-1512.forgesdlc
         # Requires VSCE_PAT secret: dev.azure.com → Personal Access Tokens
         #   → Marketplace (Publish) scope
+
 
 
