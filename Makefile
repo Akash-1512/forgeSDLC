@@ -45,3 +45,9 @@ test:
 # ── Lint ──────────────────────────────────────────────────────────────────────
 lint:
 	ruff check . && ruff format --check .
+pre-release:
+ruff check .
+ruff format --check .
+pytest tests/ -m "not slow" -q
+python scripts/commercial_readiness_check.py
+@echo "Pre-release checks passed. Safe to tag."
