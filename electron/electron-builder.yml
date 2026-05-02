@@ -1,22 +1,21 @@
 appId: ai.forgesdlc.desktop
 productName: forgeSDLC
-copyright: Copyright © 2026 Akash Chaudhari
+copyright: Copyright 2026 Akash Chaudhari
 
 directories:
   output: dist/electron
 
 files:
-  - electron/**
-  - frontend/build/**
-  - mcp_server/**
+  - "**/*"
+  - "!node_modules/**"
+  - "!dist/**"
   - "!**/__pycache__"
   - "!**/*.pyc"
   - "!**/*.md"
-  - "!**/node_modules/.cache"
 
 win:
   target: nsis
-  icon: frontend/public/icon.ico
+  icon: resources/icon.ico
   artifactName: forgesdlc-setup-${version}.exe
 
 nsis:
@@ -27,13 +26,13 @@ nsis:
 
 mac:
   target: dmg
-  icon: frontend/public/icon.icns
+  icon: resources/icon.icns
   category: public.app-category.developer-tools
   artifactName: forgesdlc-${version}.dmg
 
 linux:
   target: deb
-  icon: frontend/public/icon.png
+  icon: resources/icon.png
   category: Development
   artifactName: forgesdlc-${version}.deb
 
@@ -41,5 +40,3 @@ publish:
   provider: github
   owner: Akash-1512
   repo: forgesdlc
-  # Actual publish happens in Session 20 with GH_TOKEN set in CI
-  # Run: vsce publish — Session 20 only
