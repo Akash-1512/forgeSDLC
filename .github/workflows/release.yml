@@ -23,19 +23,15 @@ jobs:
           --health-retries 5
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
       - name: Install dependencies
         run: pip install -e ".[dev]"
-
       - name: Run tests (skip slow e2e)
         run: pytest tests/ -q -m "not slow"
         env:
           DATABASE_URL: postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc
-
       - name: Commercial readiness check
         run: python scripts/commercial_readiness_check.py
         env:
@@ -49,16 +45,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
       - name: Build package
         run: |
           pip install build twine
           python -m build
-
       - name: Publish to PyPI
         run: twine upload dist/* || true
         env:
@@ -70,12 +63,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
-
       - name: Publish to npm
         run: cd electron && npm install && npm publish --access public || true
         env:
@@ -98,18 +89,14 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-
       - name: Install electron dependencies
         run: cd electron && npm install
-
       - name: Build Electron app
         continue-on-error: true
         run: cd electron && npx electron-builder --${{ matrix.platform }} --publish never
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -124,16 +111,13 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/download-artifact@v4
         with:
           pattern: electron-*
           merge-multiple: true
           path: dist/
-
       - name: List release artifacts
         run: ls -la dist/ || echo No artifacts
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -147,25 +131,14 @@ jobs:
 
   publish-vscode:
     needs: github-release
+    if: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-
       - name: Install vsce
         run: npm install -g @vscode/vsce
-
       - name: Publish VS Code extension
         run: cd vscode_extension && vsce publish --pat ${{ secrets.VSCE_PAT }}
-        # Publisher: Akash-1512
-        # Extension ID: Akash-1512.forgesdlc
-        # Requires VSCE_PAT secret: dev.azure.com → Personal Access Tokens
-        #   → Marketplace (Publish) scope
-
-
-
-
-
