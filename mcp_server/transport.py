@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import os
+
 from orchestrator.constants import MCP_SERVER_HOST, MCP_SERVER_PORT
 
-# Streamable HTTP is the primary transport for Cursor / Claude Code / Copilot.
-# stdio is available for local CLI usage.
-TRANSPORT = "streamable-http"
+# Use stdio if env var set (for Claude Code / MCP clients that launch via subprocess)
+TRANSPORT = os.environ.get("FORGESDLC_TRANSPORT", "streamable-http")
 HOST = MCP_SERVER_HOST
 PORT = MCP_SERVER_PORT

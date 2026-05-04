@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import os
+import sys
+
 import structlog
 from fastmcp import FastMCP
 
@@ -29,7 +32,6 @@ mcp = FastMCP(
     ),
 )
 
-# Register all 11 MCP tools
 mcp.tool()(gather_requirements)
 mcp.tool()(design_architecture)
 mcp.tool()(recall_context)
@@ -44,8 +46,13 @@ mcp.tool()(track_progress)
 
 
 def main() -> None:
-    logger.info("forgeSDLC MCP server starting", port=MCP_SERVER_PORT, transport=TRANSPORT)
-    mcp.run(transport=TRANSPORT, host=HOST, port=PORT)
+    use_stdio = "--stdio" in sys.argv or os.environ.get("FORGESDLC_TRANSPORT") == "stdio"
+    if use_stdio:
+        logger.info("forgeSDLC MCP server starting", transport="stdio")
+        mcp.run(transport="stdio")
+    else:
+        logger.info("forgeSDLC MCP server starting", port=MCP_SERVER_PORT, transport=TRANSPORT)
+        mcp.run(transport=TRANSPORT, host=HOST, port=PORT)
 
 
 if __name__ == "__main__":
