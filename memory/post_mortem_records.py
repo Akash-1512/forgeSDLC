@@ -24,6 +24,8 @@ class _PostMortemRow(_Base):
 
     post_mortem_id = Column(String, primary_key=True)
     run_id = Column(String, nullable=False, index=True)
+    # Fix #118: project_id column — required for per-project failure filtering
+    project_id = Column(String, nullable=False, index=True, default="default")
     failure_type = Column(String, nullable=False)
     agent_that_failed = Column(String, nullable=False)
     root_cause = Column(String, nullable=False)
@@ -87,15 +89,15 @@ class PostMortemStore:
     ) -> list[PostMortem]:
         """Fetch recent post-mortems for a project ordered by timestamp desc.
 
+        Fix #113: now correctly filters by project_id column.
         Emits InterpretRecord before read.
-        Note: post_mortems table uses run_id as the project link —
-        project_id filtering added in Session 09 when agents populate run_id
-        with structured project context. For now returns most recent N records.
         """
         self._emit("read", "get_recent_failures", project_id)
         async with self._session_factory() as session:
             result = await session.execute(
                 select(_PostMortemRow)
+                # Fix #113: filter by project_id — no longer returns global failures
+                .where(_PostMortemRow.project_id == project_id)
                 .order_by(_PostMortemRow.timestamp.desc())
                 .limit(limit)
             )

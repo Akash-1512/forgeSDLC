@@ -13,7 +13,7 @@ from tools.render_tool import RenderTool
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 
 class DeployAgent(BaseAgent):

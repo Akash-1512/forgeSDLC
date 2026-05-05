@@ -8,7 +8,7 @@ from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
 
 logger = structlog.get_logger()
 
-# CRITICAL: o3-mini and gpt-5.4-pro use the Responses API, NOT Chat Completions.
+# CRITICAL: o3-mini and gpt-4o use the Responses API, NOT Chat Completions.
 # - Endpoint method: client.responses.create (NOT client.chat.completions.create)
 # - Token param: max_output_tokens (NOT max_tokens)
 # - Input param: input=[...] (NOT messages=[...])
@@ -20,7 +20,7 @@ _MODEL_METADATA: dict[str, dict[str, object]] = {
         "cost_per_1k_input": 0.003,
         "cost_per_1k_output": 0.012,
     },
-    "gpt-5.4-pro": {
+    "gpt-4o": {
         "context_window": 128_000,
         "cost_per_1k_input": 0.01,
         "cost_per_1k_output": 0.03,
@@ -29,7 +29,7 @@ _MODEL_METADATA: dict[str, dict[str, object]] = {
 
 
 class OpenAIReasoningAdapter:
-    """OpenAI Responses API — o3-mini (Security STRIDE) and gpt-5.4-pro.
+    """OpenAI Responses API — o3-mini (Security STRIDE) and gpt-4o.
 
     Uses client.responses.create — NOT client.chat.completions.create.
     Different endpoint, different parameter names.
@@ -80,9 +80,37 @@ class OpenAIReasoningAdapter:
         max_tokens: int = 2048,
         temperature: float = 0.0,
     ) -> AsyncIterator[AIMessageChunk]:
-        response = await self.ainvoke(messages, max_tokens=max_tokens)
+        """Real token-by-token streaming via OpenAI Responses API stream=True.
+
+        Fix #20/#46: replaces the full-response stub with genuine SSE streaming.
+        The Responses API supports stream=True which yields ResponseTextDeltaEvent
+        events. Each delta is yielded as an AIMessageChunk for real-time display.
+        """
+        from openai import AsyncOpenAI  # noqa: PLC0415
+
+        client = AsyncOpenAI(api_key=self._api_key)
+
         async def _gen() -> AsyncIterator[AIMessageChunk]:
-            yield AIMessageChunk(content=str(response.content))
+            async with client.responses.stream(
+                model=self._model,
+                input=[
+                    {"role": self._map_role(m.type), "content": str(m.content)}
+                    for m in messages
+                ],
+                max_output_tokens=max_tokens,
+            ) as stream:
+                async for event in stream:
+                    # ResponseTextDeltaEvent carries incremental text
+                    if hasattr(event, "delta") and hasattr(event.delta, "text"):
+                        delta_text = event.delta.text
+                        if delta_text:
+                            yield AIMessageChunk(content=delta_text)
+                    # Fallback: ResponseOutputItemDoneEvent carries full text
+                    elif hasattr(event, "item") and hasattr(event.item, "content"):
+                        for part in (event.item.content or []):
+                            if hasattr(part, "text") and part.text:
+                                yield AIMessageChunk(content=part.text)
+
         return _gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:

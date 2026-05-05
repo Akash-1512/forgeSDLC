@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+import functools
+import os
 from datetime import datetime, timezone
 
 import chromadb
@@ -11,6 +14,27 @@ from memory.schemas import OrgMemoryEntry
 
 logger = structlog.get_logger()
 
+# Fix #120: resolve absolute path at import time so CWD changes don't matter
+_DEFAULT_CHROMA_PATH = os.path.abspath(
+    os.getenv("FORGESDLC_CHROMA_PATH", "./chroma_db")
+)
+
+# Fix #17: single shared embeddings instance — avoid 90MB reload per OrgMemory()
+_SHARED_EMBEDDINGS: HuggingFaceEmbeddings | None = None
+
+
+def _get_embeddings() -> HuggingFaceEmbeddings:
+    """Return shared HuggingFaceEmbeddings — loaded once, never reloaded."""
+    global _SHARED_EMBEDDINGS
+    if _SHARED_EMBEDDINGS is None:
+        cache_folder = os.getenv("TRANSFORMERS_CACHE", os.path.expanduser("~/.cache/huggingface"))
+        _SHARED_EMBEDDINGS = HuggingFaceEmbeddings(
+            model_name="all-MiniLM-L6-v2",
+            cache_folder=cache_folder,
+        )
+        logger.info("org_memory.embeddings_loaded", model="all-MiniLM-L6-v2")
+    return _SHARED_EMBEDDINGS
+
 
 class OrgMemory:
     """Layer 2 memory — learnable facts in ChromaDB.
@@ -21,26 +45,32 @@ class OrgMemory:
     Emits InterpretRecord(layer="memory") before every read and write.
     """
 
-    def __init__(self, chroma_path: str = "./chroma_db") -> None:
-        # PersistentClient — data written to disk, survives process restarts.
-        # Never use chromadb.Client() / EphemeralClient() — loses data on exit.
-        self._client = chromadb.PersistentClient(path=chroma_path)
+    def __init__(self, chroma_path: str = _DEFAULT_CHROMA_PATH) -> None:
+        # Fix #120: accept absolute path — relative paths cause CWD-dependent data loss
+        self._chroma_path = os.path.abspath(chroma_path)
+        self._client = chromadb.PersistentClient(path=self._chroma_path)
         self._collection = self._client.get_or_create_collection(
             "forgesdlc_org_memory",
             metadata={"hnsw:space": "cosine"},
         )
-        # Model downloads ~90MB on first run, cached to ~/.cache/huggingface/
-        self._embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        # Fix #17: use shared singleton — no repeated 90MB download
+        self._embeddings = _get_embeddings()
         logger.info(
             "org_memory.init",
-            chroma_path=chroma_path,
+            chroma_path=self._chroma_path,
             collection=self._collection.name,
         )
 
     async def upsert(self, entry: OrgMemoryEntry) -> None:
         """Store a learnable fact. Emits InterpretRecord before write."""
         self._emit_record("write", "upsert", entry.entry_id)
-        embedding = self._embeddings.embed_documents([entry.content])[0]
+        # Fix #18/#123: run sync CPU-bound embedding in executor — never block event loop
+        loop = asyncio.get_running_loop()
+        embedding = await loop.run_in_executor(
+            None,
+            functools.partial(self._embeddings.embed_documents, [entry.content]),
+        )
+        embedding = embedding[0]
         self._collection.upsert(
             ids=[entry.entry_id],
             documents=[entry.content],
@@ -71,15 +101,25 @@ class OrgMemory:
         """
         self._emit_record("read", "search", query[:50])
 
-        # Guard: if collection is empty, return early
-        if self._collection.count() == 0:
+        total = self._collection.count()
+        if total == 0:
             logger.info("org_memory.search.empty_collection")
             return []
 
-        embedding = self._embeddings.embed_query(query)
+        # Fix #116: n_results must not exceed total collection count.
+        # Use min(limit, total) — project filter applied by ChromaDB after candidate fetch.
+        # If project has fewer results than n_results, ChromaDB returns what it finds.
+        n_results = min(limit, total)
+
+        # Fix #18: run sync embedding in executor
+        loop = asyncio.get_running_loop()
+        embedding = await loop.run_in_executor(
+            None,
+            functools.partial(self._embeddings.embed_query, query),
+        )
         results = self._collection.query(
             query_embeddings=[embedding],
-            n_results=min(limit, self._collection.count()),
+            n_results=n_results,
             where={"project_id": project_id},
         )
 

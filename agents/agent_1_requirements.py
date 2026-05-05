@@ -12,7 +12,7 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "groq/llama-3.3-70b-specdec"
+_MODEL = "groq/llama-3.3-70b-versatile"
 
 _PRD_SYSTEM_PROMPT = """\
 You are a senior product manager. Generate a comprehensive PRD.
@@ -32,7 +32,7 @@ Be specific, measurable, and actionable."""
 class RequirementsAgent(BaseAgent):
     """Agent 1 — converts user prompt into structured PRD.
 
-    Model: groq/llama-3.3-70b-specdec (free backbone)
+    Model: groq/llama-3.3-70b-versatile (free backbone)
     Memory reads: Layer 1 (similar runs), Layer 4 (user preferences)
     Output: state["prd"] populated, docs/requirements/PRD.md written via DiffEngine
     """

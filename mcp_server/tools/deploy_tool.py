@@ -13,6 +13,23 @@ def _build_deploy_state(
     project_id: str, environment: str, human_confirmation: str
 ) -> dict[str, object]:
     import uuid
+    import sqlite3
+    from pathlib import Path
+
+    # Fix #66: load prior security_gate from checkpoint so deploy respects it
+    security_gate_from_checkpoint: dict[str, object] | None = None
+    try:
+        from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+        Path("./data").mkdir(parents=True, exist_ok=True)
+        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+            checkpointer = SqliteSaver(conn)
+            config = {"configurable": {"thread_id": project_id}}
+            existing = checkpointer.get(config)
+            if existing and existing.get("channel_values"):
+                security_gate_from_checkpoint = existing["channel_values"].get("security_gate")
+    except Exception:
+        pass  # no checkpoint — gate defaults to None (unscanned)
+
     return {
         "user_prompt": f"Deploy to {environment}",
         "mcp_session_id": project_id,
@@ -27,8 +44,10 @@ def _build_deploy_state(
         "service_graph": {"services": []},
         "generated_files": [],
         "review_findings": [],
+        # Fix #67: removed duplicate security_findings key
+        # Fix #66: use checkpoint value so prior security scan gate is respected
         "security_findings": None,
-        "security_gate": None,
+        "security_gate": security_gate_from_checkpoint,
         "deployment_url": None,
         "deploy_blocked": False,
         "deploy_blocked_reason": "",
@@ -36,7 +55,7 @@ def _build_deploy_state(
         "ci_pipeline_url": "",
         "tool_delegated_to": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 999.0,
+        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
         "subscription_tier": "free",
         "session_token_records": [],
         "tool_router_context": None,
@@ -44,7 +63,6 @@ def _build_deploy_state(
         "workspace_context": None,
         "memory_context": None,
         "arch_validation": None,
-        "security_findings": None,
         "test_coverage": 0.0,
         "project_context_graph": None,
         "hitl_required": False,
@@ -52,43 +70,14 @@ def _build_deploy_state(
     }
 
 
-def _build_deploy_infrastructure() -> tuple:
-    from context_files.manager import ContextFileManager
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
-    from context_management.context_compressor import ContextCompressor
-    from context_management.context_window_manager import ContextWindowManager
-    from context_management.token_estimator import TokenEstimator
-    from memory.memory_archiver import MemoryArchiver
-    from memory.memory_context_builder import MemoryContextBuilder
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.project_context_graph import ProjectContextGraphStore
-    from memory.user_preference_profile import UserPreferenceStore
-    from model_router.router import ModelRouter
-    from workspace.bridge import WorkspaceBridge
-    from workspace.diff_engine import DiffEngine
-
-    model_router = ModelRouter()
-    estimator = TokenEstimator()
-    compressor = ContextCompressor()
-    cwm = ContextWindowManager(
-        estimator=estimator, compressor=compressor, specs=AGENT_CONTEXT_SPECS,
-    )
-    l1 = PipelineHistoryStore()
-    l2 = OrgMemory()
-    l3 = ProjectContextGraphStore()
-    l4 = UserPreferenceStore()
-    l5 = PostMortemStore()
-    memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
-    memory_ctx_builder = MemoryContextBuilder()
-    cfm = ContextFileManager()
-    workspace_bridge = WorkspaceBridge()
-    diff_engine = DiffEngine()
-
+def _build_infrastructure_shared() -> tuple:
+    """H2 Fix: delegate to shared infrastructure factory."""
+    from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
+    infra = build_infrastructure()
     return (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        infra.model_router, infra.context_window_manager, infra.memory_archiver,
+        infra.memory_context_builder, infra.context_file_manager,
+        infra.workspace_bridge, infra.diff_engine,
     )
 
 
@@ -155,7 +144,7 @@ async def deploy_project(
 
     state["human_confirmation"] = human_confirmation
 
-    infra = _build_deploy_infrastructure()
+    infra = _build_infrastructure_shared()
     agent_8 = _build_deploy_agent(infra)
 
     await ctx.report_progress(20, 100, "Running deployment agent")

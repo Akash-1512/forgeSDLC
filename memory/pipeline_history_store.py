@@ -5,8 +5,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 import structlog
-from sqlalchemy import Column, DateTime, Float, Integer, String, Text, select, text
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, select
+from sqlalchemy.dialects.postgresql import JSONB, insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -29,7 +29,8 @@ class _PipelineRunRow(_Base):
     project_id = Column(String, nullable=False, index=True)
     user_prompt = Column(Text, nullable=False)
     stack_chosen = Column(String, nullable=True)
-    deployment_success = Column(String, nullable=True)   # "true"/"false"/None
+    # Fix #117: Boolean column — no more "true"/"false" string round-trip
+    deployment_success = Column(Boolean, nullable=True)
     cost_total_usd = Column(Float, nullable=False, default=0.0)
     hitl_rounds = Column(Integer, nullable=False, default=0)
     human_corrections = Column(JSONB, nullable=False, default=list)
@@ -65,33 +66,38 @@ class PipelineHistoryStore:
         logger.info("pipeline_history_store.init_db_complete")
 
     async def save_run(self, record: PipelineRunRecord) -> None:
-        """Upsert a pipeline run record. Emits InterpretRecord before write."""
+        """Upsert a pipeline run record. Emits InterpretRecord before write.
+
+        Fix #115: uses PostgreSQL INSERT ... ON CONFLICT DO UPDATE instead of
+        delete+insert, eliminating the race condition under concurrent saves.
+        Fix #117: deployment_success stored as native Boolean, not string.
+        """
         self._emit_record("write", "save_run", record.run_id)
+        values = {
+            "run_id": record.run_id,
+            "timestamp": record.timestamp,
+            "project_id": record.project_id,
+            "user_prompt": record.user_prompt,
+            "stack_chosen": record.stack_chosen,
+            "deployment_success": record.deployment_success,  # native bool or None
+            "cost_total_usd": record.cost_total_usd,
+            "hitl_rounds": record.hitl_rounds,
+            "human_corrections": record.human_corrections,
+            "lessons_learned": record.lessons_learned,
+            "tool_delegated_to": record.tool_delegated_to,
+            "workspace_path": record.workspace_path,
+        }
+        stmt = (
+            pg_insert(_PipelineRunRow)
+            .values(**values)
+            .on_conflict_do_update(
+                index_elements=["run_id"],
+                set_={k: v for k, v in values.items() if k != "run_id"},
+            )
+        )
         async with self._session_factory() as session:
             async with session.begin():
-                # Delete existing row if present (upsert via delete+insert)
-                existing = await session.get(_PipelineRunRow, record.run_id)
-                if existing:
-                    await session.delete(existing)
-                row = _PipelineRunRow(
-                    run_id=record.run_id,
-                    timestamp=record.timestamp,
-                    project_id=record.project_id,
-                    user_prompt=record.user_prompt,
-                    stack_chosen=record.stack_chosen,
-                    deployment_success=(
-                        str(record.deployment_success).lower()
-                        if record.deployment_success is not None
-                        else None
-                    ),
-                    cost_total_usd=record.cost_total_usd,
-                    hitl_rounds=record.hitl_rounds,
-                    human_corrections=record.human_corrections,
-                    lessons_learned=record.lessons_learned,
-                    tool_delegated_to=record.tool_delegated_to,
-                    workspace_path=record.workspace_path,
-                )
-                session.add(row)
+                await session.execute(stmt)
         logger.info("pipeline_history_store.save_run", run_id=record.run_id)
 
     async def get_similar_runs(
@@ -118,11 +124,7 @@ class PipelineHistoryStore:
                 project_id=row.project_id,
                 user_prompt=row.user_prompt,
                 stack_chosen=row.stack_chosen,
-                deployment_success=(
-                    row.deployment_success == "true"
-                    if row.deployment_success is not None
-                    else None
-                ),
+                deployment_success=row.deployment_success,  # native bool, fix #117
                 cost_total_usd=row.cost_total_usd,
                 hitl_rounds=row.hitl_rounds,
                 human_corrections=row.human_corrections or [],

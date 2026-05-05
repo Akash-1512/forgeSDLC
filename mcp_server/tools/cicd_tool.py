@@ -43,7 +43,7 @@ def _build_cicd_state(
         "project_context_graph": None,
         "tool_delegated_to": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 999.0,
+        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
         "subscription_tier": "free",
         "session_token_records": [],
         "tool_router_context": None,
@@ -59,47 +59,16 @@ def _build_cicd_state(
     }
 
 
-def _build_cicd_infrastructure() -> tuple:
-    from context_files.manager import ContextFileManager
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
-    from context_management.context_compressor import ContextCompressor
-    from context_management.context_window_manager import ContextWindowManager
-    from context_management.token_estimator import TokenEstimator
-    from memory.memory_archiver import MemoryArchiver
-    from memory.memory_context_builder import MemoryContextBuilder
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.project_context_graph import ProjectContextGraphStore
-    from memory.user_preference_profile import UserPreferenceStore
-    from model_router.router import ModelRouter
-    from tool_router.router import ToolRouter
-    from workspace.bridge import WorkspaceBridge
-    from workspace.diff_engine import DiffEngine
-
-    model_router = ModelRouter()
+def _build_infrastructure_shared() -> tuple:
+    """H2 Fix: delegate to shared infrastructure factory."""
+    from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
+    from tool_router.router import ToolRouter  # noqa: PLC0415
+    infra = build_infrastructure()
     tool_router = ToolRouter()
-    estimator = TokenEstimator()
-    compressor = ContextCompressor()
-    cwm = ContextWindowManager(
-        estimator=estimator,
-        compressor=compressor,
-        specs=AGENT_CONTEXT_SPECS,
-    )
-    l1 = PipelineHistoryStore()
-    l2 = OrgMemory()
-    l3 = ProjectContextGraphStore()
-    l4 = UserPreferenceStore()
-    l5 = PostMortemStore()
-    memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
-    memory_ctx_builder = MemoryContextBuilder()
-    cfm = ContextFileManager()
-    workspace_bridge = WorkspaceBridge()
-    diff_engine = DiffEngine()
-
     return (
-        model_router, tool_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        infra.model_router, tool_router, infra.context_window_manager, infra.memory_archiver,
+        infra.memory_context_builder, infra.context_file_manager,
+        infra.workspace_bridge, infra.diff_engine,
     )
 
 
@@ -190,7 +159,7 @@ async def generate_cicd(
     state["human_confirmation"] = human_confirmation
 
     # Build infrastructure and agents
-    infra = _build_cicd_infrastructure()
+    infra = _build_infrastructure_shared()
     agent_6, agent_7 = _build_cicd_agents(infra)
 
     # ── Agent 6: Test generation + coverage gate ─────────────────────────────

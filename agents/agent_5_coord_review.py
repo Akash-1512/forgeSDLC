@@ -13,7 +13,7 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 
 class CoordinatedReview(BaseAgent):
@@ -85,25 +85,33 @@ class CoordinatedReview(BaseAgent):
 
         for file_info in generated:
             code = str(file_info.get("content", ""))
+            # H9 Fix: extract filepath for language detection in Pass 4
+            filepath = str(file_info.get("filepath", file_info.get("path", "")))
 
-            # Pass 1: Correctness (LLM)
-            findings_p1 = await self._pass_correctness(code, state)
+            # Fix #90: run the 4 LLM passes concurrently with asyncio.gather().
+            # Pass 4 (MAANG Standards) is deterministic/synchronous — run separately.
+            # Sequential: ~8s per file (4 × 2s LLM latency).
+            # Parallel:   ~2s per file (all 4 overlap).
+            (
+                findings_p1,
+                findings_p2,
+                findings_p3,
+                findings_p5,
+            ) = await asyncio.gather(
+                self._pass_correctness(code, state),    # Pass 1: Correctness
+                self._pass_security(code, state),       # Pass 2: OWASP Security
+                self._pass_performance(code, state),    # Pass 3: Performance
+                self._pass_error_handling(code, state), # Pass 5: Error Handling
+            )
+
+            # Pass 4: MAANG Standards — deterministic AST (no await needed)
+            # H9 Fix: filepath passed for language detection
+            findings_p4 = self._pass_maang_standards(code, filepath=filepath)
+
             all_findings.extend(findings_p1)
-
-            # Pass 2: Security — OWASP Top 10 (LLM)
-            findings_p2 = await self._pass_security(code, state)
             all_findings.extend(findings_p2)
-
-            # Pass 3: Performance (LLM)
-            findings_p3 = await self._pass_performance(code, state)
             all_findings.extend(findings_p3)
-
-            # Pass 4: MAANG Standards — DETERMINISTIC, zero LLM
-            findings_p4 = self._pass_maang_standards(code)
             all_findings.extend(findings_p4)
-
-            # Pass 5: Error Handling (LLM)
-            findings_p5 = await self._pass_error_handling(code, state)
             all_findings.extend(findings_p5)
 
         blocking = [f for f in all_findings if f.get("severity") == "BLOCKING"]
@@ -145,12 +153,37 @@ class CoordinatedReview(BaseAgent):
 
     # ── Pass 4: DETERMINISTIC — zero LLM ────────────────────────────────────
 
-    def _pass_maang_standards(self, code: str) -> list[dict[str, object]]:
+    def _pass_maang_standards(self, code: str, filepath: str = "") -> list[dict[str, object]]:
         """Pass 4: Deterministic AST-based MAANG standards check. Zero LLM.
 
-        Rules:
+        Rules (Python only):
         - Function > 50 lines → BLOCKING
         - Missing return type hint → ADVISORY
+        - Bare except → BLOCKING
+
+        H9 Fix: non-Python files return an ADVISORY noting AST check was skipped.
+        Previously silently returned [] for TypeScript/Go/Rust/SQL — now explicit.
+        """
+        findings: list[dict[str, object]] = []
+        if not code or not code.strip():
+            return findings
+
+        # H9: detect language from file extension
+        is_python = filepath.endswith(".py") or not filepath  # default to Python if no path
+        if not is_python:
+            ext = filepath.rsplit(".", 1)[-1] if "." in filepath else "unknown"
+            findings.append({
+                "pass": 4,
+                "severity": "ADVISORY",
+                "message": (
+                    f"Pass 4 (MAANG Standards): AST check skipped for .{ext} file. "
+                    "AST-based rules only apply to Python. "
+                    "Manual review recommended for function length and bare catch blocks."
+                ),
+                "file": filepath,
+                "line": None,
+            })
+            return findings
         - Bare except → BLOCKING
         """
         findings: list[dict[str, object]] = []

@@ -11,7 +11,7 @@ logger = structlog.get_logger()
 _GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 _MODEL_METADATA: dict[str, dict[str, object]] = {
-    "gemini-3.1-pro-preview": {
+    "gemini-1.5-pro": {
         "context_window": 1_000_000,
         "cost_per_1k_input": 0.00125,
         "cost_per_1k_output": 0.005,
@@ -27,15 +27,15 @@ _MODEL_METADATA: dict[str, dict[str, object]] = {
 class GeminiAdapter:
     """Google Gemini — 1M context window for long-context routing.
 
-    gemini-3.1-pro-preview: Agent 11 (Integration) + long-context fallback.
+    gemini-1.5-pro: Agent 11 (Integration) + long-context fallback.
     gemini-3-flash-preview: Free tier Gemini option.
     gemini-3-pro-preview was SHUT DOWN March 9 2026 — do not use.
     """
 
-    def __init__(self, model: str = "gemini-3.1-pro-preview") -> None:
+    def __init__(self, model: str = "gemini-1.5-pro") -> None:
         self._model = model
         self._api_key = os.getenv("GOOGLE_API_KEY", "")
-        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["gemini-3.1-pro-preview"])
+        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["gemini-1.5-pro"])
         self._context_window = int(meta["context_window"])
         self._cost_input = float(meta["cost_per_1k_input"])
         self._cost_output = float(meta["cost_per_1k_output"])

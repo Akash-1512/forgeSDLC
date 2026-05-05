@@ -11,7 +11,7 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 _STACK_SYSTEM_PROMPT = """\
 You are a principal engineer. Recommend a production-ready tech stack.
@@ -52,7 +52,7 @@ Accepted
 class TechStackAgent(BaseAgent):
     """Agent 2 — recommends tech stack and writes ADR-001.
 
-    Model: gpt-5.4-mini via ModelRouter
+    Model: gpt-4o-mini via ModelRouter
     Memory reads: Layer 4 (preferred stack), Layer 2 (past stack choices)
     Output: state["adr"] populated
             docs/decisions/ADR-001-tech-stack.md written via DiffEngine

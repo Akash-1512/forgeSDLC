@@ -34,9 +34,9 @@ PRO = SubscriptionTier(
     name="pro",
     monthly_usd=20.0,
     models_allowed=[
-        "gpt-5.4",
-        "gpt-5.4*",
-        "gpt-5.4-mini*",
+        "gpt-4o",
+        "gpt-4o*",
+        "gpt-4o-mini*",
         "o3-mini",
         "gemini-*",
         "codestral-*",
@@ -72,12 +72,22 @@ _TIERS: dict[str, SubscriptionTier] = {
 
 
 def get_tier(name: str) -> SubscriptionTier:
-    """Return tier by name. Raises KeyError for unknown tiers."""
+    """Return tier by name. Falls back to FREE for unknown values.
+
+    Fix #55: previously raised KeyError on unknown tier strings, crashing
+    mid-pipeline if a corrupted checkpoint or migration produced an unexpected
+    value. Now logs a warning and falls back to FREE (safe default).
+    """
     if name not in _TIERS:
-        raise KeyError(
-            f"Unknown subscription tier: {name!r}. "
-            f"Valid tiers: {list(_TIERS.keys())}"
+        import structlog  # noqa: PLC0415
+        log = structlog.get_logger()
+        log.warning(
+            "subscription.unknown_tier_fallback",
+            received=name,
+            fallback="free",
+            valid=list(_TIERS.keys()),
         )
+        return FREE
     return _TIERS[name]
 
 
@@ -85,8 +95,8 @@ def model_allowed_for_tier(model: str, tier: SubscriptionTier) -> bool:
     """Return True if the model matches any allowed pattern for this tier.
 
     Uses fnmatch for glob-style pattern matching:
-      "groq/*"    matches "groq/llama-3.3-70b-specdec"
-      "gpt-5.4*"  matches "gpt-5.4" and "gpt-5.4-mini"
+      "groq/*"    matches "groq/llama-3.3-70b-versatile"
+      "gpt-4o*"  matches "gpt-4o" and "gpt-4o-mini"
       "*"         matches everything (Enterprise)
     """
     return any(fnmatch.fnmatch(model, pattern) for pattern in tier.models_allowed)

@@ -21,6 +21,36 @@ from memory.user_preference_profile import UserPreferenceStore
 
 logger = structlog.get_logger()
 
+# H1 Fix: module-level singleton stores — created once, shared across all 9 tool files.
+# Previously each MemoryContextBuilder() call created 5 new DB engines (PipelineHistoryStore,
+# UserPreferenceStore, PostMortemStore each open their own SQLAlchemy async engine with
+# pool_size=5). With 9 tool files each instantiating their own builder, that was 45 engines.
+# Now all callers share these singletons — total engine count: 3.
+_SHARED_L1: PipelineHistoryStore | None = None
+_SHARED_L2: OrgMemory | None = None
+_SHARED_L3: ProjectContextGraphStore | None = None
+_SHARED_L4: UserPreferenceStore | None = None
+_SHARED_L5: PostMortemStore | None = None
+
+
+def _get_stores() -> tuple[
+    PipelineHistoryStore, OrgMemory, ProjectContextGraphStore,
+    UserPreferenceStore, PostMortemStore,
+]:
+    """Return shared singleton store instances. Thread-safe for asyncio single-loop use."""
+    global _SHARED_L1, _SHARED_L2, _SHARED_L3, _SHARED_L4, _SHARED_L5
+    if _SHARED_L1 is None:
+        _SHARED_L1 = PipelineHistoryStore()
+    if _SHARED_L2 is None:
+        _SHARED_L2 = OrgMemory()
+    if _SHARED_L3 is None:
+        _SHARED_L3 = ProjectContextGraphStore()
+    if _SHARED_L4 is None:
+        _SHARED_L4 = UserPreferenceStore()
+    if _SHARED_L5 is None:
+        _SHARED_L5 = PostMortemStore()
+    return _SHARED_L1, _SHARED_L2, _SHARED_L3, _SHARED_L4, _SHARED_L5
+
 
 class MemoryContext(BaseModel):
     """Assembled from all 5 memory layers.
@@ -43,16 +73,14 @@ class MemoryContext(BaseModel):
 class MemoryContextBuilder:
     """Assembles MemoryContext from all 5 memory layers.
 
+    H1 Fix: uses module-level singleton stores — safe to instantiate multiple times,
+    will always reuse the same DB engine pool.
     Emits InterpretRecord(layer="memory") before assembly.
-    Each layer store emits its own InterpretRecord during its read.
     """
 
     def __init__(self) -> None:
-        self._l1 = PipelineHistoryStore()
-        self._l2 = OrgMemory()
-        self._l3 = ProjectContextGraphStore()
-        self._l4 = UserPreferenceStore()
-        self._l5 = PostMortemStore()
+        # H1: fetch singletons — no new engines created after first instantiation
+        self._l1, self._l2, self._l3, self._l4, self._l5 = _get_stores()
 
     async def build(
         self,

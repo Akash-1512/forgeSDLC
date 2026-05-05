@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import sys
 from datetime import datetime, timezone
 from typing import Literal
 
@@ -218,9 +219,15 @@ class DASTRunner:
     """
 
     ATTACK_PAYLOADS = [
-        {"path": "/api/users?id=1' OR '1'='1", "check": "multiple_results"},
-        {"path": "/files?path=../../etc/passwd", "check": "root_in_body"},
-        {"path": "/admin", "check": "status_200"},
+        # GET query-string SQLi
+        {"path": "/api/users?id=1' OR '1'='1", "check": "multiple_results", "method": "GET"},
+        # Path traversal
+        {"path": "/files?path=../../etc/passwd", "check": "root_in_body", "method": "GET"},
+        # Unauthenticated admin access
+        {"path": "/admin", "check": "status_200", "method": "GET"},
+        # H15 Fix: POST body SQLi — previously missing
+        {"path": "/api/login", "check": "sqli_in_post", "method": "POST",
+         "body": {"username": "admin' OR '1'='1", "password": "x"}},
     ]
 
     async def run(self, workspace_path: str) -> list[SecurityFinding]:
@@ -238,7 +245,7 @@ class DASTRunner:
         app_proc = None
         try:
             app_proc = await asyncio.create_subprocess_exec(
-                "python", "-m", "uvicorn", "main:app",
+                sys.executable, "-m", "uvicorn", "main:app",
                 "--host", "127.0.0.1", "--port", "18080",
                 "--log-level", "error",
                 cwd=workspace_path,
@@ -261,9 +268,9 @@ class DASTRunner:
 
     async def _wait_for_health(self, url: str, timeout: int) -> None:
         import httpx  # noqa: PLC0415
-        deadline = asyncio.get_event_loop().time() + timeout
+        import time as _time; deadline = _time.monotonic() + timeout
         async with httpx.AsyncClient() as client:
-            while asyncio.get_event_loop().time() < deadline:
+            while _time.monotonic() < deadline:
                 try:
                     r = await client.get(url, timeout=2)
                     if r.status_code == 200:
@@ -279,7 +286,13 @@ class DASTRunner:
         async with httpx.AsyncClient(timeout=5) as client:
             for payload in self.ATTACK_PAYLOADS:
                 try:
-                    r = await client.get(f"http://127.0.0.1:18080{payload['path']}")
+                    method = str(payload.get("method", "GET")).upper()
+                    url = f"http://127.0.0.1:18080{payload['path']}"
+                    if method == "POST":
+                        body = payload.get("body", {})
+                        r = await client.post(url, json=body)
+                    else:
+                        r = await client.get(url)
                     finding = self._check_response(r, payload)
                     if finding:
                         findings.append(finding)
@@ -288,28 +301,70 @@ class DASTRunner:
         return findings
 
     def _check_response(
-        self, response: object, payload: dict[str, str]
+        self, response: object, payload: dict[str, object]
     ) -> SecurityFinding | None:
         try:
             status = getattr(response, "status_code", 999)
             text = str(getattr(response, "text", ""))
-            check = payload["check"]
+            check = str(payload["check"])
+
             if check == "status_200" and status == 200:
                 return SecurityFinding(
                     tool="dast", rule="auth_bypass",
                     severity="HIGH", file=None, line=None,
-                    description=f"Admin endpoint accessible: {payload['path']}",
-                    fix_suggestion="Add authentication middleware",
+                    description=f"Admin endpoint accessible without authentication: {payload['path']}",
+                    fix_suggestion="Add authentication middleware to /admin routes",
                     blocking=True,
                 )
+
             if check == "root_in_body" and "root:" in text:
                 return SecurityFinding(
                     tool="dast", rule="path_traversal",
                     severity="CRITICAL", file=None, line=None,
-                    description="Path traversal vulnerability detected",
-                    fix_suggestion="Sanitise file path inputs",
+                    description="Path traversal vulnerability: /etc/passwd content returned",
+                    fix_suggestion="Validate and sanitise file path inputs. Use Path.resolve() and check is_relative_to(safe_root).",
                     blocking=True,
                 )
+
+            # H15 Fix: implement the SQLi detection branch that was empty before
+            if check == "multiple_results" and status == 200:
+                # Heuristic: SQLi tautology returns more rows than a normal single-user query
+                # Signs: JSON array with more than 1 item, or error message containing SQL keywords
+                sqli_indicators = [
+                    '"id"' in text and text.count('"id"') > 1,  # multiple rows returned
+                    "syntax error" in text.lower(),
+                    "mysql" in text.lower() and "error" in text.lower(),
+                    "postgresql" in text.lower() and "error" in text.lower(),
+                    "ora-" in text.lower(),   # Oracle error
+                    "sqlite" in text.lower() and "error" in text.lower(),
+                ]
+                if any(sqli_indicators):
+                    return SecurityFinding(
+                        tool="dast", rule="sql_injection",
+                        severity="CRITICAL", file=None, line=None,
+                        description=f"Potential SQL injection via GET parameter: {payload['path']}",
+                        fix_suggestion="Use parameterised queries / prepared statements. Never interpolate user input into SQL strings.",
+                        blocking=True,
+                    )
+
+            # H15 Fix: POST body SQLi response check
+            if check == "sqli_in_post" and status == 200:
+                # Successful login with SQLi tautology payload indicates bypass
+                auth_bypass_indicators = [
+                    "token" in text.lower(),
+                    "access_token" in text.lower(),
+                    '"authenticated": true' in text,
+                    '"success": true' in text,
+                ]
+                if any(auth_bypass_indicators):
+                    return SecurityFinding(
+                        tool="dast", rule="sql_injection_auth_bypass",
+                        severity="CRITICAL", file=None, line=None,
+                        description="SQL injection authentication bypass: login succeeded with tautology payload",
+                        fix_suggestion="Use parameterised queries for authentication. Hash and compare passwords, never query by plain password.",
+                        blocking=True,
+                    )
+
         except Exception:
             pass
         return None

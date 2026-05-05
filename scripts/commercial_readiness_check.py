@@ -69,7 +69,7 @@ def main() -> int:
         "OPENAI_API_KEY is set",
         bool(os.getenv("OPENAI_API_KEY")),
         (
-            "Set OPENAI_API_KEY for gpt-5.4/gpt-5.4-mini (Pro + Enterprise tiers)\n"
+            "Set OPENAI_API_KEY for gpt-4o/gpt-4o-mini (Pro + Enterprise tiers)\n"
             "     Get key: https://platform.openai.com/api-keys"
         ),
     )
@@ -135,7 +135,7 @@ def main() -> int:
         "GEMINI_API_KEY set (Enterprise tier advisory)",
         bool(os.getenv("GEMINI_API_KEY")),
         (
-            "Set GEMINI_API_KEY for gemini-3.1-pro-preview (Agent 11 long-context routing)\n"
+            "Set GEMINI_API_KEY for gemini-1.5-pro (Agent 11 long-context routing)\n"
             "     Required for Enterprise tier and multi-service projects"
         ),
         hard=False,

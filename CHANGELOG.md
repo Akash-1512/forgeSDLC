@@ -1,3 +1,52 @@
+## [1.1.0] — 2026-05-05
+
+### Fixed — Critical (P0)
+- Fix #1/#33: pyproject.toml wheel now ships all 14 Python packages and 22 runtime dependencies (chromadb, langchain-core, openai, sqlalchemy, gitpython, watchdog, etc.) — pip install no longer crashes on import
+- Fix #2: HITL gate in gather_requirements now checks correct state keys per agent (service_graph for Agent 0, prd for Agent 1, adr for Agent 2) — Agents 1 and 2 no longer bypass user review
+- Fix #3/#100: memory_tool.py recall_context uses correct Pydantic attribute access (context.relevant_patterns) instead of dict subscript — recall_context no longer crashes on every call
+- Fix #4: groq/llama-3.3-70b-specdec replaced with groq/llama-3.3-70b-versatile across all 21 occurrences — free-tier inference no longer returns 404
+- Fix #5: gpt-5.4/gpt-5.4-mini/gemini-3.1-pro-preview replaced with gpt-4o/gpt-4o-mini/gemini-1.5-pro — all 62 fake model references now point to real APIs
+- Fix #6: /health endpoint registered on server — smithery.yaml health check no longer returns 404
+- Fix #48: actions/checkout@v4 and actions/setup-python@v5 — CI now actually runs (v6 did not exist)
+- Fix #49: electron/package.json name changed to @forgesdlc/agent — npx @forgesdlc/agent now works
+- Fix #66/#67: deploy_tool loads security_gate from checkpoint — security gate no longer bypassed; removed duplicate dict key
+- Fix #98: BUDGET_DOWNGRADE_CHAIN now contains only valid live model strings
+
+### Fixed — High (P1)
+- Fix #7: DB password no longer hardcoded in source — reads from DATABASE_URL env var
+- Fix #9: SQLite connection closed with context manager — no more file descriptor leak
+- Fix #14: server.py uses single PORT reference — log and bind can no longer diverge
+- Fix #17: OrgMemory uses shared embeddings singleton — 90MB model loaded once not per-call
+- Fix #18/#123: embed_documents/embed_query wrapped in run_in_executor — event loop no longer blocked
+- Fix #20: GroqAdapter.astream() now uses real SSE streaming — token-by-token delivery works
+- Fix #21: GroqAdapter.ainvoke() has tenacity retry with exponential backoff on 429 rate limits
+- Fix #22/#101: asyncio.get_event_loop() replaced with get_running_loop() — no Python 3.12 deprecation
+- Fix #23: WorkspaceBridge.get_context() raises RuntimeError instead of silently returning None
+- Fix #25: ANTHROPIC_API_KEY added to .env.example
+- Fix #34: Dead code block removed from MemoryArchiver._archive_layer2
+- Fix #35/#36: Agent 0 LLM call moved from _interpret to _execute — no API tokens burned before gate approval
+- Fix #39: DiffEngine path traversal guard added — writes outside workspace root rejected
+- Fix #40: WorkspaceBridge uses iter_commits(max_count=5) — no more full history materialisation
+- Fix #44: GroqAdapter logs token usage from API response
+- Fix #51: MCP server default host changed to 127.0.0.1 — no unauthenticated LAN exposure
+- Fix #75/#102: python3/sys.executable replaces hardcoded 'python' in Electron and DASTRunner
+- Fix #80: CHANGELOG now accurately reflects model fix status
+- Fix #111: WorkspaceContext gains project_graph field — Layer 3 archival no longer always skipped
+- Fix #112/#124: init_db() called at server startup — PostgreSQL tables created automatically
+- Fix #113: PostMortemStore.get_recent_failures filters by project_id — no cross-project contamination
+- Fix #114: user_id derived from mcp_session_id — Layer 4 preferences no longer shared globally
+- Fix #116: OrgMemory n_results guard corrected
+- Fix #118: project_id column added to _PostMortemRow schema
+
+### Fixed — Medium (P2)
+- Fix #8: budget_remaining_usd initialised correctly (0.0 for free tier) instead of hardcoded 99
+- Fix #11: assert in interpret/loop.py replaced with proper TypeError raise
+- Fix #15: gather_requirements validates prompt length and project_id at tool boundary
+- Fix #53: ProviderResolver.print_table() called at startup — provider status logged on boot
+
+---
+
+
 # Changelog
 
 ## [1.0.0] — Session 20 — 392 tests — PUBLIC RELEASE

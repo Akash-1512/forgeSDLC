@@ -32,7 +32,7 @@ _ATTRIBUTION = (
 class DocsAgent(BaseAgent):
     """Agent 10 — final single-service agent. Generates documentation and completes pipeline.
 
-    Model: claude-sonnet-4-6 (BYOK) | gpt-5.4-mini (default) → groq
+    Model: claude-sonnet-4-6 (BYOK) | gpt-4o-mini (default) → groq
     Generates: README.md + CHANGELOG.md
     Saves ProjectContextGraph to Layer 3 (emits L6 InterpretRecord)
     Final ContextFileManager update with complete project state
@@ -48,7 +48,7 @@ class DocsAgent(BaseAgent):
     ) -> InterpretRecord:
         """Preview docs generation. Emits L1 InterpretRecord."""
         byok = BYOKManager()
-        model = "claude-sonnet-4-6" if byok.has_key("anthropic") else "gpt-5.4-mini"
+        model = "claude-sonnet-4-6" if byok.has_key("anthropic") else "gpt-4o-mini"
 
         return self._emit_l1_record(
             component="DocsAgent",

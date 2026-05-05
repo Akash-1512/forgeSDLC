@@ -11,7 +11,7 @@ from tools.docs_fetcher import DocsFetcher
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 # Action versions fetched from GitHub Releases API before YAML generation.
 # Defaults used when network unavailable (verified April 2026).
@@ -31,9 +31,16 @@ _ACTIONS_TO_VERIFY = [
 ]
 
 _ACTION_DEFAULTS = {
-    "actions/checkout": "v6",
-    "actions/setup-python": "v6",
-    "codecov/codecov-action": "v5",
+    # H10 Fix: real current versions as of 2026 — v6 does not exist for any of these
+    "actions/checkout": "v4",
+    "actions/setup-python": "v5",
+    "actions/setup-node": "v4",
+    "actions/cache": "v4",
+    "actions/upload-artifact": "v4",
+    "actions/download-artifact": "v4",
+    "codecov/codecov-action": "v4",
+    "docker/login-action": "v3",
+    "docker/build-push-action": "v5",
 }
 
 # YAML template rules enforced here and tested:
@@ -95,7 +102,7 @@ jobs:
 class CICDAgent(BaseAgent):
     """Agent 7 — generates a GitHub Actions CI/CD workflow.
 
-    Model: gpt-5.4-mini via ModelRouter
+    Model: gpt-4o-mini via ModelRouter
     DocsFetcher: fetches action versions BEFORE generating any YAML (L7 per fetch)
     Rules: ruff (not black/isort), semgrep p/python + p/security (not auto),
            Node.js 24, Python 3.12, PostgreSQL 16 service container.
@@ -194,4 +201,4 @@ class CICDAgent(BaseAgent):
                 return major
         except Exception:
             pass
-        return _ACTION_DEFAULTS.get(action_name, "v6")
+        return _ACTION_DEFAULTS.get(action_name, "v4")  # H10: "v4" safe default, not "v6"

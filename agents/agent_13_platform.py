@@ -10,13 +10,13 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 
 class PlatformAgent(BaseAgent):
     """Agent 13 — OTel trace propagation + Docker Compose deployment sequence.
 
-    Model: gpt-5.4-mini → groq
+    Model: gpt-4o-mini → groq
     Fires ONLY when architecture_type == "multi_service".
     Silent skip on monolith — no interpret_log entries.
     _topological_sort(): Kahn's algorithm (BFS + in-degree). Zero LLM.

@@ -40,7 +40,7 @@ def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
         "monitoring_config": None,
         "project_context_graph": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 999.0,
+        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
         "subscription_tier": "free",
         "session_token_records": [],
         "tool_delegated_to": None,
@@ -49,45 +49,13 @@ def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
 
 
 def _build_infrastructure() -> tuple:
-    """Instantiate all infrastructure components."""
-    from context_files.manager import ContextFileManager
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
-    from context_management.context_compressor import ContextCompressor
-    from context_management.context_window_manager import ContextWindowManager
-    from context_management.token_estimator import TokenEstimator
-    from memory.memory_archiver import MemoryArchiver
-    from memory.memory_context_builder import MemoryContextBuilder
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.project_context_graph import ProjectContextGraphStore
-    from memory.user_preference_profile import UserPreferenceStore
-    from model_router.router import ModelRouter
-    from workspace.bridge import WorkspaceBridge
-    from workspace.diff_engine import DiffEngine
-
-    model_router = ModelRouter()
-    estimator = TokenEstimator()
-    compressor = ContextCompressor()
-    cwm = ContextWindowManager(
-        estimator=estimator,
-        compressor=compressor,
-        specs=AGENT_CONTEXT_SPECS,
-    )
-    l1 = PipelineHistoryStore()
-    l2 = OrgMemory()
-    l3 = ProjectContextGraphStore()
-    l4 = UserPreferenceStore()
-    l5 = PostMortemStore()
-    memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
-    memory_ctx_builder = MemoryContextBuilder()
-    cfm = ContextFileManager()
-    workspace_bridge = WorkspaceBridge()
-    diff_engine = DiffEngine()
-
+    """H2 Fix: delegate to shared infrastructure factory — no more copy-paste."""
+    from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
+    infra = build_infrastructure()
     return (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        infra.model_router, infra.context_window_manager, infra.memory_archiver,
+        infra.memory_context_builder, infra.context_file_manager,
+        infra.workspace_bridge, infra.diff_engine,
     )
 
 
@@ -130,15 +98,27 @@ async def gather_requirements(
     Call 1: prompt="build a todo app", project_id="proj-1"
             → {"status": "awaiting_confirmation", "stage": "decomposition", ...}
     Call 2: human_confirmation="100% GO"
-            → Agent 0 executes, Agent 1 interprets
             → {"status": "awaiting_confirmation", "stage": "requirements", ...}
     Call 3: human_confirmation="100% GO"
-            → Agent 1 executes, Agent 2 interprets
             → {"status": "awaiting_confirmation", "stage": "stack_discussion", ...}
     Call 4: human_confirmation="100% GO"
-            → Agent 2 executes
             → {"status": "complete", "prd": "...", "adr": "...", ...}
     """
+    # Fix #15: input validation — reject oversized or empty inputs at tool boundary
+    if not prompt or not prompt.strip():
+        return {"status": "error", "error": "prompt must not be empty"}
+    if len(prompt) > 50_000:
+        return {"status": "error", "error": f"prompt too long ({len(prompt)} chars). Maximum is 50,000."}
+    if not project_id or not project_id.strip():
+        return {"status": "error", "error": "project_id must not be empty"}
+    if len(project_id) > 200:
+        return {"status": "error", "error": "project_id too long. Maximum is 200 characters."}
+    # Trim whitespace from all string inputs
+    prompt = prompt.strip()
+    project_id = project_id.strip()
+    human_confirmation = human_confirmation.strip()
+    correction = correction.strip()
+
     await ctx.report_progress(0, 100, "Loading pipeline state")
     logger.info(
         "gather_requirements.called",
@@ -149,18 +129,23 @@ async def gather_requirements(
 
     # SqliteSaver for LangGraph HITL checkpointing
     # NOTE: SqliteSaver is LangGraph's checkpoint mechanism — NOT our application DB
+    checkpointer = None
+    config = {"configurable": {"thread_id": project_id}}
     try:
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
         from pathlib import Path  # noqa: PLC0415
-        Path("./data").mkdir(parents=True, exist_ok=True)
         import sqlite3  # noqa: PLC0415
-        conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
-        checkpointer = SqliteSaver(conn)
-        config = {"configurable": {"thread_id": project_id}}
-        existing = checkpointer.get(config)
-        if existing and existing.get("channel_values"):
-            state: dict[str, object] = dict(existing["channel_values"])
-            logger.info("gather_requirements.state_restored", project_id=project_id)
+        Path("./data").mkdir(parents=True, exist_ok=True)
+        # Fix #9: use context manager — connection closed after state read, no leak
+        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+            checkpointer = SqliteSaver(conn)
+            existing = checkpointer.get(config)
+            if existing and existing.get("channel_values"):
+                state: dict[str, object] = dict(existing["channel_values"])
+                logger.info("gather_requirements.state_restored", project_id=project_id)
+            else:
+                state = _build_initial_state(prompt, project_id)
+            checkpointer = None  # conn closed by context manager exit
         else:
             state = _build_initial_state(prompt, project_id)
     except Exception as exc:
@@ -183,10 +168,12 @@ async def gather_requirements(
     agent_0, agent_1, agent_2 = _build_agents(infra)
 
     # ── Agent 0: Service Decomposition ────────────────────────────────────
+    # Guard: skip if already done (state restored from checkpoint)
     if not state.get("service_graph"):
         await ctx.report_progress(10, 100, "Analysing project scope")
         state = await agent_0.run(state)
-        if not state.get("adr"):
+        # Fix #2: Agent 0 produces service_graph — gate on service_graph, not adr
+        if not state.get("service_graph"):
             return {
                 "status": "awaiting_confirmation",
                 "stage": "decomposition",
@@ -203,11 +190,13 @@ async def gather_requirements(
             }
 
     # ── Agent 1: Requirements ─────────────────────────────────────────────
+    # Guard: skip if prd already generated
     if not state.get("prd"):
         state["human_confirmation"] = human_confirmation
         await ctx.report_progress(40, 100, "Generating requirements")
         state = await agent_1.run(state)
-        if not state.get("service_graph"):
+        # Fix #2: Agent 1 produces prd — gate on prd, not service_graph
+        if not state.get("prd"):
             return {
                 "status": "awaiting_confirmation",
                 "stage": "requirements",
@@ -223,11 +212,13 @@ async def gather_requirements(
             }
 
     # ── Agent 2: Tech Stack ───────────────────────────────────────────────
+    # Guard: skip if adr already generated
     if not state.get("adr"):
         state["human_confirmation"] = human_confirmation
         await ctx.report_progress(70, 100, "Recommending tech stack")
         state = await agent_2.run(state)
-        if not state.get("prd"):
+        # Fix #2: Agent 2 produces adr — gate on adr, not prd
+        if not state.get("adr"):
             return {
                 "status": "awaiting_confirmation",
                 "stage": "stack_discussion",

@@ -11,13 +11,13 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "groq/llama-3.3-70b-specdec"
+_MODEL = "groq/llama-3.3-70b-versatile"
 
 
 class ServiceDecompositionAgent(BaseAgent):
     """Agent 0 — decides monolith vs multi-service architecture.
 
-    Model: groq/llama-3.3-70b-specdec (free backbone)
+    Model: groq/llama-3.3-70b-versatile (free backbone)
     Memory reads: Layer 3 (ProjectContextGraphs), Layer 4 (UserPreferences)
     Output: state["service_graph"] populated
     """
@@ -28,7 +28,28 @@ class ServiceDecompositionAgent(BaseAgent):
         memory_context: object,
         state: dict[str, object],
     ) -> InterpretRecord:
-        """Analyse scope and decide architecture type. Emits L1 InterpretRecord."""
+        """Preview scope analysis plan. Emits L1 InterpretRecord.
+
+        Fix #35: NO LLM call here — _interpret is a preview only.
+        LLM call moved to _execute so it only fires after gate approval.
+        """
+        return self._emit_l1_record(
+            component="ServiceDecompositionAgent",
+            action=f"Analysing scope: {str(state.get('user_prompt', ''))[:60]}",
+            inputs={"user_prompt": state.get("user_prompt", "")},
+            expected_outputs={"service_graph": "dict with architecture_type and services"},
+            external_calls=[_MODEL],
+            model_selected=_MODEL,
+        )
+
+    async def _execute(
+        self,
+        state: dict[str, object],
+        packet: object,
+        memory_context: object,
+    ) -> dict[str, object]:
+        """Call LLM, parse decomposition result, populate state["service_graph"]."""
+        # Fix #35: LLM call moved here from _interpret — only runs after gate approval
         adapter = await self.model_router.route(
             agent="agent_0_decompose",
             task_type="analysis",
@@ -54,28 +75,7 @@ class ServiceDecompositionAgent(BaseAgent):
             ]
         )
         raw = str(response.content).strip()
-        # Store raw for execute step
-        state["_agent0_raw"] = raw
-
-        return self._emit_l1_record(
-            component="ServiceDecompositionAgent",
-            action=f"Analysing scope: {str(state.get('user_prompt', ''))[:60]}",
-            inputs={"user_prompt": state.get("user_prompt", "")},
-            expected_outputs={"service_graph": "dict with architecture_type and services"},
-            external_calls=[_MODEL],
-            model_selected=_MODEL,
-        )
-
-    async def _execute(
-        self,
-        state: dict[str, object],
-        packet: object,
-        memory_context: object,
-    ) -> dict[str, object]:
-        """Parse decomposition result and populate state["service_graph"]."""
-        raw = str(state.get("_agent0_raw", ""))
         try:
-            # Strip markdown fences if present
             if "```" in raw:
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
@@ -86,7 +86,6 @@ class ServiceDecompositionAgent(BaseAgent):
             reasoning = data.get("reasoning", "")
             confidence = data.get("confidence", "MEDIUM")
         except (json.JSONDecodeError, KeyError, IndexError):
-            # Fallback: default to monolith
             architecture_type = "monolith"
             services = []
             reasoning = "Could not parse LLM response — defaulting to monolith."

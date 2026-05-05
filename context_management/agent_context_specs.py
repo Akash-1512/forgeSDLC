@@ -209,7 +209,7 @@ AGENT_CONTEXT_SPECS: dict[str, AgentContextSpec] = {
             "user_prompt", "prd", "review_findings",
             "interpret_log", "session_token_records",
         ],
-        max_context_tokens=20_000,   # gemini-3.1-pro-preview 1M context allowance
+        max_context_tokens=20_000,   # gemini-1.5-pro 1M context allowance
         summarise_threshold_tokens=3_000,
         memory_layers=[3],
         priority_order=["service_graph", "rfc", "workspace_context"],

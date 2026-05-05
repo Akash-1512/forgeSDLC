@@ -10,7 +10,7 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4"
+_MODEL = "gpt-4o"
 
 
 class ContractAgent(BaseAgent):

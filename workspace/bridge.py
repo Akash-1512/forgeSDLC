@@ -66,7 +66,11 @@ class WorkspaceBridge:
         )
         if self._context is None:
             await self._refresh()
-        assert self._context is not None
+        if self._context is None:
+            raise RuntimeError(
+                "WorkspaceBridge._refresh() failed to populate context. "
+                "Check that the workspace path exists and is readable."
+            )
         return self._context
 
     async def _refresh(self) -> None:
@@ -92,7 +96,7 @@ class WorkspaceBridge:
                         c.committed_date, tz=timezone.utc
                     ),
                 )
-                for c in list(repo.iter_commits())[:5]
+                for c in repo.iter_commits(max_count=5)
             ]
         except InvalidGitRepositoryError:
             pass  # not a git repo — all git fields stay at zero values
@@ -194,14 +198,22 @@ class _RefreshHandler(FileSystemEventHandler):
     def __init__(self, bridge: WorkspaceBridge) -> None:
         self._bridge = bridge
         self._loop: asyncio.AbstractEventLoop | None = None
+        # Fix: use get_running_loop() — safe in Python 3.12, raises RuntimeError if no loop running
         try:
-            self._loop = asyncio.get_event_loop()
+            self._loop = asyncio.get_running_loop()
         except RuntimeError:
+            # Called from a non-async context — loop will be set lazily on first event
             pass
 
     def on_any_event(self, event: object) -> None:
         if hasattr(event, "is_directory") and event.is_directory:  # type: ignore[union-attr]
             return
+        # Lazy loop acquisition — in case __init__ was called before event loop started
+        if self._loop is None:
+            try:
+                self._loop = asyncio.get_running_loop()
+            except RuntimeError:
+                return
         if self._loop and self._loop.is_running():
             asyncio.run_coroutine_threadsafe(
                 self._bridge._refresh(), self._loop

@@ -10,13 +10,13 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "gemini-3.1-pro-preview"  # selected by ModelRouter long-context router
+_MODEL = "gemini-1.5-pro"  # selected by ModelRouter long-context router
 
 
 class IntegrationAgent(BaseAgent):
     """Agent 11 — cross-service integration tests. Multi-service only.
 
-    Model: gemini-3.1-pro-preview — selected by ModelRouter's LongContextRouter
+    Model: gemini-1.5-pro — selected by ModelRouter's LongContextRouter
            when estimated_tokens > 100_000. NOT hardcoded in this agent.
            Multi-service combined codebase = large context → long-context router fires.
     Fires ONLY when architecture_type == "multi_service".
@@ -70,7 +70,7 @@ class IntegrationAgent(BaseAgent):
         """Generate cross-service integration tests via gemini (long-context router)."""
         # ModelRouter selects gemini via long-context router — not hardcoded here
         adapter = await self.model_router.route(
-            agent="agent_11_integration",    # AGENT_MODELS → gemini-3.1-pro-preview
+            agent="agent_11_integration",    # AGENT_MODELS → gemini-1.5-pro
             task_type="integration_testing",
             estimated_tokens=150_000,         # multi-service = large combined codebase
             subscription_tier=str(state.get("subscription_tier", "free")),

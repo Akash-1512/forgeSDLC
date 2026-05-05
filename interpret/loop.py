@@ -61,5 +61,8 @@ def execute_node(confirmation: str, fn: object, *args: object) -> object:
     logger.info("execute_node — gate passed, executing")
     # TODO: replace cast with proper callable protocol in Session 09
     import collections.abc  # noqa: PLC0415
-    assert isinstance(fn, collections.abc.Callable)  # noqa: S101
+    if not isinstance(fn, collections.abc.Callable):
+        raise TypeError(
+            f"execute_node: fn must be callable, got {type(fn).__name__!r}"
+        )
     return fn(*args)

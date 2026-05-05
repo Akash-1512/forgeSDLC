@@ -1,8 +1,70 @@
+"""
+H14 Fix: MCP resource handlers that serve project artefacts to MCP clients.
+
+MCP resources expose project memory and generated documents as readable
+URIs. Cursor, Claude Code, and Copilot can reference these via their
+resource browsers without calling a tool.
+"""
 from __future__ import annotations
 
-# resource://project/{project_id}/prd
-# resource://project/{project_id}/adr
-# resource://project/{project_id}/memory
-# Full resource handlers wired in Session 02 when PostgreSQL memory layer ships.
+import json
 
-PROJECT_RESOURCE_TEMPLATE = "project://{project_id}/{artifact}"
+import structlog
+
+logger = structlog.get_logger()
+
+
+async def get_project_prd(project_id: str) -> str:
+    """MCP Resource: return the PRD for a project from the checkpoint."""
+    import sqlite3
+    from pathlib import Path
+    try:
+        if not Path("./data/checkpoints.db").exists():
+            return json.dumps({"error": "No checkpoint found. Run gather_requirements first."})
+        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+            from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+            cp = SqliteSaver(conn)
+            config = {"configurable": {"thread_id": project_id}}
+            existing = cp.get(config)
+            if not existing:
+                return json.dumps({"error": f"No state for project_id={project_id!r}"})
+            prd = existing.get("channel_values", {}).get("prd", "")
+            return json.dumps({"project_id": project_id, "prd": prd})
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+async def get_project_adr(project_id: str) -> str:
+    """MCP Resource: return the ADR for a project from the checkpoint."""
+    import sqlite3
+    from pathlib import Path
+    try:
+        if not Path("./data/checkpoints.db").exists():
+            return json.dumps({"error": "No checkpoint found. Run gather_requirements first."})
+        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+            from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+            cp = SqliteSaver(conn)
+            config = {"configurable": {"thread_id": project_id}}
+            existing = cp.get(config)
+            if not existing:
+                return json.dumps({"error": f"No state for project_id={project_id!r}"})
+            adr = existing.get("channel_values", {}).get("adr", "")
+            return json.dumps({"project_id": project_id, "adr": adr})
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})
+
+
+async def get_project_memory(project_id: str, query: str = "architecture decisions") -> str:
+    """MCP Resource: return Layer 2 memory for a project."""
+    try:
+        from memory.organisational_memory import OrgMemory  # noqa: PLC0415
+        org = OrgMemory()
+        entries = await org.search(query=query, project_id=project_id, limit=10)
+        return json.dumps({
+            "project_id": project_id,
+            "query": query,
+            "entries": [e.model_dump() for e in entries],
+            "count": len(entries),
+        })
+    except Exception as exc:
+        return json.dumps({"error": str(exc)})

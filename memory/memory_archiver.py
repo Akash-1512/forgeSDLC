@@ -59,12 +59,28 @@ class MemoryArchiver:
     # ------------------------------------------------------------------ L1
 
     async def _archive_layer1(self, state: SDLCState) -> None:
+        # H4 Fix: extract short stack identifier from ADR — not the full document
+        # ADR typically starts with "# ADR-001: FastAPI + PostgreSQL + Redis"
+        # Extract just the stack part after the colon for the stack_chosen field
+        adr_text = str(state.get("adr") or "")
+        stack_chosen: str | None = None
+        if adr_text:
+            first_line = adr_text.strip().splitlines()[0] if adr_text.strip() else ""
+            if ":" in first_line:
+                # "# ADR-001: FastAPI + PostgreSQL" → "FastAPI + PostgreSQL"
+                stack_chosen = first_line.split(":", 1)[1].strip()[:100]
+            elif first_line:
+                stack_chosen = first_line.lstrip("#").strip()[:100]
+
+        # H5 Fix: use trace_id as run_id so Layer 5 post-mortems can link back to this run
+        run_id = str(state.get("trace_id") or uuid4())
+
         record = PipelineRunRecord(
-            run_id=str(uuid4()),
+            run_id=run_id,
             timestamp=datetime.now(tz=timezone.utc),
             project_id=state.get("mcp_session_id") or "default",
             user_prompt=state.get("user_prompt") or "",
-            stack_chosen=state.get("adr") or None,
+            stack_chosen=stack_chosen,
             deployment_success=state.get("deployment_url") is not None,
             cost_total_usd=state.get("budget_used_usd") or 0.0,
             hitl_rounds=state.get("interpret_round") or 0,
@@ -72,11 +88,11 @@ class MemoryArchiver:
             lessons_learned=[],
             tool_delegated_to=state.get("tool_delegated_to"),
             workspace_path=str(
-                (state.get("workspace_context") or {}).get("path", ".")
+                (state.get("workspace_context") or {}).get("root_path", ".")
             ),
         )
         await self.l1.save_run(record)  # l1 emits InterpretRecord before write
-        logger.info("memory_archiver.layer1_archived", run_id=record.run_id)
+        logger.info("memory_archiver.layer1_archived", run_id=record.run_id, stack_chosen=stack_chosen)
 
     # ------------------------------------------------------------------ L2
 
@@ -181,42 +197,9 @@ class MemoryArchiver:
                     timestamp=datetime.now(tz=timezone.utc),
                 )
                 await self.l2.upsert(entry)
-        facts: list[str] = []
-        project_id = state.get("mcp_session_id") or "default"
-        run_id = str(uuid4())
-
-        if state.get("prd"):
-            facts.append(f"REQUIREMENTS: {state['prd'][:200]}")
-
-        if state.get("adr"):
-            facts.append(f"DECISION: {state['adr'][:200]}")
-
-        security = state.get("security_findings") or {}
-        if isinstance(security, dict) and security.get("high_count", 0) > 0:
-            facts.append(
-                f"SECURITY: {security['high_count']} HIGH findings in this run"
-            )
-
-        for correction in (state.get("human_corrections") or []):
-            if correction:
-                facts.append(f"CORRECTION: {correction[:150]}")
-
-        for fact in facts[:5]:  # max 5 facts per run
-            entry = OrgMemoryEntry(
-                entry_id=str(uuid4()),
-                project_id=project_id,
-                content=fact,
-                category=self._classify_fact(fact),  # type: ignore[arg-type]
-                source_run_id=run_id,
-                timestamp=datetime.now(tz=timezone.utc),
-            )
-            await self.l2.upsert(entry)  # l2 emits InterpretRecord before write
-
-        logger.info(
-            "memory_archiver.layer2_archived",
-            project_id=project_id,
-            facts_extracted=len(facts),
-        )
+        # Fix #34: removed dead code block that was here — old rule-based extraction
+        # duplicated after try/except, reassigning facts=[] and iterating empty list.
+        # LLM path (try block) and fallback rule-based path (except block) are sufficient.
 
     # ------------------------------------------------------------------ L3
 
@@ -238,7 +221,8 @@ class MemoryArchiver:
         if not tool:
             logger.info("memory_archiver.layer4_skipped", reason="no tool_delegated_to in state")
             return
-        user_id = "default"
+        # Fix #114: use mcp_session_id as user_id so preferences are per-session not global
+        user_id = str(state.get("mcp_session_id") or "default")
         # l4 emits InterpretRecord before write inside update_tool_preference
         await self.l4.update_tool_preference(user_id, tool)
         logger.info("memory_archiver.layer4_archived", tool=tool)
@@ -247,9 +231,11 @@ class MemoryArchiver:
 
     async def _archive_layer5(self, state: SDLCState) -> None:
         """Write post-mortem when pipeline failed."""
+        # H5 Fix: run_id = trace_id so PostMortem links to the Layer 1 pipeline_run row
+        run_id = str(state.get("trace_id") or uuid4())
         pm = PostMortem(
             post_mortem_id=str(uuid4()),
-            run_id=str(uuid4()),
+            run_id=run_id,
             failure_type=state.get("failure_type", "architecture"),  # type: ignore[arg-type]
             agent_that_failed=state.get("failed_agent") or "unknown",
             root_cause=state.get("failure_root_cause") or "unknown",

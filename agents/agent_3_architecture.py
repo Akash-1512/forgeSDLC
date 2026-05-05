@@ -14,7 +14,7 @@ from interpret.record import InterpretRecord
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4"
+_MODEL = "gpt-4o"
 
 _RFC_SYSTEM_PROMPT = """\
 You are a senior software architect. Generate a detailed RFC (Request for Comments)
@@ -39,7 +39,7 @@ Format: Markdown."""
 class ArchitectureAgent(BaseAgent):
     """Agent 3 — generates and validates system architecture.
 
-    Model: gpt-5.4 (quality matters for architecture decisions)
+    Model: gpt-4o (quality matters for architecture decisions)
     HardGate: hard_gate = True — companion panel shows red left border (Session 17)
     Validation: AntiPatternDetector + NFRSatisfiabilityChecker run BEFORE LLM
     Blocking: HIGH anti-pattern OR NFR failure → gate_blocked → execute cannot fire
@@ -119,7 +119,7 @@ class ArchitectureAgent(BaseAgent):
         packet: object,
         memory_context: object,
     ) -> dict[str, object]:
-        """Generate RFC via gpt-5.4 and write via DiffEngine. Only after gate passes."""
+        """Generate RFC via gpt-4o and write via DiffEngine. Only after gate passes."""
         adapter = await self.model_router.route(
             agent="agent_3_architecture",
             task_type="architecture",

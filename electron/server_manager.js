@@ -24,8 +24,14 @@ class ServerManager {
         this._intentionalStop = false;
         this.status = 'starting';
 
-        // PYTHON_PATH env var → "python" fallback (Windows venv safety)
-        const python = process.env.PYTHON_PATH || 'python';
+        // Resolve Python executable cross-platform:
+        // 1. PYTHON_PATH env var (explicit venv or system path)
+        // 2. python3 (macOS/Linux standard)
+        // 3. python  (Windows + some Linux)
+        // Never rely on bare 'python' first — macOS Ventura+ opens App Store
+        const python = process.env.PYTHON_PATH || (
+            process.platform === 'win32' ? 'python' : 'python3'
+        );
 
         // Server module path — relative to electron/ directory
         const serverArgs = [

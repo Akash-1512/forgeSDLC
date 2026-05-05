@@ -57,10 +57,13 @@ async def recall_context(
     return {
         "status": "ok",
         "project_id": project_id,
-        "org_memory": [e.model_dump() for e in context["org_memory"]],
-        "similar_runs": [r.model_dump() for r in context["similar_runs"]],
-        "layers_queried": context["layers_queried"],
-        "assembled_at": context["assembled_at"],
+        # Fix #3/#100: context is a MemoryContext Pydantic model — use attribute access, not subscript
+        "org_memory": [e.model_dump() for e in context.relevant_patterns],
+        "similar_runs": [r.model_dump() for r in context.similar_runs],
+        "past_failures": [f.model_dump() for f in context.past_failures],
+        "user_preferences": context.user_preferences.model_dump() if context.user_preferences else None,
+        "layers_queried": context.layers_queried,
+        "assembled_at": context.assembled_at,
         "interpret_record": record.model_dump(),
     }
 

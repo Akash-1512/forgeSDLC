@@ -21,9 +21,9 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -47,9 +47,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
@@ -68,7 +68,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -96,7 +96,7 @@ jobs:
             artifact: '*.deb'
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
@@ -121,7 +121,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: actions/download-artifact@v4
         with:
@@ -137,7 +137,7 @@ jobs:
         with:
           files: dist/*
           body: |
-            ## forgeSDLC v1.0.0
+            ## forgeSDLC ${{ github.ref_name }}
 
             The missing SDLC layer for your AI coding tools.
 
@@ -162,17 +162,22 @@ jobs:
     needs: github-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
 
-      - name: Install vsce
-        run: npm install -g @vscode/vsce
+      - name: Install extension dependencies
+        run: cd vscode_extension && npm ci
+
+      - name: Compile TypeScript
+        # Fix #56: extension.ts must be compiled to out/extension.js before packaging.
+        # vsce publish fails with "Main file does not exist" without this step.
+        run: cd vscode_extension && npm run build
 
       - name: Publish VS Code extension
-        run: cd vscode_extension && vsce publish --pat ${{ secrets.VSCE_PAT }}
+        run: cd vscode_extension && npx @vscode/vsce publish --pat ${{ secrets.VSCE_PAT }}
         # Publisher: Akash-1512
         # Extension ID: Akash-1512.forgesdlc
         # Requires VSCE_PAT secret: dev.azure.com → Personal Access Tokens

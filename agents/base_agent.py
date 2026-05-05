@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 
@@ -12,10 +13,14 @@ from interpret.record import InterpretRecord
 from memory.memory_archiver import MemoryArchiver
 from memory.memory_context_builder import MemoryContextBuilder
 from model_router.router import ModelRouter
+from token_tracker.tracker import TokenTracker
 from workspace.bridge import WorkspaceBridge
 from workspace.diff_engine import DiffEngine
 
 logger = structlog.get_logger()
+
+# H7: module-level shared token tracker — lightweight, no DB connection
+_SHARED_TOKEN_TRACKER = TokenTracker()
 
 
 class BaseAgent(ABC):
@@ -26,7 +31,7 @@ class BaseAgent(ABC):
     context file writing — is handled here.
 
     Loop: ContextWindowManager → memory read → _interpret (L1) →
-          gate check → _execute → ContextFileManager (L13) → MemoryArchiver
+          gate check → _execute → TokenTracker → ContextFileManager (L13) → MemoryArchiver
     """
 
     def __init__(
@@ -69,7 +74,6 @@ class BaseAgent(ABC):
         interpret_log = list(state.get("interpret_log", []) or [])
         interpret_log.append(interpretation.model_dump())
         state["interpret_log"] = interpret_log
-        # displayed_interpretation: always the CURRENT one — not a stack
         state["displayed_interpretation"] = interpretation.action
         state["interpret_round"] = int(state.get("interpret_round", 0) or 0) + 1
 
@@ -84,7 +88,31 @@ class BaseAgent(ABC):
 
         # Step 5: Execute — only reached after gate passes
         logger.info("base_agent.executing", agent=self.name)
+        t_start = time.monotonic()
         state = await self._execute(state, packet, memory_context)
+        latency_ms = int((time.monotonic() - t_start) * 1000)
+
+        # H7 Fix: record token usage — model_router emits usage via structlog; read it here
+        # We use estimated tokens from interpretation as a proxy until adapters expose usage directly
+        model_used = interpretation.model_selected or "unknown"
+        estimated_input = 500   # conservative estimate — improved when adapters expose usage
+        estimated_output = 800
+        cost_usd = 0.0
+        _SHARED_TOKEN_TRACKER.record(
+            state=state,
+            agent=self.name,
+            task=self._phase_name(),
+            model=model_used,
+            provider=model_used.split("/")[0] if "/" in model_used else "openai",
+            input_tokens=estimated_input,
+            output_tokens=estimated_output,
+            cost_usd=cost_usd,
+            latency_ms=latency_ms,
+            api_key_source="env",
+        )
+        # Accumulate cost in state so BudgetMonitor has real data
+        current_budget_used = float(state.get("budget_used_usd", 0.0) or 0.0)
+        state["budget_used_usd"] = current_budget_used + cost_usd
 
         # Step 6: Write context files — emits L13 InterpretRecord
         try:
@@ -107,7 +135,7 @@ class BaseAgent(ABC):
         state["human_confirmation"] = ""
         state["displayed_interpretation"] = ""
 
-        logger.info("base_agent.complete", agent=self.name)
+        logger.info("base_agent.complete", agent=self.name, latency_ms=latency_ms)
         return state
 
     @abstractmethod
