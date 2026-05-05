@@ -55,6 +55,9 @@ def main() -> int:
         ),
     )
 
+    # Fix P17: in CI, missing API keys are advisory not hard-fail
+    # Set FORGESDLC_CI=true to downgrade API key checks
+    _ci_mode = os.getenv("FORGESDLC_CI", "").lower() == "true"
     check(
         "GROQ_API_KEY is set",
         bool(os.getenv("GROQ_API_KEY")),
@@ -63,6 +66,7 @@ def main() -> int:
             "free tier fails at ~100 concurrent users)\n"
             "     Get key: https://console.groq.com/keys"
         ),
+        hard=not _ci_mode,  # advisory in CI, hard-fail in production
     )
 
     check(

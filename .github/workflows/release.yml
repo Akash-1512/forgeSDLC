@@ -5,6 +5,9 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
+# Fix P15: environment protection — require manual approval for production publish
+# Set up 'production' environment in GitHub repo settings with required reviewers.
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -12,7 +15,9 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: forgesdlc
+          # Fix P1/P5: consistent password via secret
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}
+          POSTGRES_DB: forgesdlc
         ports:
           - 5432:5432
         options: >-
@@ -27,18 +32,29 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Install dependencies
         run: pip install -e ".[dev]"
 
       - name: Run tests (skip slow e2e)
-        run: pytest tests/ -q -m "not slow"
+        run: pytest tests/ -q -m "not slow" --tb=short
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}@localhost:5432/forgesdlc
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-secret-key-minimum-32-chars-long' }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || '' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}
 
       - name: Commercial readiness check
         run: python scripts/commercial_readiness_check.py
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}@localhost:5432/forgesdlc
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
@@ -46,6 +62,8 @@ jobs:
   publish-python:
     needs: test
     runs-on: ubuntu-latest
+    # Fix P15: production environment gate
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
@@ -58,6 +76,8 @@ jobs:
           pip install build twine
           python -m build
 
+      # Fix P16: package name is 'forgesdlc' in pyproject.toml
+      # pip install forgesdlc-mcp would need name = "forgesdlc-mcp" — keeping as forgesdlc
       - name: Publish to PyPI
         run: twine upload dist/*
         env:
@@ -67,43 +87,56 @@ jobs:
   publish-npm:
     needs: test
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Publish to npm
-        run: cd electron && npm ci && npm publish --access public
+      # Fix P8: npm ci requires package-lock.json — use npm install instead
+      - name: Install and publish npm package
+        run: |
+          cd electron
+          npm install
+          npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
   build-electron:
     needs: test
+    # Fix P20: fail-fast false — one platform failure shouldn't cancel others
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: win
-            artifact: '*.exe'
+            # Fix P18: more specific artifact path
+            artifact_path: 'electron/dist/*.exe'
+            artifact_name: 'windows'
           - os: macos-latest
             platform: mac
-            artifact: '*.dmg'
+            artifact_path: 'electron/dist/*.dmg'
+            artifact_name: 'macos'
           - os: ubuntu-latest
             platform: linux
-            artifact: '*.deb'
+            artifact_path: 'electron/dist/*.deb'
+            artifact_name: 'linux'
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          # Fix P7: Node 20 LTS — widely supported by electron-builder
+          node-version: '20'
 
+      # Fix P9: npm ci requires lock file — use npm install for build
       - name: Install electron dependencies
-        run: cd electron && npm ci
+        run: cd electron && npm install
 
       - name: Build Electron app
         run: cd electron && npx electron-builder --${{ matrix.platform }} --publish never
@@ -111,8 +144,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: electron-${{ matrix.os }}
-          path: electron/dist/${{ matrix.artifact }}
+          name: electron-${{ matrix.artifact_name }}
+          # Fix P18: use explicit matrix artifact path
+          path: ${{ matrix.artifact_path }}
           if-no-files-found: warn
 
   github-release:
@@ -129,13 +163,17 @@ jobs:
           merge-multiple: true
           path: dist/
 
+      # Fix P6: guard against empty dist/ before listing
       - name: List release artifacts
-        run: ls -la dist/
+        run: |
+          echo "Release artifacts:"
+          ls -la dist/ 2>/dev/null && true || echo "(no artifacts — Electron builds may have failed)"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: dist/*
+          fail_on_unmatched_files: false
           body: |
             ## forgeSDLC ${{ github.ref_name }}
 
@@ -145,13 +183,13 @@ jobs:
 
             ```bash
             npx @forgesdlc/agent
-            # or: pip install forgesdlc-mcp
+            # or: pip install forgesdlc
             ```
 
             ### Downloads
-            - **Windows:** `forgesdlc-setup-1.0.0.exe`
-            - **macOS:** `forgesdlc-1.0.0.dmg`
-            - **Linux:** `forgesdlc-1.0.0.deb`
+            - **Windows:** `forgesdlc-setup-${{ github.ref_name }}.exe`
+            - **macOS:** `forgesdlc-${{ github.ref_name }}.dmg`
+            - **Linux:** `forgesdlc-${{ github.ref_name }}.deb`
 
             See [CHANGELOG.md](CHANGELOG.md) for full release notes.
           draft: false
@@ -162,24 +200,20 @@ jobs:
   publish-vscode:
     needs: github-release
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '24'
+          node-version: '20'
 
+      # Fix P8: use npm install — no lock file present
       - name: Install extension dependencies
-        run: cd vscode_extension && npm ci
+        run: cd vscode_extension && npm install
 
       - name: Compile TypeScript
-        # Fix #56: extension.ts must be compiled to out/extension.js before packaging.
-        # vsce publish fails with "Main file does not exist" without this step.
         run: cd vscode_extension && npm run build
 
       - name: Publish VS Code extension
         run: cd vscode_extension && npx @vscode/vsce publish --pat ${{ secrets.VSCE_PAT }}
-        # Publisher: Akash-1512
-        # Extension ID: Akash-1512.forgesdlc
-        # Requires VSCE_PAT secret: dev.azure.com → Personal Access Tokens
-        #   → Marketplace (Publish) scope
