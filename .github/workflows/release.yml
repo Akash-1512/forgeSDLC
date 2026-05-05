@@ -142,10 +142,11 @@ jobs:
             The missing SDLC layer for your AI coding tools.
 
             ### Install
-```bash
+
+            ```bash
             npx @forgesdlc/agent
             # or: pip install forgesdlc-mcp
-```
+            ```
 
             ### Downloads
             - **Windows:** `forgesdlc-setup-1.0.0.exe`
