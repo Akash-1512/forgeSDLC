@@ -5,6 +5,7 @@ from pathlib import Path
 
 import structlog
 from fastmcp import Context
+from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
 
@@ -56,7 +57,7 @@ def _build_deploy_state(
         "tool_delegated_to": None,
         "budget_used_usd": 0.0,
         "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
-        "subscription_tier": "free",
+        "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,
         "model_router_context": None,
@@ -175,7 +176,8 @@ async def deploy_project(
         return {
             "status": "awaiting_confirmation",
             "stage": "deployment",
-            "interpretation": state["interpret_log"][-1],
+            # M11 Fix: safe access — interpret_log is guaranteed non-empty here (guard above)
+            "interpretation": state["interpret_log"][-1] if state.get("interpret_log") else {},
             "displayed_interpretation": state.get("displayed_interpretation", ""),
             "project_id": project_id,
             "instructions": (

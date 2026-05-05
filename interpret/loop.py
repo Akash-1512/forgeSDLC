@@ -40,7 +40,7 @@ def interpret_node(
 def interrupt_node(displayed_interpretation: str) -> None:
     """Pause execution and surface the interpretation to the companion panel.
 
-    In Session 17 this wires to the WebSocket / panel UI.
+    Wires to the WebSocket / companion panel UI when desktop app is running.
     For now it logs — the [✅ Approve] button will call check_gate() with
     HUMAN_CONFIRMATION_PHRASE before execute_node is allowed to fire.
     """
@@ -59,7 +59,7 @@ def execute_node(confirmation: str, fn: object, *args: object) -> object:
             f"Received: {confirmation!r}"
         )
     logger.info("execute_node — gate passed, executing")
-    # TODO: replace cast with proper callable protocol in Session 09
+    # Use proper callable protocol
     import collections.abc  # noqa: PLC0415
     if not isinstance(fn, collections.abc.Callable):
         raise TypeError(

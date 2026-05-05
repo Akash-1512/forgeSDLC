@@ -25,7 +25,7 @@ def _base_state() -> dict[str, object]:
         "rfc": "Request for comments document",
         "service_graph": {"api": "service"},
         "workspace_context": {"root": "/project"},
-        "model_router_context": {"model": "groq/llama-3.3-70b-specdec"},
+        "model_router_context": {"model": "groq/llama-3.3-70b-versatile"},
         "tool_router_context": {"selected": "direct_llm"},
         "memory_context": {"layers": [1, 2]},
         "review_findings": [{"severity": "minor", "issue": "unused import"}],

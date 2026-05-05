@@ -12,7 +12,7 @@ logger = structlog.get_logger()
 class DirectLLMAdapter:
     """Always-available fallback — zero external tool dependency.
 
-    Session 06: replaced direct openai/groq imports with ModelRouter.route().
+    replaced direct openai/groq imports with ModelRouter.route().
     Now respects subscription tier, budget constraints, and BYOK configuration.
     All calls appear in TokenRecords via ModelRouter's tracking.
     """

@@ -53,12 +53,12 @@ async def test_route_agent_3_returns_gpt_5_4_adapter() -> None:
         )
     from model_router.adapters.openai_adapter import OpenAIAdapter
     assert isinstance(adapter, OpenAIAdapter)
-    assert adapter.model_name == "gpt-5.4"
+    assert adapter.model_name == "gpt-4o"
 
 
 @pytest.mark.asyncio
 async def test_route_agent_9_returns_groq_not_gpt_mini() -> None:
-    """Regression guard: Agent 9 must return groq, never gpt-5.4-mini."""
+    """Regression guard: Agent 9 must return groq, never gpt-4o-mini."""
     router = _make_router()
     with patch("subscription.byok_manager.keyring") as mk:
         mk.get_password.return_value = None
@@ -135,7 +135,7 @@ async def test_budget_optimise_downgrades_gpt_5_4_to_mini() -> None:
     router = _make_router()
     with patch("subscription.byok_manager.keyring") as mk:
         mk.get_password.return_value = None
-        # 85% budget used → OPTIMISE → downgrade gpt-5.4 → gpt-5.4-mini
+        # 85% budget used → OPTIMISE → downgrade gpt-4o → gpt-4o-mini
         adapter = await router.route(  # type: ignore[union-attr]
             agent="agent_3_architecture",
             task_type="architecture",
@@ -146,10 +146,10 @@ async def test_budget_optimise_downgrades_gpt_5_4_to_mini() -> None:
         )
     from model_router.adapters.openai_adapter import OpenAIAdapter
     from model_router.adapters.groq_adapter import GroqAdapter
-    # Should be downgraded — either gpt-5.4-mini or groq
+    # Should be downgraded — either gpt-4o-mini or groq
     assert isinstance(adapter, (OpenAIAdapter, GroqAdapter))
     if isinstance(adapter, OpenAIAdapter):
-        assert adapter.model_name != "gpt-5.4"
+        assert adapter.model_name != "gpt-4o"
 
 
 @pytest.mark.asyncio
@@ -157,7 +157,7 @@ async def test_free_tier_forces_groq_for_openai_agents() -> None:
     router = _make_router()
     with patch("subscription.byok_manager.keyring") as mk:
         mk.get_password.return_value = None
-        # Free tier: gpt-5.4-mini not allowed → falls back to groq
+        # Free tier: gpt-4o-mini not allowed → falls back to groq
         adapter = await router.route(  # type: ignore[union-attr]
             agent="agent_2_stack",
             task_type="stack",
@@ -221,7 +221,7 @@ async def test_claude_raises_when_no_byok_key() -> None:
 
 
 def test_agent_models_catalog_has_correct_agent_9() -> None:
-    assert AGENT_MODELS["agent_9_monitor"] == "groq/llama-3.3-70b-specdec"
+    assert AGENT_MODELS["agent_9_monitor"] == "groq/llama-3.3-70b-versatile"
 
 
 def test_agent_models_catalog_agent_4_is_none() -> None:

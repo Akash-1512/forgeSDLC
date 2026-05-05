@@ -19,7 +19,7 @@ _MODEL = "gpt-4o-mini"
 class DeployAgent(BaseAgent):
     """Agent 8 — deployment to Render or local Docker.
 
-    hard_gate = True — companion panel shows red border (Session 17).
+    hard_gate = True — companion panel shows red border.
     Security gate pre-check runs BEFORE interpret_node.
     Overrides BaseAgent.run() to add the pre-check.
     Cold start warning ALWAYS appears in interpret — content varies by tier.
@@ -27,7 +27,7 @@ class DeployAgent(BaseAgent):
     Dockerfile: multi-stage, non-root UID 1000, HEALTHCHECK on /health.
     """
 
-    hard_gate: bool = True  # Session 17 Desktop reads this for red border UI
+    hard_gate: bool = True  # companion panel renders red border when True
 
     async def run(self, state: dict[str, object]) -> dict[str, object]:
         """Override: security gate pre-check before calling super().run().

@@ -7,6 +7,7 @@ import structlog
 from fastmcp import Context
 
 from interpret.gate import check_gate
+from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
 
@@ -41,7 +42,7 @@ def _build_codegen_state(
         "workspace_path": workspace_path,
         "budget_used_usd": 0.0,
         "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
-        "subscription_tier": "free",
+        "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,
         "model_router_context": None,

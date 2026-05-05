@@ -24,7 +24,7 @@ class MemoryArchiver:
     Emits InterpretRecord(layer="memory") before writing to each layer.
 
     Layer 2 fact extraction is rule-based in this session — no LLM calls.
-    Session 06: _archive_layer2 now uses groq/llama-3.1-8b-instant via ModelRouter.
+    _archive_layer2 now uses groq/llama-3.1-8b-instant via ModelRouter.
     using groq/llama-3.1-8b-instant for fact summarisation.
     """
 
@@ -99,7 +99,7 @@ class MemoryArchiver:
     async def _archive_layer2(self, state: SDLCState) -> None:
         """LLM-based fact extraction via groq/llama-3.1-8b-instant.
 
-        Session 06: TODO resolved — now uses ModelRouter.route(context_compressor)
+        TODO resolved — now uses ModelRouter.route(context_compressor)
         which maps to groq/llama-3.1-8b-instant (always free, no exceptions).
         Produces higher-quality, categorised facts vs the previous rule-based approach.
         """
@@ -204,14 +204,34 @@ class MemoryArchiver:
     # ------------------------------------------------------------------ L3
 
     async def _archive_layer3(self, state: SDLCState) -> None:
-        """Update project graph if workspace context contains graph data."""
+        """Update project graph if workspace context contains graph data.
+
+        M13 Fix: workspace_context is stored as a plain dict (model_dump).
+        project_graph field added to WorkspaceContext in v1.1.0 (H11 fix).
+        Reconstruct ProjectContextGraph object before passing to l3.save_graph().
+        """
         graph_data = (state.get("workspace_context") or {}).get("project_graph")
         if graph_data is None:
             logger.info("memory_archiver.layer3_skipped", reason="no project_graph in workspace_context")
             return
+
+        # Reconstruct the Pydantic model from the stored dict
+        try:
+            from memory.schemas import ProjectContextGraph  # noqa: PLC0415
+            if isinstance(graph_data, dict):
+                graph_obj = ProjectContextGraph.model_validate(graph_data)
+            elif isinstance(graph_data, ProjectContextGraph):
+                graph_obj = graph_data
+            else:
+                logger.warning("memory_archiver.layer3_invalid_graph_type", type=type(graph_data).__name__)
+                return
+        except Exception as exc:
+            logger.warning("memory_archiver.layer3_graph_parse_failed", error=str(exc))
+            return
+
         # l3 emits InterpretRecord before write
-        await self.l3.save_graph(graph_data)
-        logger.info("memory_archiver.layer3_archived")
+        await self.l3.save_graph(graph_obj)
+        logger.info("memory_archiver.layer3_archived", project_id=graph_obj.project_id)
 
     # ------------------------------------------------------------------ L4
 

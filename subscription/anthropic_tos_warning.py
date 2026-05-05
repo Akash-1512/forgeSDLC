@@ -8,7 +8,7 @@ logger = structlog.get_logger()
 class AnthropicTosWarning:
     """Enforces explicit ToS acknowledgement before Claude BYOK unlocks.
 
-    Called by the model picker in the Desktop companion panel (Session 17).
+    Called by the model picker in the Desktop companion panel.
     In CLI/MCP contexts: returns warning text that the client must display.
 
     DESIGN RULES:

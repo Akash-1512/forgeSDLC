@@ -34,7 +34,7 @@ class InterpretRecord(BaseModel):
     """Emitted by every forgeSDLC component before it executes.
 
     Zero silent executions — test_interpret_completeness.py enforces this
-    across all 12 layers (Session 18).
+    across all 12 layers.
     """
 
     model_config = ConfigDict(strict=True)

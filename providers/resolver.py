@@ -262,14 +262,14 @@ class ProviderResolver:
         try:
             has_secret = bool(os.getenv("SECRET_KEY"))
             return ProviderSelection(
-                service="auth", provider="pyjwt_argon2",
+                service="auth", provider="pyjwt_hs256",
                 connection_string="",
                 healthy=has_secret,
-                reason="PyJWT + argon2-cffi" if has_secret else "SECRET_KEY not set",
+                reason="PyJWT HS256 session tokens" if has_secret else "SECRET_KEY not set — generate with: python -c \"import secrets; print(secrets.token_hex(32))\"",
             )
         except Exception as exc:
             return ProviderSelection(
-                service="auth", provider="pyjwt_argon2",
+                service="auth", provider="pyjwt_hs256",
                 connection_string="", healthy=False,
                 reason=f"Fallback: {exc}",
             )

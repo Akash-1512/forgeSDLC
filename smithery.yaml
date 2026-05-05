@@ -54,17 +54,20 @@ tools:
 pricing:
   free:
     tools: [recall_context, save_decision]
-    models: [groq]
+    models: [groq/llama-3.3-70b-versatile]
     price: "$0"
+    note: "Groq free tier — no credit card required"
   pro:
     tools: all
-    models: [groq, gpt-4o-mini, gemini]
+    models: [groq/llama-3.3-70b-versatile, gpt-4o, gpt-4o-mini, gemini-1.5-pro]
     price: "$20/month"
+    note: "Bring your own API keys (BYOK) for OpenAI and Google"
   enterprise:
     tools: all
     models: all
-    extras: [devin, sla]
+    extras: [devin_api, azure_openai, sla]
     price: "$80/seat/month"
+    note: "Volume pricing available — contact ag.chaudhari.1512@gmail.com"
 
 tags:
   - sdlc

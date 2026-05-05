@@ -94,7 +94,7 @@ def main() -> int:
         check(
             f"{lf} exists",
             Path(lf).exists(),
-            f"Run Session 19 script to create {lf}",
+            f"Run scripts/create_legal_files.py to create {lf}",
         )
 
     check(

@@ -145,7 +145,7 @@ async def test_agent_11_uses_gemini_via_long_context_router() -> None:
 
     assert isinstance(adapter, GeminiAdapter), (
         f"Expected GeminiAdapter for 150K tokens, got {type(adapter).__name__}. "
-        "Long-context router should select gemini-3.1-pro-preview."
+        "Long-context router should select gemini-1.5-pro."
     )
 
 

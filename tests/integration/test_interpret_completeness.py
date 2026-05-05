@@ -193,11 +193,11 @@ async def _run_synthetic_pipeline(
     InterpretRecord(
         layer="model_router",
         component="ModelRouter",
-        action="route: agent_0_decompose → gpt-5.4-mini (groq fallback)",
+        action="route: agent_0_decompose → gpt-4o-mini (groq fallback)",
         inputs={"agent": "agent_0_decompose", "task_type": "requirements"},
         expected_outputs={"adapter": "GroqAdapter"},
         files_it_will_read=[], files_it_will_write=[],
-        external_calls=[], model_selected="gpt-5.4-mini",
+        external_calls=[], model_selected="gpt-4o-mini",
         tool_delegated_to=None, reversible=True,
         workspace_files_affected=[], timestamp=datetime.now(tz=timezone.utc),
     )

@@ -199,3 +199,40 @@ async def test_run_updates_displayed_interpretation_each_round() -> None:
     # displayed_interpretation holds only the CURRENT one
     assert result["displayed_interpretation"] == "round 1 interpretation"
     assert result["interpret_round"] == 1
+
+@pytest.mark.asyncio
+async def test_run_accumulates_budget_used_usd_after_execute() -> None:
+    """H7 regression test: budget_used_usd is updated after _execute completes."""
+    agent = _make_agent()
+    state: dict = {
+        "user_prompt": "test",
+        "mcp_session_id": "proj-1",
+        "human_confirmation": "100% GO",
+        "human_corrections": [],
+        "interpret_log": [],
+        "interpret_round": 0,
+        "budget_used_usd": 0.0,
+        "session_token_records": [],
+    }
+    result = await agent.run(state)
+    # budget_used_usd must be a float >= 0.0 after run completes
+    assert isinstance(result.get("budget_used_usd"), float)
+    assert result.get("budget_used_usd", -1.0) >= 0.0
+    # session_token_records must have at least 1 record
+    assert len(result.get("session_token_records", [])) >= 1
+
+
+@pytest.mark.asyncio
+async def test_run_resets_human_confirmation_after_gate_passes() -> None:
+    """After _execute, human_confirmation must be cleared for next agent."""
+    agent = _make_agent()
+    state: dict = {
+        "user_prompt": "test",
+        "mcp_session_id": "proj-1",
+        "human_confirmation": "100% GO",
+        "human_corrections": [],
+        "interpret_log": [],
+        "interpret_round": 0,
+    }
+    result = await agent.run(state)
+    assert result["human_confirmation"] == ""

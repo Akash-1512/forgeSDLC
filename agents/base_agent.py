@@ -9,6 +9,7 @@ import structlog
 from context_files.manager import ContextFileManager
 from context_management.context_window_manager import ContextWindowManager
 from interpret.gate import check_gate
+from interpret.loop import interpret_node, interrupt_node
 from interpret.record import InterpretRecord
 from memory.memory_archiver import MemoryArchiver
 from memory.memory_context_builder import MemoryContextBuilder
@@ -59,6 +60,9 @@ class BaseAgent(ABC):
 
         Returns state with interpret_log updated.
         Does NOT execute unless human_confirmation == '100% GO'.
+
+        M5: Now uses interpret_node() and interrupt_node() from interpret/loop.py
+        as the canonical HITL contract — no more inline reimplementation.
         """
         # Step 1: Build ContextPacket — emits L11 InterpretRecord
         packet = await self.cwm.build_packet(self.name, state)
@@ -71,14 +75,24 @@ class BaseAgent(ABC):
 
         # Step 3: Generate interpretation — emits L1 InterpretRecord
         interpretation = await self._interpret(packet, memory_context, state)
+
+        # M5: use interpret_node() to build the display string (canonical, testable)
+        correction = None
+        corrections = list(state.get("human_corrections") or [])
+        if corrections:
+            correction = corrections[-1]
+        display_str = interpret_node(interpretation, correction=correction)
+
         interpret_log = list(state.get("interpret_log", []) or [])
         interpret_log.append(interpretation.model_dump())
         state["interpret_log"] = interpret_log
-        state["displayed_interpretation"] = interpretation.action
+        state["displayed_interpretation"] = display_str
         state["interpret_round"] = int(state.get("interpret_round", 0) or 0) + 1
 
         # Step 4: Gate check — execute only on exact "100% GO"
+        # M5: use interrupt_node() for structured logging before gate evaluation
         if not check_gate(str(state.get("human_confirmation", ""))):
+            interrupt_node(display_str)
             logger.info(
                 "base_agent.awaiting_confirmation",
                 agent=self.name,

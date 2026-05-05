@@ -5,7 +5,7 @@ from __future__ import annotations
 This module defines the StateGraph edges and conditional routing logic.
 Agents are registered as nodes; edges define the execution flow.
 
-Security gate conditional edge (Session 12):
+Security gate conditional edge:
   agent_5b_security → HITL (if gate_blocked) or agent_7_cicd (if clear)
 
 Agent 8 (deploy) and Agent 7 (CI/CD) are placeholders until Sessions 13-14.
@@ -23,7 +23,7 @@ def _security_gate_router(state: dict[str, object]) -> str:
 
     Returns:
         "hitl_security_blocked" — if any HIGH/CRITICAL finding blocks deployment
-        "agent_7_cicd"          — if gate is clear, proceed to CI/CD (Session 13)
+        "agent_7_cicd"          — if gate is clear, proceed to CI/CD
     """
     gate = dict(state.get("security_gate") or {})
     blocked = bool(gate.get("blocked", False))
@@ -46,9 +46,9 @@ def build_graph() -> object:
     """Build and return the forgeSDLC StateGraph.
 
     Nodes registered here:
-    - agent_5b_security (Session 12)
-    - hitl_node         (placeholder — Session 17 Desktop wires this to UI)
-    - agent_7_cicd      (placeholder — Session 13)
+    - agent_5b_security
+    - hitl_node         (placeholder Desktop wires this to UI)
+    - agent_7_cicd      (placeholder)
 
     Conditional edges:
     - agent_5b_security → _security_gate_router → hitl_security_blocked | agent_7_cicd
@@ -65,11 +65,11 @@ def build_graph() -> object:
     graph = StateGraph(dict)
 
     # ── Placeholder nodes (replaced in later sessions) ────────────────────
-    graph.add_node("hitl_node", lambda state: state)          # Session 17
-    graph.add_node("agent_7_cicd", lambda state: state)       # Session 13
+    graph.add_node("hitl_node", lambda state: state)          # placeholder — wired to WebSocket UI in companion panel
+    graph.add_node("agent_7_cicd", lambda state: state)       # placeholder — full YAML written by CICDAgent._execute
     graph.add_node("agent_5b_security", lambda state: state)  # real agent injected
 
-    # ── Security gate conditional edge (Session 12) ───────────────────────
+    # ── Security gate conditional edge ───────────────────────
     graph.add_conditional_edges(
         "agent_5b_security",
         _security_gate_router,

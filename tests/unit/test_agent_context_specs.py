@@ -62,7 +62,7 @@ def test_excluded_cannot_overlap_required_raises_validation_error() -> None:
 
 
 def test_agent_11_max_tokens_is_20000() -> None:
-    """Agent 11 uses gemini-3.1-pro-preview (1M context) — 20K budget."""
+    """Agent 11 uses gemini-1.5-pro (1M context) — 20K budget."""
     spec = AGENT_CONTEXT_SPECS["agent_11_integration"]
     assert spec.max_context_tokens == 20_000
 

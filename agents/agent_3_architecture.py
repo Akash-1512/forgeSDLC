@@ -40,12 +40,12 @@ class ArchitectureAgent(BaseAgent):
     """Agent 3 — generates and validates system architecture.
 
     Model: gpt-4o (quality matters for architecture decisions)
-    HardGate: hard_gate = True — companion panel shows red left border (Session 17)
+    HardGate: hard_gate = True — companion panel shows red left border
     Validation: AntiPatternDetector + NFRSatisfiabilityChecker run BEFORE LLM
     Blocking: HIGH anti-pattern OR NFR failure → gate_blocked → execute cannot fire
     """
 
-    hard_gate: bool = True  # Session 17 Desktop reads this for red border UI
+    hard_gate: bool = True  # companion panel renders red border when True
 
     async def _interpret(
         self,

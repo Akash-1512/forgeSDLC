@@ -99,7 +99,12 @@ class WorkspaceBridge:
                 for c in repo.iter_commits(max_count=5)
             ]
         except InvalidGitRepositoryError:
-            pass  # not a git repo — all git fields stay at zero values
+            # M12: non-git workspace — expected in many dev setups, log clearly
+            logger.info(
+                "workspace_bridge.not_a_git_repo",
+                path=str(p),
+                hint="git fields will be empty — initialise a repo with 'git init' to enable version history context",
+            )
         except Exception as exc:
             logger.warning("workspace_bridge.git_error", error=str(exc))
 
