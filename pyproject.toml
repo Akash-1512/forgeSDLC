@@ -85,11 +85,19 @@ packages = [
 ]
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "TID"]
+
+[tool.ruff.lint.per-file-ignores]
+# Long lines inside triple-quoted YAML/SQL template strings cannot be split
+"agents/agent_7_cicd.py" = ["E501"]
+"mcp_server/shared_infrastructure.py" = ["E501"]
+# Integration tests use sys.path manipulation before imports
+"tests/integration/*" = ["E402"]
+"scripts/mcp_test_client.py" = ["E402"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

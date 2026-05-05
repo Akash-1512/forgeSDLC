@@ -18,14 +18,14 @@ class TokenRecord(BaseModel):
 
     model_config = ConfigDict(strict=True)
 
-    record_id: str                          # uuid4
+    record_id: str  # uuid4
     timestamp: datetime
     trace_id: str
     agent: str
     task: str
     model: str
     provider: str
-    input_tokens: int = Field(ge=0)         # ge=0 on ALL numeric fields — no exceptions
+    input_tokens: int = Field(ge=0)  # ge=0 on ALL numeric fields — no exceptions
     output_tokens: int = Field(ge=0)
     cost_usd: float = Field(ge=0.0)
     latency_ms: int = Field(ge=0)

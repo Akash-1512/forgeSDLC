@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import asyncio
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -26,6 +25,7 @@ def _make_proc(stdout: bytes = b"", returncode: int = 0) -> object:
 @pytest.mark.asyncio
 async def test_bandit_runner_emits_interpret_record_l10_before_subprocess() -> None:
     from interpret.record import InterpretRecord
+
     emitted: list[str] = []
     original_init = InterpretRecord.__init__
 
@@ -50,6 +50,7 @@ async def test_bandit_runner_emits_interpret_record_l10_before_subprocess() -> N
 @pytest.mark.asyncio
 async def test_semgrep_runner_emits_interpret_record_l10_before_subprocess() -> None:
     from interpret.record import InterpretRecord
+
     emitted: list[str] = []
     original_init = InterpretRecord.__init__
 
@@ -131,6 +132,7 @@ async def test_pip_audit_runner_emits_interpret_record_l10_before_subprocess(
     tmp_path: object,
 ) -> None:
     from pathlib import Path
+
     from interpret.record import InterpretRecord
 
     p = Path(str(tmp_path))
@@ -190,6 +192,7 @@ async def test_dast_runner_returns_empty_list_when_run_dast_false() -> None:
 async def test_dast_runner_emits_interpret_record_even_when_skipped() -> None:
     """L10 InterpretRecord fires BEFORE the env var check — always."""
     from interpret.record import InterpretRecord
+
     emitted: list[str] = []
     original_init = InterpretRecord.__init__
 

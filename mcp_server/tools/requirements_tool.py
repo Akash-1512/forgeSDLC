@@ -3,7 +3,6 @@ from __future__ import annotations
 import structlog
 from fastmcp import Context
 
-from interpret.gate import check_gate
 from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
@@ -12,6 +11,7 @@ logger = structlog.get_logger()
 def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
     """H23: delegate to canonical state factory — no more manual dict."""
     from mcp_server.state_factory import build_initial_state  # noqa: PLC0415
+
     return build_initial_state(
         user_prompt=prompt,
         project_id=project_id,
@@ -22,11 +22,16 @@ def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
 def _build_infrastructure() -> tuple:
     """H2 Fix: delegate to shared infrastructure factory — no more copy-paste."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
+
     infra = build_infrastructure()
     return (
-        infra.model_router, infra.context_window_manager, infra.memory_archiver,
-        infra.memory_context_builder, infra.context_file_manager,
-        infra.workspace_bridge, infra.diff_engine,
+        infra.model_router,
+        infra.context_window_manager,
+        infra.memory_archiver,
+        infra.memory_context_builder,
+        infra.context_file_manager,
+        infra.workspace_bridge,
+        infra.diff_engine,
     )
 
 
@@ -38,6 +43,7 @@ def _build_agents(infra: tuple) -> tuple:
 
     # H22: use build_agent_kwargs() from shared factory — no repeated tuple destructuring
     from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
+
     kwargs = build_agent_kwargs(infra)
     agent_0 = ServiceDecompositionAgent(name="agent_0_decompose", **kwargs)
     agent_1 = RequirementsAgent(name="agent_1_requirements", **kwargs)
@@ -71,11 +77,17 @@ async def gather_requirements(
     if not prompt or not prompt.strip():
         return {"status": "error", "error": "prompt must not be empty"}
     if len(prompt) > 50_000:
-        return {"status": "error", "error": f"prompt too long ({len(prompt)} chars). Maximum is 50,000."}
+        return {
+            "status": "error",
+            "error": f"prompt too long ({len(prompt)} chars). Maximum is 50,000.",
+        }
     if not project_id or not project_id.strip():
         return {"status": "error", "error": "project_id must not be empty"}
     if len(project_id) > 200:
-        return {"status": "error", "error": "project_id too long. Maximum is 200 characters."}
+        return {
+            "status": "error",
+            "error": "project_id too long. Maximum is 200 characters.",
+        }
     # Trim whitespace from all string inputs
     prompt = prompt.strip()
     project_id = project_id.strip()
@@ -95,9 +107,11 @@ async def gather_requirements(
     checkpointer = None
     config = {"configurable": {"thread_id": project_id}}
     try:
-        from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
-        from pathlib import Path  # noqa: PLC0415
         import sqlite3  # noqa: PLC0415
+        from pathlib import Path  # noqa: PLC0415
+
+        from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         Path("./data").mkdir(parents=True, exist_ok=True)
         with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
             checkpointer = SqliteSaver(conn)
@@ -110,7 +124,6 @@ async def gather_requirements(
     except Exception as exc:
         logger.warning("gather_requirements.checkpointer_failed", error=str(exc))
         state = _build_initial_state(prompt, project_id)
-
 
     # Apply human confirmation and correction to state
     state["human_confirmation"] = human_confirmation

@@ -9,8 +9,9 @@ Usage:
     from mcp_server.shared_infrastructure import build_infrastructure
 
     infra = build_infrastructure()
-    model_router, cwm, memory_archiver, memory_ctx_builder, cfm, workspace_bridge, diff_engine = infra
+    model_router, cwm, memory_archiver, memory_ctx_builder, cfm, workspace_bridge, diff_engine = infra  # noqa: E501
 """
+
 from __future__ import annotations
 
 from typing import NamedTuple
@@ -22,6 +23,7 @@ logger = structlog.get_logger()
 
 class Infrastructure(NamedTuple):
     """Typed container for all shared infrastructure components."""
+
     model_router: object
     context_window_manager: object
     memory_archiver: object

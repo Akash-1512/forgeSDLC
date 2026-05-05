@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from pydantic import BaseModel
@@ -34,8 +34,11 @@ _SHARED_L5: PostMortemStore | None = None
 
 
 def _get_stores() -> tuple[
-    PipelineHistoryStore, OrgMemory, ProjectContextGraphStore,
-    UserPreferenceStore, PostMortemStore,
+    PipelineHistoryStore,
+    OrgMemory,
+    ProjectContextGraphStore,
+    UserPreferenceStore,
+    PostMortemStore,
 ]:
     """Return shared singleton store instances. Thread-safe for asyncio single-loop use."""
     global _SHARED_L1, _SHARED_L2, _SHARED_L3, _SHARED_L4, _SHARED_L5
@@ -61,13 +64,13 @@ class MemoryContext(BaseModel):
 
     project_id: str
     query: str
-    similar_runs: list[PipelineRunRecord]           # Layer 1 — PostgreSQL
-    relevant_patterns: list[OrgMemoryEntry]         # Layer 2 — ChromaDB
-    project_graph: ProjectContextGraph | None       # Layer 3 — filesystem JSON
+    similar_runs: list[PipelineRunRecord]  # Layer 1 — PostgreSQL
+    relevant_patterns: list[OrgMemoryEntry]  # Layer 2 — ChromaDB
+    project_graph: ProjectContextGraph | None  # Layer 3 — filesystem JSON
     user_preferences: UserPreferenceProfile | None  # Layer 4 — PostgreSQL
-    past_failures: list[PostMortem]                 # Layer 5 — PostgreSQL
+    past_failures: list[PostMortem]  # Layer 5 — PostgreSQL
     layers_queried: list[str]
-    assembled_at: str                               # ISO timestamp
+    assembled_at: str  # ISO timestamp
 
 
 class MemoryContextBuilder:
@@ -115,7 +118,7 @@ class MemoryContextBuilder:
                 "user_preference_profile",
                 "post_mortem_records",
             ],
-            assembled_at=datetime.now(tz=timezone.utc).isoformat(),
+            assembled_at=datetime.now(tz=UTC).isoformat(),
         )
 
         logger.info(
@@ -133,10 +136,7 @@ class MemoryContextBuilder:
         record = InterpretRecord(
             layer="memory",
             component="MemoryContextBuilder",
-            action=(
-                f"build: assembling 5-layer context — "
-                f"project={project_id} query={query[:40]}"
-            ),
+            action=(f"build: assembling 5-layer context — project={project_id} query={query[:40]}"),
             inputs={"query": query[:40], "project_id": project_id},
             expected_outputs={"context": "MemoryContext"},
             files_it_will_read=[],
@@ -146,7 +146,7 @@ class MemoryContextBuilder:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

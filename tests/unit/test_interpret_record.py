@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -40,7 +40,7 @@ def _make_record(layer: str) -> InterpretRecord:
         estimated_cost_usd=None,
         reversible=True,
         workspace_files_affected=[],
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
 
@@ -72,7 +72,7 @@ def test_negative_tokens_raises_validation_error() -> None:
             estimated_cost_usd=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
 
 
@@ -93,7 +93,7 @@ def test_negative_cost_raises_validation_error() -> None:
             estimated_cost_usd=-0.01,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
 
 

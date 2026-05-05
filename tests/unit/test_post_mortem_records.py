@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -20,13 +20,14 @@ def _make_post_mortem(tool_involved: str | None = "cursor") -> PostMortem:
         prevention_rule="Set CURSOR_API_TIMEOUT=60 in env",
         stack_context="fastapi + postgresql",
         tool_involved=tool_involved,
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
 
 def _make_store() -> object:
     with patch("memory.post_mortem_records.create_async_engine"):
         from memory.post_mortem_records import PostMortemStore
+
         store = PostMortemStore()
         store._engine = MagicMock()
         store._session_factory = MagicMock()
@@ -94,7 +95,8 @@ async def test_get_recent_failures_returns_ordered_by_timestamp_desc() -> None:
     store = _make_store()
 
     from memory.post_mortem_records import _PostMortemRow
-    now = datetime.now(tz=timezone.utc)
+
+    now = datetime.now(tz=UTC)
     rows = [
         _PostMortemRow(
             post_mortem_id="pm-1",

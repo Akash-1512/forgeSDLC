@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import fnmatch
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
@@ -80,6 +80,7 @@ def get_tier(name: str) -> SubscriptionTier:
     """
     if name not in _TIERS:
         import structlog  # noqa: PLC0415
+
         log = structlog.get_logger()
         log.warning(
             "subscription.unknown_tier_fallback",

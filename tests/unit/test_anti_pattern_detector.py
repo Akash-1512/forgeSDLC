@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from architecture_intelligence.anti_pattern_detector import AntiPatternDetector
 
@@ -133,6 +131,7 @@ def test_medium_finding_does_not_set_all_clear_false() -> None:
 def test_no_llm_calls_in_any_rule() -> None:
     """AntiPatternDetector must never call ModelRouter — zero LLM."""
     from model_router.router import ModelRouter
+
     with patch.object(ModelRouter, "route") as mock_route:
         detector = AntiPatternDetector()
         svc = _make_svc("api", responsibility="auth payment user order", database="db1")

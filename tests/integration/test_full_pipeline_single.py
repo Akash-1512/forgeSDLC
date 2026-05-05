@@ -1,16 +1,13 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa: E402
 
 """Integration tests for gather_requirements() end-to-end pipeline.
 Uses mocked LLM adapters — no real API calls.
 """
 
-import tempfile
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path  # noqa: E402
+from unittest.mock import AsyncMock, MagicMock, patch  # noqa: E402
 
-import pytest
-
-from interpret.record import InterpretRecord
+import pytest  # noqa: E402
 
 
 def _prd_content() -> str:
@@ -52,27 +49,40 @@ async def test_gather_requirements_returns_awaiting_confirmation_first_call(
 
     with (
         patch("subscription.byok_manager.keyring") as mk,
-        patch("mcp_server.tools.requirements_tool._build_infrastructure", return_value=(
-            MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
-        )),
+        patch(
+            "mcp_server.tools.requirements_tool._build_infrastructure",
+            return_value=(
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+            ),
+        ),
         patch("mcp_server.tools.requirements_tool._build_agents") as mock_build,
     ):
         mk.get_password.return_value = None
         from agents.agent_0_decompose import ServiceDecompositionAgent
+
         mock_a0 = MagicMock(spec=ServiceDecompositionAgent)
-        mock_a0.run = AsyncMock(return_value={
-            "user_prompt": "build a todo app",
-            "mcp_session_id": f"test-{tmp_path.name}",
-            "human_confirmation": "",
-            "interpret_log": [{"layer": "agent", "action": "Analysing scope"}],
-            "displayed_interpretation": "Analysing scope",
-            "interpret_round": 1,
-            "service_graph": None,
-            "human_corrections": [],
-        })
+        mock_a0.run = AsyncMock(
+            return_value={
+                "user_prompt": "build a todo app",
+                "mcp_session_id": f"test-{tmp_path.name}",
+                "human_confirmation": "",
+                "interpret_log": [{"layer": "agent", "action": "Analysing scope"}],
+                "displayed_interpretation": "Analysing scope",
+                "interpret_round": 1,
+                "service_graph": None,
+                "human_corrections": [],
+            }
+        )
         mock_build.return_value = (mock_a0, MagicMock(), MagicMock())
 
         from mcp_server.tools.requirements_tool import gather_requirements
+
         result = await gather_requirements(
             prompt="build a todo app",
             project_id=f"test-{tmp_path.name}",
@@ -135,8 +145,13 @@ async def test_gather_requirements_completes_after_100_go_sequence(
         patch(
             "mcp_server.tools.requirements_tool._build_infrastructure",
             return_value=(
-                MagicMock(), MagicMock(), MagicMock(),
-                MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
             ),
         ),
         patch(
@@ -150,6 +165,7 @@ async def test_gather_requirements_completes_after_100_go_sequence(
     ):
         mk.get_password.return_value = None
         from mcp_server.tools.requirements_tool import gather_requirements
+
         result = await gather_requirements(
             prompt="build a REST API",
             project_id=f"complete-test-{tmp_path.name}",
@@ -157,7 +173,9 @@ async def test_gather_requirements_completes_after_100_go_sequence(
             human_confirmation="100% GO",
         )
 
-    assert result["status"] == "complete", f"Got: {result.get('status')} stage={result.get('stage')}"
+    assert result["status"] == "complete", (
+        f"Got: {result.get('status')} stage={result.get('stage')}"
+    )
     assert result["prd"]
     assert result["adr"]
     assert result["service_graph"]

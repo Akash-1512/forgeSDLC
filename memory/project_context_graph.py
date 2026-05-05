@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
@@ -28,9 +28,7 @@ class ProjectContextGraphStore:
         """Serialize and write project graph to disk. Emits InterpretRecord before write."""
         self._emit("write", "save_graph", graph.project_id)
         self._base.mkdir(parents=True, exist_ok=True)
-        self._path(graph.project_id).write_text(
-            graph.model_dump_json(indent=2), encoding="utf-8"
-        )
+        self._path(graph.project_id).write_text(graph.model_dump_json(indent=2), encoding="utf-8")
         logger.info("layer3_graph_saved", project_id=graph.project_id)
 
     async def load_graph(self, project_id: str) -> ProjectContextGraph | None:
@@ -40,9 +38,7 @@ class ProjectContextGraphStore:
         if not path.exists():
             logger.info("layer3_graph_not_found", project_id=project_id)
             return None
-        graph = ProjectContextGraph.model_validate_json(
-            path.read_text(encoding="utf-8")
-        )
+        graph = ProjectContextGraph.model_validate_json(path.read_text(encoding="utf-8"))
         logger.info("layer3_graph_loaded", project_id=project_id)
         return graph
 
@@ -58,15 +54,13 @@ class ProjectContextGraphStore:
             inputs={"project_id": key},
             expected_outputs={"graph": "ProjectContextGraph | None"},
             files_it_will_read=[str(self._path(key))],
-            files_it_will_write=(
-                [str(self._path(key))] if action_type == "write" else []
-            ),
+            files_it_will_write=([str(self._path(key))] if action_type == "write" else []),
             external_calls=[],
             model_selected=None,
             tool_delegated_to=None,
             reversible=(action_type == "read"),
             workspace_files_affected=[str(self._path(key))],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

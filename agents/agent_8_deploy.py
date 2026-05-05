@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
@@ -102,7 +102,7 @@ class DeployAgent(BaseAgent):
             tool_delegated_to=None,
             reversible=False,
             workspace_files_affected=["Dockerfile"],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.agent",
@@ -130,6 +130,7 @@ class DeployAgent(BaseAgent):
                 pass
 
             import os as _os  # noqa: PLC0415
+
             dockerfile_path = _os.path.join(workspace_path, "Dockerfile")
             diff = await self.diff_engine.generate_diff(
                 filepath=dockerfile_path,
@@ -144,9 +145,7 @@ class DeployAgent(BaseAgent):
                 render = RenderTool()
                 await render.trigger_deploy()
                 deployment_url = os.getenv("RENDER_SERVICE_URL")
-                healthy = await render.wait_for_health(
-                    deployment_url, timeout_seconds=60
-                )
+                healthy = await render.wait_for_health(deployment_url, timeout_seconds=60)
                 if not healthy:
                     raise ForgeSDLCError(
                         "Deployment health check failed after 60s. "
@@ -199,9 +198,7 @@ EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 """
 
-    async def _write_post_mortem(
-        self, state: dict[str, object], error: str
-    ) -> None:
+    async def _write_post_mortem(self, state: dict[str, object], error: str) -> None:
         """Write deployment failure to Layer 5 (PostMortemStore)."""
         try:
             from memory.post_mortem_records import PostMortemStore  # noqa: PLC0415
@@ -215,12 +212,10 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
                 agent_that_failed="agent_8_deploy",
                 root_cause=error[:500],
                 resolution="Manual investigation required",
-                prevention_rule=(
-                    "Check RENDER_DEPLOY_HOOK_URL and service health before deploy"
-                ),
+                prevention_rule=("Check RENDER_DEPLOY_HOOK_URL and service health before deploy"),
                 stack_context=str(state.get("adr", ""))[:200],
                 tool_involved=None,
-                timestamp=datetime.now(tz=timezone.utc),
+                timestamp=datetime.now(tz=UTC),
             )
             await store.save_post_mortem(pm)
             logger.info("agent_8.post_mortem_written", error=error[:80])

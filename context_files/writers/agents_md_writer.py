@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
@@ -31,19 +31,15 @@ class AgentsMdWriter:
     ) -> Path:
         decisions = key_decisions or []
         rules = security_rules or []
-        decisions_bullets = (
-            "\n".join(f"- {d}" for d in decisions) if decisions else "- None yet"
-        )
-        security_bullets = (
-            "\n".join(f"- {r}" for r in rules) if rules else "- None yet"
-        )
+        decisions_bullets = "\n".join(f"- {d}" for d in decisions) if decisions else "- None yet"
+        security_bullets = "\n".join(f"- {r}" for r in rules) if rules else "- None yet"
 
         content = f"""# forgeSDLC Project Context
 # Auto-updated after every SDLC action. Do not edit manually.
 
 ## Project: {project_id}
 ## Current Phase: {current_phase}
-## Last Updated: {datetime.now(tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}
+## Last Updated: {datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")}
 
 ## Requirements Summary
 {prd_summary or "Not yet generated."}

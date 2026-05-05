@@ -14,6 +14,7 @@ IMPORTANT for existing installations:
   This will ADD the project_id column to existing rows with default 'default'.
   No data is lost.
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa

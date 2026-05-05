@@ -8,10 +8,11 @@ This migration creates the baseline schema shipped in v1.0.0.
 If tables already exist (created via init_db()/create_all()), Alembic will
 detect no changes on next autogenerate — this is intentional.
 """
+
 from __future__ import annotations
 
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import ARRAY, JSONB
+from sqlalchemy.dialects.postgresql import JSONB
 
 from alembic import op
 

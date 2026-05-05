@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from tools.docs_fetcher import DocsFetcher, _CACHE_TTL_HOURS
+from tools.docs_fetcher import _CACHE_TTL_HOURS, DocsFetcher
 
 
 @pytest.mark.asyncio
@@ -15,6 +15,7 @@ async def test_docs_fetcher_emits_l7_interpret_record_before_fetch(
     tmp_path: Path,
 ) -> None:
     from interpret.record import InterpretRecord
+
     emitted: list[str] = []
     original_init = InterpretRecord.__init__
 
@@ -45,6 +46,7 @@ async def test_docs_fetcher_emits_l7_interpret_record_before_fetch(
 async def test_docs_fetcher_emits_l7_even_on_cache_hit(tmp_path: Path) -> None:
     """L7 must fire BEFORE the cache check — even cache hits are recorded."""
     from interpret.record import InterpretRecord
+
     emitted: list[str] = []
     original_init = InterpretRecord.__init__
 
@@ -59,7 +61,7 @@ async def test_docs_fetcher_emits_l7_even_on_cache_hit(tmp_path: Path) -> None:
     cache_data = {
         "url": url,
         "content": "cached content",
-        "cached_at": datetime.now(tz=timezone.utc).isoformat(),
+        "cached_at": datetime.now(tz=UTC).isoformat(),
     }
     cache_path = Path(fetcher._cache_path(url))
     cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,7 +86,7 @@ async def test_docs_fetcher_returns_cached_content_within_24h() -> None:
     cache_data = {
         "url": url,
         "content": expected,
-        "cached_at": datetime.now(tz=timezone.utc).isoformat(),
+        "cached_at": datetime.now(tz=UTC).isoformat(),
     }
     cache_path = Path(fetcher._cache_path(url))
     cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -112,9 +114,7 @@ async def test_docs_fetcher_refetches_after_24h_cache_expiry() -> None:
     cache_data = {
         "url": url,
         "content": old_content,
-        "cached_at": (
-            datetime.now(tz=timezone.utc) - timedelta(hours=_CACHE_TTL_HOURS + 1)
-        ).isoformat(),
+        "cached_at": (datetime.now(tz=UTC) - timedelta(hours=_CACHE_TTL_HOURS + 1)).isoformat(),
     }
     cache_path = Path(fetcher._cache_path(url))
     cache_path.parent.mkdir(parents=True, exist_ok=True)
@@ -142,9 +142,7 @@ async def test_docs_fetcher_returns_empty_string_on_network_failure() -> None:
 
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__ = AsyncMock(
-            return_value=MagicMock(
-                get=AsyncMock(side_effect=Exception("connection refused"))
-            )
+            return_value=MagicMock(get=AsyncMock(side_effect=Exception("connection refused")))
         )
         mock_client.return_value.__aexit__ = AsyncMock(return_value=False)
         result = await fetcher.fetch(url)

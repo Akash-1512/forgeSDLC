@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, select
-from sqlalchemy.dialects.postgresql import JSONB, insert as pg_insert
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
@@ -95,14 +96,11 @@ class PipelineHistoryStore:
                 set_={k: v for k, v in values.items() if k != "run_id"},
             )
         )
-        async with self._session_factory() as session:
-            async with session.begin():
-                await session.execute(stmt)
+        async with self._session_factory() as session, session.begin():
+            await session.execute(stmt)
         logger.info("pipeline_history_store.save_run", run_id=record.run_id)
 
-    async def get_similar_runs(
-        self, project_id: str, limit: int = 5
-    ) -> list[PipelineRunRecord]:
+    async def get_similar_runs(self, project_id: str, limit: int = 5) -> list[PipelineRunRecord]:
         """Fetch recent runs for a project ordered by timestamp desc.
 
         Emits InterpretRecord before read.
@@ -155,7 +153,7 @@ class PipelineHistoryStore:
             tool_delegated_to=None,
             reversible=(action_type == "read"),
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import pytest
 
+from token_tracker.aggregator import TokenAggregator
 from token_tracker.budget_monitor import BudgetMonitor, BudgetStatus
 from token_tracker.record import TokenRecord
-from token_tracker.aggregator import TokenAggregator
 from token_tracker.tracker import TokenTracker
 
 
@@ -21,7 +21,7 @@ def _make_record(
 ) -> TokenRecord:
     return TokenRecord(
         record_id=str(uuid4()),
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
         trace_id=str(uuid4()),
         agent=agent,
         task="test task",
@@ -42,28 +42,32 @@ def _make_record(
 
 def test_token_record_rejects_negative_input_tokens() -> None:
     import pydantic
+
     with pytest.raises(pydantic.ValidationError):
         _make_record(input_tokens=-1)
 
 
 def test_token_record_rejects_negative_output_tokens() -> None:
     import pydantic
+
     with pytest.raises(pydantic.ValidationError):
         _make_record(output_tokens=-1)
 
 
 def test_token_record_rejects_negative_cost_usd() -> None:
     import pydantic
+
     with pytest.raises(pydantic.ValidationError):
         _make_record(cost_usd=-0.01)
 
 
 def test_token_record_rejects_negative_latency_ms() -> None:
     import pydantic
+
     with pytest.raises(pydantic.ValidationError):
         TokenRecord(
             record_id=str(uuid4()),
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             trace_id=str(uuid4()),
             agent="Agent1",
             task="test",
@@ -177,8 +181,9 @@ async def test_tool_router_calls_do_not_generate_token_records() -> None:
     external tools that use the developer's own API keys.
     """
     from unittest.mock import AsyncMock, MagicMock, patch
-    from tool_router.context import AvailableTool, ToolResult
+
     from context_files.manager import ContextFileManager
+    from tool_router.context import AvailableTool, ToolResult
     from tool_router.router import ToolRouter
 
     state: dict[str, object] = {"session_token_records": []}

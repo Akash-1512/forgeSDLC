@@ -53,6 +53,7 @@ mcp.tool()(setup_monitoring)
 mcp.tool()(generate_docs)
 mcp.tool()(track_progress)
 
+
 # H14 Fix: Register MCP prompts — surfaced to MCP clients as slash-commands / templates
 @mcp.prompt()
 def requirements_prompt(project_description: str = "") -> str:
@@ -113,6 +114,7 @@ async def create_token(request: object) -> dict[str, object]:
     """
     try:
         import json as _json  # noqa: PLC0415
+
         body = await request.body()  # type: ignore[union-attr]
         data = _json.loads(body)
         user_id = str(data.get("user_id", "default"))
@@ -125,7 +127,10 @@ async def create_token(request: object) -> dict[str, object]:
         # M30: surface Anthropic ToS warning for tiers that include Claude BYOK
         anthropic_tos: dict[str, object] = {}
         if tier in {"pro", "enterprise"}:
-            from subscription.anthropic_tos_warning import AnthropicTosWarning  # noqa: PLC0415
+            from subscription.anthropic_tos_warning import (
+                AnthropicTosWarning,  # noqa: PLC0415
+            )
+
             tos = AnthropicTosWarning()
             anthropic_tos = {
                 "warning": tos.get_warning_text(),
@@ -134,6 +139,7 @@ async def create_token(request: object) -> dict[str, object]:
             }
 
         from subscription.session_manager import create_session_token  # noqa: PLC0415
+
         token = create_session_token(user_id=user_id, tier=tier)
         logger.info("auth.token_issued", user_id=user_id, tier=tier, tos_confirmed=tos_confirmed)
         return {
@@ -151,6 +157,7 @@ async def _startup() -> None:
     # M31 Fix: use shared singletons from memory_context_builder so init_db()
     # is called on the SAME instances used at runtime (not throwaway objects)
     from memory.memory_context_builder import _get_stores
+
     l1, l2, l3, l4, l5 = _get_stores()
 
     try:
@@ -162,15 +169,20 @@ async def _startup() -> None:
         logger.error("forgesdlc.startup.db_init_failed", error=str(exc))
         logger.warning(
             "forgesdlc.startup.continuing_without_db",
-            hint="Start PostgreSQL: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",
+            hint="Start PostgreSQL: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",  # noqa: E501
         )
 
     # M26: run provider health checks at startup and log results
     try:
-        from providers.health_checks import check_postgresql, check_chromadb, check_ollama  # noqa: PLC0415
         import os as _os  # noqa: PLC0415
-        from orchestrator.constants import LOCAL_DB_URL  # noqa: PLC0415
+
         from memory.organisational_memory import _DEFAULT_CHROMA_PATH  # noqa: PLC0415
+        from orchestrator.constants import LOCAL_DB_URL  # noqa: PLC0415
+        from providers.health_checks import (  # noqa: PLC0415
+            check_chromadb,
+            check_postgresql,
+        )
+
         pg_ok = await check_postgresql(_os.getenv("DATABASE_URL", LOCAL_DB_URL))
         chroma_ok = await check_chromadb(_DEFAULT_CHROMA_PATH)
         logger.info(
@@ -181,12 +193,12 @@ async def _startup() -> None:
         if not pg_ok:
             logger.warning(
                 "forgesdlc.startup.postgresql_unhealthy",
-                hint="Layer 1/4/5 memory will not persist. Start DB: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",
+                hint="Layer 1/4/5 memory will not persist. Start DB: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",  # noqa: E501
             )
         if not chroma_ok:
             logger.warning(
                 "forgesdlc.startup.chromadb_unhealthy",
-                hint="Layer 2 (semantic memory) will not persist. Check chroma_db/ directory permissions.",
+                hint="Layer 2 (semantic memory) will not persist. Check chroma_db/ directory permissions.",  # noqa: E501
             )
     except Exception as exc:
         logger.warning("forgesdlc.startup.health_checks_failed", error=str(exc))
@@ -194,6 +206,7 @@ async def _startup() -> None:
     # Log provider resolution table
     try:
         from providers.resolver import ProviderResolver  # noqa: PLC0415
+
         ProviderResolver().print_table()
     except Exception as exc:
         logger.warning("forgesdlc.startup.provider_resolution_failed", error=str(exc))

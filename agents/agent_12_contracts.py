@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
-
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
 
@@ -89,11 +87,13 @@ class ContractAgent(BaseAgent):
 
         response = await adapter.ainvoke(  # type: ignore[union-attr]
             [
-                SystemMessage(content=(
-                    "Generate Pact consumer-driven contract tests for these services. "
-                    "Include consumer expectations and provider verification tests. "
-                    "Write to tests/contracts/. Use Python pact-python library."
-                )),
+                SystemMessage(
+                    content=(
+                        "Generate Pact consumer-driven contract tests for these services. "
+                        "Include consumer expectations and provider verification tests. "
+                        "Write to tests/contracts/. Use Python pact-python library."
+                    )
+                ),
                 HumanMessage(content=f"Services: {services}"),
             ]
         )

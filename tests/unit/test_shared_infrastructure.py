@@ -1,28 +1,37 @@
 """Tests for mcp_server/shared_infrastructure.py (M22)."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 
 def test_build_infrastructure_returns_infrastructure_namedtuple() -> None:
     """build_infrastructure() returns a typed Infrastructure NamedTuple."""
     from mcp_server.shared_infrastructure import Infrastructure
 
-    with patch("mcp_server.shared_infrastructure.ModelRouter"), \
-         patch("mcp_server.shared_infrastructure.TokenEstimator"), \
-         patch("mcp_server.shared_infrastructure.ContextCompressor"), \
-         patch("mcp_server.shared_infrastructure.ContextWindowManager"), \
-         patch("mcp_server.shared_infrastructure._get_stores", return_value=(
-             MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()
-         )), \
-         patch("mcp_server.shared_infrastructure.MemoryArchiver"), \
-         patch("mcp_server.shared_infrastructure.MemoryContextBuilder"), \
-         patch("mcp_server.shared_infrastructure.ContextFileManager"), \
-         patch("mcp_server.shared_infrastructure.WorkspaceBridge"), \
-         patch("mcp_server.shared_infrastructure.DiffEngine"):
+    with (
+        patch("mcp_server.shared_infrastructure.ModelRouter"),
+        patch("mcp_server.shared_infrastructure.TokenEstimator"),
+        patch("mcp_server.shared_infrastructure.ContextCompressor"),
+        patch("mcp_server.shared_infrastructure.ContextWindowManager"),
+        patch(
+            "mcp_server.shared_infrastructure._get_stores",
+            return_value=(
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+                MagicMock(),
+            ),
+        ),
+        patch("mcp_server.shared_infrastructure.MemoryArchiver"),
+        patch("mcp_server.shared_infrastructure.MemoryContextBuilder"),
+        patch("mcp_server.shared_infrastructure.ContextFileManager"),
+        patch("mcp_server.shared_infrastructure.WorkspaceBridge"),
+        patch("mcp_server.shared_infrastructure.DiffEngine"),
+    ):
         from mcp_server.shared_infrastructure import build_infrastructure
+
         infra = build_infrastructure()
         assert isinstance(infra, Infrastructure)
 
@@ -42,9 +51,13 @@ def test_build_agent_kwargs_returns_7_key_dict() -> None:
     )
     kwargs = build_agent_kwargs(infra)
     expected_keys = {
-        "context_window_manager", "model_router", "memory_archiver",
-        "memory_context_builder", "context_file_manager",
-        "workspace_bridge", "diff_engine",
+        "context_window_manager",
+        "model_router",
+        "memory_archiver",
+        "memory_context_builder",
+        "context_file_manager",
+        "workspace_bridge",
+        "diff_engine",
     }
     assert set(kwargs.keys()) == expected_keys
 

@@ -60,14 +60,12 @@ def execute_node(confirmation: str, fn: object, *args: object) -> object:
     """
     if not check_gate(confirmation):
         raise GateNotPassedError(
-            f"execute_node blocked — gate phrase not matched. "
-            f"Received: {confirmation!r}"
+            f"execute_node blocked — gate phrase not matched. Received: {confirmation!r}"
         )
     logger.info("execute_node — gate passed, executing")
     # Use proper callable protocol
     import collections.abc  # noqa: PLC0415
+
     if not isinstance(fn, collections.abc.Callable):
-        raise TypeError(
-            f"execute_node: fn must be callable, got {type(fn).__name__!r}"
-        )
+        raise TypeError(f"execute_node: fn must be callable, got {type(fn).__name__!r}")
     return fn(*args)

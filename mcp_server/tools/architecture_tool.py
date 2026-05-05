@@ -6,18 +6,15 @@ from pathlib import Path
 import structlog
 from fastmcp import Context
 
-from interpret.gate import check_gate
 from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
 
 
-def _build_initial_arch_state(
-    requirements: str, project_id: str
-) -> dict[str, object]:
+def _build_initial_arch_state(requirements: str, project_id: str) -> dict[str, object]:
     """Build a fresh SDLCState for the architecture pipeline."""
     import uuid
-    from datetime import datetime, timezone
+
     return {
         "user_prompt": requirements,
         "mcp_session_id": project_id,
@@ -33,7 +30,7 @@ def _build_initial_arch_state(
         "memory_context": None,
         "mode": "mcp",
         "service_graph": None,
-        "prd": requirements,       # requirements passed directly as PRD
+        "prd": requirements,  # requirements passed directly as PRD
         "adr": "",
         "rfc": "",
         "arch_validation": None,
@@ -47,7 +44,11 @@ def _build_initial_arch_state(
         "monitoring_config": None,
         "project_context_graph": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
+        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"])
+        .get_tier("free")
+        .budget_usd_per_session
+        if True
+        else 5.0,
         "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_delegated_to": None,
@@ -58,11 +59,16 @@ def _build_initial_arch_state(
 def _build_infrastructure_shared() -> tuple:
     """H2 Fix: delegate to shared infrastructure factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
+
     infra = build_infrastructure()
     return (
-        infra.model_router, infra.context_window_manager, infra.memory_archiver,
-        infra.memory_context_builder, infra.context_file_manager,
-        infra.workspace_bridge, infra.diff_engine,
+        infra.model_router,
+        infra.context_window_manager,
+        infra.memory_archiver,
+        infra.memory_context_builder,
+        infra.context_file_manager,
+        infra.workspace_bridge,
+        infra.diff_engine,
     )
 
 
@@ -71,8 +77,13 @@ def _build_arch_agent(infra: tuple) -> object:
     from agents.agent_3_architecture import ArchitectureAgent
 
     (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
 
     return ArchitectureAgent(
@@ -119,6 +130,7 @@ async def design_architecture(
     # Restore or initialise state via SqliteSaver
     try:
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         checkpointer = SqliteSaver(conn)
@@ -160,10 +172,7 @@ async def design_architecture(
         ap_result = arch_validation.get("anti_pattern_result", {})
         nfr_checks = arch_validation.get("nfr_checks", [])
         failed_nfrs = [c for c in nfr_checks if not c.get("satisfied", True)]
-        blocking_findings = [
-            f for f in ap_result.get("findings", [])
-            if f.get("blocking", False)
-        ]
+        blocking_findings = [f for f in ap_result.get("findings", []) if f.get("blocking", False)]
         return {
             "status": "blocked",
             "project_id": project_id,
@@ -187,14 +196,14 @@ async def design_architecture(
         return {
             "status": "awaiting_confirmation",
             "project_id": project_id,
-            "interpretation": (
-                state["interpret_log"][-1] if state.get("interpret_log") else {}
-            ),
+            "interpretation": (state["interpret_log"][-1] if state.get("interpret_log") else {}),
             "displayed_interpretation": state.get("displayed_interpretation", ""),
             "architecture_score": arch_validation.get("architecture_score", {}),
             "anti_pattern_summary": {
                 "high_count": arch_validation.get("anti_pattern_result", {}).get("high_count", 0),
-                "medium_count": arch_validation.get("anti_pattern_result", {}).get("medium_count", 0),
+                "medium_count": arch_validation.get("anti_pattern_result", {}).get(
+                    "medium_count", 0
+                ),
                 "all_clear": arch_validation.get("anti_pattern_result", {}).get("all_clear", True),
             },
             "instructions": (

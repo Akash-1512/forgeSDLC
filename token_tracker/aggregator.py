@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import datetime, timezone
 
 import structlog
 
@@ -17,9 +16,7 @@ class TokenAggregator:
     objects and return summary dicts.
     """
 
-    def _to_records(
-        self, raw: list[dict[str, object] | TokenRecord]
-    ) -> list[TokenRecord]:
+    def _to_records(self, raw: list[dict[str, object] | TokenRecord]) -> list[TokenRecord]:
         result: list[TokenRecord] = []
         for item in raw:
             if isinstance(item, TokenRecord):
@@ -28,13 +25,16 @@ class TokenAggregator:
                 result.append(TokenRecord.model_validate(item))
         return result
 
-    def by_agent(
-        self, raw: list[dict[str, object] | TokenRecord]
-    ) -> dict[str, dict[str, float]]:
+    def by_agent(self, raw: list[dict[str, object] | TokenRecord]) -> dict[str, dict[str, float]]:
         """Group totals by agent name."""
         records = self._to_records(raw)
         groups: dict[str, dict[str, float]] = defaultdict(
-            lambda: {"input_tokens": 0.0, "output_tokens": 0.0, "cost_usd": 0.0, "calls": 0.0}
+            lambda: {
+                "input_tokens": 0.0,
+                "output_tokens": 0.0,
+                "cost_usd": 0.0,
+                "calls": 0.0,
+            }
         )
         for rec in records:
             g = groups[rec.agent]
@@ -44,13 +44,16 @@ class TokenAggregator:
             g["calls"] += 1
         return dict(groups)
 
-    def by_model(
-        self, raw: list[dict[str, object] | TokenRecord]
-    ) -> dict[str, dict[str, float]]:
+    def by_model(self, raw: list[dict[str, object] | TokenRecord]) -> dict[str, dict[str, float]]:
         """Group totals by model string."""
         records = self._to_records(raw)
         groups: dict[str, dict[str, float]] = defaultdict(
-            lambda: {"input_tokens": 0.0, "output_tokens": 0.0, "cost_usd": 0.0, "calls": 0.0}
+            lambda: {
+                "input_tokens": 0.0,
+                "output_tokens": 0.0,
+                "cost_usd": 0.0,
+                "calls": 0.0,
+            }
         )
         for rec in records:
             g = groups[rec.model]
@@ -66,7 +69,12 @@ class TokenAggregator:
         """Group totals by provider."""
         records = self._to_records(raw)
         groups: dict[str, dict[str, float]] = defaultdict(
-            lambda: {"input_tokens": 0.0, "output_tokens": 0.0, "cost_usd": 0.0, "calls": 0.0}
+            lambda: {
+                "input_tokens": 0.0,
+                "output_tokens": 0.0,
+                "cost_usd": 0.0,
+                "calls": 0.0,
+            }
         )
         for rec in records:
             g = groups[rec.provider]
@@ -76,15 +84,11 @@ class TokenAggregator:
             g["calls"] += 1
         return dict(groups)
 
-    def total_cost(
-        self, raw: list[dict[str, object] | TokenRecord]
-    ) -> float:
+    def total_cost(self, raw: list[dict[str, object] | TokenRecord]) -> float:
         """Sum of all cost_usd values."""
         return sum(r.cost_usd for r in self._to_records(raw))
 
-    def total_tokens(
-        self, raw: list[dict[str, object] | TokenRecord]
-    ) -> int:
+    def total_tokens(self, raw: list[dict[str, object] | TokenRecord]) -> int:
         """Sum of all input + output tokens."""
         records = self._to_records(raw)
         return sum(r.input_tokens + r.output_tokens for r in records)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import structlog
@@ -55,22 +55,21 @@ class UserPreferenceStore:
     async def save_profile(self, profile: UserPreferenceProfile) -> None:
         """Upsert a user preference profile. Emits InterpretRecord before write."""
         self._emit("write", "save_profile", profile.user_id)
-        async with self._session_factory() as session:
-            async with session.begin():
-                existing = await session.get(_UserPreferenceRow, profile.user_id)
-                if existing:
-                    await session.delete(existing)
-                row = _UserPreferenceRow(
-                    user_id=profile.user_id,
-                    preferred_code_gen_tool=profile.preferred_code_gen_tool,
-                    preferred_stack=profile.preferred_stack,
-                    subscription_tier=profile.subscription_tier,
-                    byok_providers=profile.byok_providers,
-                    recurring_security_findings=profile.recurring_security_findings,
-                    recurring_anti_patterns=profile.recurring_anti_patterns,
-                    last_updated=profile.last_updated,
-                )
-                session.add(row)
+        async with self._session_factory() as session, session.begin():
+            existing = await session.get(_UserPreferenceRow, profile.user_id)
+            if existing:
+                await session.delete(existing)
+            row = _UserPreferenceRow(
+                user_id=profile.user_id,
+                preferred_code_gen_tool=profile.preferred_code_gen_tool,
+                preferred_stack=profile.preferred_stack,
+                subscription_tier=profile.subscription_tier,
+                byok_providers=profile.byok_providers,
+                recurring_security_findings=profile.recurring_security_findings,
+                recurring_anti_patterns=profile.recurring_anti_patterns,
+                last_updated=profile.last_updated,
+            )
+            session.add(row)
         logger.info("user_preference_store.save_profile", user_id=profile.user_id)
 
     async def load_profile(self, user_id: str) -> UserPreferenceProfile | None:
@@ -78,9 +77,7 @@ class UserPreferenceStore:
         self._emit("read", "load_profile", user_id)
         async with self._session_factory() as session:
             result = await session.execute(
-                select(_UserPreferenceRow).where(
-                    _UserPreferenceRow.user_id == user_id
-                )
+                select(_UserPreferenceRow).where(_UserPreferenceRow.user_id == user_id)
             )
             row = result.scalars().first()
         if row is None:
@@ -107,10 +104,10 @@ class UserPreferenceStore:
             byok_providers=[],
             recurring_security_findings=[],
             recurring_anti_patterns=[],
-            last_updated=datetime.now(tz=timezone.utc),
+            last_updated=datetime.now(tz=UTC),
         )
         profile.preferred_code_gen_tool = tool
-        profile.last_updated = datetime.now(tz=timezone.utc)
+        profile.last_updated = datetime.now(tz=UTC)
         await self.save_profile(profile)
         logger.info(
             "user_preference_store.tool_preference_updated",
@@ -132,7 +129,7 @@ class UserPreferenceStore:
             tool_delegated_to=None,
             reversible=(action_type == "read"),
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

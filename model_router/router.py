@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -191,6 +191,7 @@ class ModelRouter:
                 fallback="groq/llama-3.3-70b-versatile",
             )
             from model_router.adapters.groq_adapter import GroqAdapter  # noqa: PLC0415
+
             adapter = GroqAdapter(model="groq/llama-3.3-70b-versatile")
             return _TrackingAdapter(adapter, agent, task_type, state, self._tracker)
 
@@ -199,11 +200,17 @@ class ModelRouter:
             # Claude models require Anthropic BYOK
             if "claude" in default_model.lower():
                 if not self._byok_manager.has_key("anthropic"):
-                    from model_router.adapters.claude_adapter import ClaudeNotConfiguredError  # noqa: PLC0415
-                    raise ClaudeNotConfiguredError(
-                        "Claude requires BYOK. Configure your Anthropic API key in Settings → API Keys."
+                    from model_router.adapters.claude_adapter import (
+                        ClaudeNotConfiguredError,  # noqa: PLC0415
                     )
-                from model_router.adapters.claude_adapter import ClaudeAdapter  # noqa: PLC0415
+
+                    raise ClaudeNotConfiguredError(
+                        "Claude requires BYOK. Configure your Anthropic API key in Settings → API Keys."  # noqa: E501
+                    )
+                from model_router.adapters.claude_adapter import (
+                    ClaudeAdapter,  # noqa: PLC0415
+                )
+
                 adapter = ClaudeAdapter(byok_manager=self._byok_manager, model=default_model)
                 return _TrackingAdapter(adapter, agent, task_type, state, self._tracker)
 
@@ -211,6 +218,7 @@ class ModelRouter:
             openai_models = {"o3-mini", "gpt-4o", "gpt-4o-mini", "gpt-4o-pro"}
             if default_model in openai_models:
                 import os  # noqa: PLC0415
+
                 if not os.getenv("OPENAI_API_KEY"):
                     logger.warning(
                         "model_router.openai_key_missing",
@@ -218,15 +226,22 @@ class ModelRouter:
                         agent=agent,
                         fallback="groq/llama-3.3-70b-versatile",
                     )
-                    from model_router.adapters.groq_adapter import GroqAdapter  # noqa: PLC0415
+                    from model_router.adapters.groq_adapter import (
+                        GroqAdapter,  # noqa: PLC0415
+                    )
+
                     return _TrackingAdapter(
                         GroqAdapter(model="groq/llama-3.3-70b-versatile"),
-                        agent, task_type, state, self._tracker
+                        agent,
+                        task_type,
+                        state,
+                        self._tracker,
                     )
 
             # Google models require GOOGLE_API_KEY
             if default_model.startswith("gemini"):
                 import os  # noqa: PLC0415
+
                 if not os.getenv("GOOGLE_API_KEY"):
                     logger.warning(
                         "model_router.google_key_missing",
@@ -234,10 +249,16 @@ class ModelRouter:
                         agent=agent,
                         fallback="groq/llama-3.3-70b-versatile",
                     )
-                    from model_router.adapters.groq_adapter import GroqAdapter  # noqa: PLC0415
+                    from model_router.adapters.groq_adapter import (
+                        GroqAdapter,  # noqa: PLC0415
+                    )
+
                     return _TrackingAdapter(
                         GroqAdapter(model="groq/llama-3.3-70b-versatile"),
-                        agent, task_type, state, self._tracker
+                        agent,
+                        task_type,
+                        state,
+                        self._tracker,
                     )
 
         # Step 8: Normal per-agent selection
@@ -270,7 +291,7 @@ class ModelRouter:
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.model_router",

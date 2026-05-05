@@ -34,7 +34,17 @@ class ProviderManifest:
 
     def all_services(self) -> list[ProviderSelection]:
         return [
-            self.llm, self.embeddings, self.vector_store, self.database,
-            self.blob_storage, self.monitoring, self.experiment, self.deployment,
-            self.docs_fetcher, self.connected_tools, self.auth, self.mcp, self.cache,
+            self.llm,
+            self.embeddings,
+            self.vector_store,
+            self.database,
+            self.blob_storage,
+            self.monitoring,
+            self.experiment,
+            self.deployment,
+            self.docs_fetcher,
+            self.connected_tools,
+            self.auth,
+            self.mcp,
+            self.cache,
         ]

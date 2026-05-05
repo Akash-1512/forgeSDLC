@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa: E402
 
 """Integration tests — require real ChromaDB on disk (no mocks).
 PostgreSQL tests require Docker: make db-start
@@ -7,15 +7,15 @@ Run with:
     python -m pytest tests/integration/ -v
 """
 
-import shutil
-import tempfile
-from datetime import datetime, timezone
-from uuid import uuid4
+import shutil  # noqa: E402
+import tempfile  # noqa: E402
+from datetime import UTC, datetime  # noqa: E402
+from uuid import uuid4  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
-from memory.organisational_memory import OrgMemory
-from memory.schemas import OrgMemoryEntry
+from memory.organisational_memory import OrgMemory  # noqa: E402
+from memory.schemas import OrgMemoryEntry  # noqa: E402
 
 
 def _make_entry(project_id: str, content: str) -> OrgMemoryEntry:
@@ -25,7 +25,7 @@ def _make_entry(project_id: str, content: str) -> OrgMemoryEntry:
         content=content,
         category="architecture",
         source_run_id="integration-test",
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
 
 

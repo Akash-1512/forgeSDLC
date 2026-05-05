@@ -53,6 +53,7 @@ class AnthropicTosWarning:
         Both conditions must be true — either alone is insufficient.
         """
         from subscription.byok_manager import BYOKManager  # noqa: PLC0415
+
         if not isinstance(byok_manager, BYOKManager):
             return False
         has_key = byok_manager.has_key("anthropic")

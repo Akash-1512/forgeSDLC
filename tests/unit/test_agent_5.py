@@ -62,16 +62,16 @@ def _base_state(human_confirmation: str = "100% GO", files: list | None = None) 
 
 
 def test_pass_4_maang_blocking_on_function_over_50_lines() -> None:
-    from agents.agent_5_coord_review import CoordinatedReview
     agent = _make_agent_5()
     long_func = "def big_function():\n" + "    x = 1\n" * 55
     findings = agent._pass_maang_standards(long_func)  # type: ignore[union-attr]
-    blocking = [f for f in findings if f["severity"] == "BLOCKING" and f["rule"] == "function_length"]
+    blocking = [
+        f for f in findings if f["severity"] == "BLOCKING" and f["rule"] == "function_length"
+    ]
     assert len(blocking) >= 1
 
 
 def test_pass_4_maang_blocking_on_bare_except() -> None:
-    from agents.agent_5_coord_review import CoordinatedReview
     agent = _make_agent_5()
     code = "try:\n    pass\nexcept:\n    pass\n"
     findings = agent._pass_maang_standards(code)  # type: ignore[union-attr]
@@ -80,7 +80,6 @@ def test_pass_4_maang_blocking_on_bare_except() -> None:
 
 
 def test_pass_4_maang_advisory_on_missing_type_hints() -> None:
-    from agents.agent_5_coord_review import CoordinatedReview
     agent = _make_agent_5()
     code = "def my_func(x, y):\n    return x + y\n"
     findings = agent._pass_maang_standards(code)  # type: ignore[union-attr]
@@ -90,8 +89,8 @@ def test_pass_4_maang_advisory_on_missing_type_hints() -> None:
 
 def test_pass_4_is_deterministic_no_llm_call() -> None:
     """Pass 4 must never call ModelRouter — zero LLM."""
-    from agents.agent_5_coord_review import CoordinatedReview
     from model_router.router import ModelRouter
+
     with patch.object(ModelRouter, "route") as mock_route:
         agent = _make_agent_5()
         code = "def foo():\n    pass\n"

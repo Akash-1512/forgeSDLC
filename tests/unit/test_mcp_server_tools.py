@@ -6,14 +6,17 @@ Updated for v1.1.0:
 - recall_context returns MemoryContext Pydantic model (not dict)
 - HITL gate checks correct state keys per agent
 """
+
 from __future__ import annotations
 
-import pytest
+from datetime import UTC
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import pytest
+
 from mcp_server.tools.memory_tool import recall_context, save_decision
-from mcp_server.tools.requirements_tool import gather_requirements
 from mcp_server.tools.progress_tool import track_progress
+from mcp_server.tools.requirements_tool import gather_requirements
 
 
 def _make_mock_ctx() -> MagicMock:
@@ -28,13 +31,16 @@ def _make_infra_tuple(n: int = 7) -> tuple:
 
 # ── Server health ──────────────────────────────────────────────────────────────
 
+
 def test_server_instantiates_without_error() -> None:
     from mcp_server.server import mcp
+
     assert mcp.name == "forgesdlc"
     assert mcp.version == "1.1.0"
 
 
 # ── gather_requirements ────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_gather_requirements_input_validation_empty_prompt() -> None:
@@ -75,7 +81,7 @@ async def test_gather_requirements_hitl_gate_correct_keys() -> None:
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.requirements_tool._build_infrastructure"):
+    with patch("mcp_server.tools.requirements_tool._build_infrastructure"):  # noqa: SIM117
         with patch("mcp_server.tools.requirements_tool._build_agents") as mock_build:
             from agents.agent_0_decompose import ServiceDecompositionAgent
             from agents.agent_1_requirements import RequirementsAgent
@@ -90,8 +96,10 @@ async def test_gather_requirements_hitl_gate_correct_keys() -> None:
             mock_build.return_value = (mock_a0, mock_a1, mock_a2)
 
             result = await gather_requirements(
-                prompt="build an API", project_id="p1",
-                ctx=ctx, human_confirmation="100% GO",
+                prompt="build an API",
+                project_id="p1",
+                ctx=ctx,
+                human_confirmation="100% GO",
             )
 
     assert isinstance(result, dict)
@@ -110,7 +118,7 @@ async def test_gather_requirements_awaiting_after_agent0() -> None:
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.requirements_tool._build_infrastructure"):
+    with patch("mcp_server.tools.requirements_tool._build_infrastructure"):  # noqa: SIM117
         with patch("mcp_server.tools.requirements_tool._build_agents") as mock_build:
             from agents.agent_0_decompose import ServiceDecompositionAgent
             from agents.agent_1_requirements import RequirementsAgent
@@ -125,8 +133,10 @@ async def test_gather_requirements_awaiting_after_agent0() -> None:
             mock_build.return_value = (mock_a0, mock_a1, mock_a2)
 
             result = await gather_requirements(
-                prompt="build an API", project_id="p1",
-                ctx=ctx, human_confirmation="100% GO",
+                prompt="build an API",
+                project_id="p1",
+                ctx=ctx,
+                human_confirmation="100% GO",
             )
 
     assert result["status"] == "awaiting_confirmation"
@@ -135,13 +145,15 @@ async def test_gather_requirements_awaiting_after_agent0() -> None:
 
 # ── recall_context ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_recall_context_returns_valid_dict() -> None:
     """
     Fix #3/#100 regression test: recall_context uses Pydantic attribute access.
     Mock must return a MemoryContext object, NOT a plain dict.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     from memory.memory_context_builder import MemoryContext
 
     ctx = _make_mock_ctx()
@@ -156,7 +168,7 @@ async def test_recall_context_returns_valid_dict() -> None:
         user_preferences=None,
         past_failures=[],
         layers_queried=["pipeline_history_store", "org_memory"],
-        assembled_at=datetime.now(tz=timezone.utc).isoformat(),
+        assembled_at=datetime.now(tz=UTC).isoformat(),
     )
 
     with patch("mcp_server.tools.memory_tool.MemoryContextBuilder") as mock_builder_cls:
@@ -166,13 +178,14 @@ async def test_recall_context_returns_valid_dict() -> None:
     assert isinstance(result, dict)
     assert result["status"] == "ok"
     assert result["project_id"] == "p1"
-    assert "org_memory" in result           # key name in response (mapped from relevant_patterns)
+    assert "org_memory" in result  # key name in response (mapped from relevant_patterns)
     assert "similar_runs" in result
     assert "layers_queried" in result
     assert "assembled_at" in result
 
 
 # ── save_decision ──────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_save_decision_returns_valid_dict() -> None:
@@ -189,42 +202,65 @@ async def test_save_decision_returns_valid_dict() -> None:
 
 # ── design_architecture ────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_design_architecture_returns_valid_dict() -> None:
     from mcp_server.tools.architecture_tool import design_architecture
+
     ctx = _make_mock_ctx()
 
     async def fake_arch_run(state: dict) -> dict:
         state["arch_validation"] = {
             "gate_blocked": False,
-            "anti_pattern_result": {"high_count": 0, "medium_count": 0, "all_clear": True, "findings": []},
+            "anti_pattern_result": {
+                "high_count": 0,
+                "medium_count": 0,
+                "all_clear": True,
+                "findings": [],
+            },
             "nfr_checks": [],
-            "architecture_score": {"scalability": 7, "reliability": 7, "security": 7, "maintainability": 7, "cost": 7, "overall": 7.0},
+            "architecture_score": {
+                "scalability": 7,
+                "reliability": 7,
+                "security": 7,
+                "maintainability": 7,
+                "cost": 7,
+                "overall": 7.0,
+            },
         }
         state["rfc"] = "# RFC-001\n```mermaid\ngraph TD\n  A-->B\n```"
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.architecture_tool._build_infrastructure_shared",
-               return_value=_make_infra_tuple(7)):
-        with patch("mcp_server.tools.architecture_tool._build_arch_agent") as mock_build:
-            from agents.agent_3_architecture import ArchitectureAgent
-            mock_agent = MagicMock(spec=ArchitectureAgent)
-            mock_agent.run = AsyncMock(side_effect=fake_arch_run)
-            mock_build.return_value = mock_agent
-            result = await design_architecture(
-                requirements="some requirements", project_id="p1",
-                ctx=ctx, human_confirmation="100% GO",
-            )
+    with (
+        patch(
+            "mcp_server.tools.architecture_tool._build_infrastructure_shared",
+            return_value=_make_infra_tuple(7),
+        ),
+        patch("mcp_server.tools.architecture_tool._build_arch_agent") as mock_build,
+    ):
+        from agents.agent_3_architecture import ArchitectureAgent
+
+        mock_agent = MagicMock(spec=ArchitectureAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_arch_run)
+        mock_build.return_value = mock_agent
+        result = await design_architecture(
+            requirements="some requirements",
+            project_id="p1",
+            ctx=ctx,
+            human_confirmation="100% GO",
+        )
     assert result["status"] in ("complete", "awaiting_confirmation", "blocked")
     assert "project_id" in result
 
 
 # ── route_code_generation ──────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_route_code_generation_returns_valid_dict() -> None:
     from mcp_server.tools.code_generation_tool import route_code_generation
+
     ctx = _make_mock_ctx()
 
     async def fake_a4(state: dict) -> dict:
@@ -239,62 +275,83 @@ async def test_route_code_generation_returns_valid_dict() -> None:
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.code_generation_tool._build_infrastructure_shared",
-               return_value=_make_infra_tuple(8)):
-        with patch("mcp_server.tools.code_generation_tool._build_codegen_agents") as mock_build:
-            from agents.agent_4_tool_router import ToolRouterAgent
-            from agents.agent_5_coord_review import CoordinatedReview
-            mock_a4 = MagicMock(spec=ToolRouterAgent)
-            mock_a4.run = AsyncMock(side_effect=fake_a4)
-            mock_a5 = MagicMock(spec=CoordinatedReview)
-            mock_a5.run = AsyncMock(side_effect=fake_a5)
-            mock_build.return_value = (mock_a4, mock_a5)
-            result = await route_code_generation(
-                task="build something", project_id="p1",
-                ctx=ctx, human_confirmation="100% GO",
-            )
+    with (
+        patch(
+            "mcp_server.tools.code_generation_tool._build_infrastructure_shared",
+            return_value=_make_infra_tuple(8),
+        ),
+        patch("mcp_server.tools.code_generation_tool._build_codegen_agents") as mock_build,
+    ):
+        from agents.agent_4_tool_router import ToolRouterAgent
+        from agents.agent_5_coord_review import CoordinatedReview
+
+        mock_a4 = MagicMock(spec=ToolRouterAgent)
+        mock_a4.run = AsyncMock(side_effect=fake_a4)
+        mock_a5 = MagicMock(spec=CoordinatedReview)
+        mock_a5.run = AsyncMock(side_effect=fake_a5)
+        mock_build.return_value = (mock_a4, mock_a5)
+        result = await route_code_generation(
+            task="build something",
+            project_id="p1",
+            ctx=ctx,
+            human_confirmation="100% GO",
+        )
     assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
     assert "project_id" in result
 
 
 # ── run_security_scan ──────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_run_security_scan_returns_valid_dict() -> None:
     from mcp_server.tools.security_tool import run_security_scan
+
     ctx = _make_mock_ctx()
 
     async def fake_security(state: dict) -> dict:
         state["security_findings"] = {
-            "bandit_findings": [], "semgrep_findings": [],
-            "pip_audit_findings": [], "dast_findings": [],
-            "detect_secrets_findings": [], "threat_model_path": None,
+            "bandit_findings": [],
+            "semgrep_findings": [],
+            "pip_audit_findings": [],
+            "dast_findings": [],
+            "detect_secrets_findings": [],
+            "threat_model_path": None,
             "gate_blocked": False,
         }
         state["security_gate"] = {"blocked": False, "reason": None}
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.security_tool._build_infrastructure_shared",
-               return_value=_make_infra_tuple(7)):
-        with patch("mcp_server.tools.security_tool._build_security_agent") as mock_build:
-            from agents.agent_5b_security import SecurityAgent
-            mock_agent = MagicMock(spec=SecurityAgent)
-            mock_agent.run = AsyncMock(side_effect=fake_security)
-            mock_build.return_value = mock_agent
-            result = await run_security_scan(
-                project_id="p1", target_path="./src",
-                ctx=ctx, human_confirmation="100% GO",
-            )
+    with (
+        patch(
+            "mcp_server.tools.security_tool._build_infrastructure_shared",
+            return_value=_make_infra_tuple(7),
+        ),
+        patch("mcp_server.tools.security_tool._build_security_agent") as mock_build,
+    ):
+        from agents.agent_5b_security import SecurityAgent
+
+        mock_agent = MagicMock(spec=SecurityAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_security)
+        mock_build.return_value = mock_agent
+        result = await run_security_scan(
+            project_id="p1",
+            target_path="./src",
+            ctx=ctx,
+            human_confirmation="100% GO",
+        )
     assert result["status"] in ("complete", "awaiting_confirmation")
     assert "project_id" in result
 
 
 # ── generate_cicd ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_generate_cicd_returns_valid_dict() -> None:
     from mcp_server.tools.cicd_tool import generate_cicd
+
     ctx = _make_mock_ctx()
 
     async def fake_a6(state: dict) -> dict:
@@ -309,29 +366,38 @@ async def test_generate_cicd_returns_valid_dict() -> None:
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.cicd_tool._build_infrastructure_shared",
-               return_value=_make_infra_tuple(8)):
-        with patch("mcp_server.tools.cicd_tool._build_cicd_agents") as mock_build:
-            from agents.agent_6_test_coordinator import TestCoordinatorAgent
-            from agents.agent_7_cicd import CICDAgent
-            mock_a6 = MagicMock(spec=TestCoordinatorAgent)
-            mock_a6.run = AsyncMock(side_effect=fake_a6)
-            mock_a7 = MagicMock(spec=CICDAgent)
-            mock_a7.run = AsyncMock(side_effect=fake_a7)
-            mock_build.return_value = (mock_a6, mock_a7)
-            result = await generate_cicd(
-                project_id="p1", stack="fastapi",
-                ctx=ctx, human_confirmation="100% GO",
-            )
+    with (
+        patch(
+            "mcp_server.tools.cicd_tool._build_infrastructure_shared",
+            return_value=_make_infra_tuple(8),
+        ),
+        patch("mcp_server.tools.cicd_tool._build_cicd_agents") as mock_build,
+    ):
+        from agents.agent_6_test_coordinator import TestCoordinatorAgent
+        from agents.agent_7_cicd import CICDAgent
+
+        mock_a6 = MagicMock(spec=TestCoordinatorAgent)
+        mock_a6.run = AsyncMock(side_effect=fake_a6)
+        mock_a7 = MagicMock(spec=CICDAgent)
+        mock_a7.run = AsyncMock(side_effect=fake_a7)
+        mock_build.return_value = (mock_a6, mock_a7)
+        result = await generate_cicd(
+            project_id="p1",
+            stack="fastapi",
+            ctx=ctx,
+            human_confirmation="100% GO",
+        )
     assert result["status"] in ("complete", "awaiting_confirmation", "hitl_required")
     assert "project_id" in result
 
 
 # ── deploy_project ─────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_deploy_project_returns_valid_dict() -> None:
     from mcp_server.tools.deploy_tool import deploy_project
+
     ctx = _make_mock_ctx()
 
     async def fake_deploy(state: dict) -> dict:
@@ -340,26 +406,35 @@ async def test_deploy_project_returns_valid_dict() -> None:
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.deploy_tool._build_infrastructure_shared",
-               return_value=_make_infra_tuple(7)):
-        with patch("mcp_server.tools.deploy_tool._build_deploy_agent") as mock_build:
-            from agents.agent_8_deploy import DeployAgent
-            mock_agent = MagicMock(spec=DeployAgent)
-            mock_agent.run = AsyncMock(side_effect=fake_deploy)
-            mock_build.return_value = mock_agent
-            result = await deploy_project(
-                project_id="p1", environment="staging",
-                ctx=ctx, human_confirmation="100% GO",
-            )
+    with (
+        patch(
+            "mcp_server.tools.deploy_tool._build_infrastructure_shared",
+            return_value=_make_infra_tuple(7),
+        ),
+        patch("mcp_server.tools.deploy_tool._build_deploy_agent") as mock_build,
+    ):
+        from agents.agent_8_deploy import DeployAgent
+
+        mock_agent = MagicMock(spec=DeployAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_deploy)
+        mock_build.return_value = mock_agent
+        result = await deploy_project(
+            project_id="p1",
+            environment="staging",
+            ctx=ctx,
+            human_confirmation="100% GO",
+        )
     assert result["status"] in ("complete", "awaiting_confirmation", "blocked")
     assert "project_id" in result
 
 
 # ── setup_monitoring ───────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_setup_monitoring_returns_valid_dict() -> None:
     from mcp_server.tools.monitor_tool import setup_monitoring
+
     ctx = _make_mock_ctx()
 
     async def fake_monitor(state: dict) -> dict:
@@ -371,28 +446,35 @@ async def test_setup_monitoring_returns_valid_dict() -> None:
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.monitor_tool._build_infrastructure_shared",
-               return_value=_make_infra_tuple(7)):
-        with patch("mcp_server.tools.monitor_tool._build_monitor_agent") as mock_build:
-            from agents.agent_9_monitoring import MonitoringAgent
-            mock_agent = MagicMock(spec=MonitoringAgent)
-            mock_agent.run = AsyncMock(side_effect=fake_monitor)
-            mock_build.return_value = mock_agent
-            result = await setup_monitoring(
-                project_id="p1",
-                deployment_url="https://app.example.com",
-                ctx=ctx,
-                human_confirmation="100% GO",
-            )
+    with (
+        patch(
+            "mcp_server.tools.monitor_tool._build_infrastructure_shared",
+            return_value=_make_infra_tuple(7),
+        ),
+        patch("mcp_server.tools.monitor_tool._build_monitor_agent") as mock_build,
+    ):
+        from agents.agent_9_monitoring import MonitoringAgent
+
+        mock_agent = MagicMock(spec=MonitoringAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_monitor)
+        mock_build.return_value = mock_agent
+        result = await setup_monitoring(
+            project_id="p1",
+            deployment_url="https://app.example.com",
+            ctx=ctx,
+            human_confirmation="100% GO",
+        )
     assert result["status"] in ("complete", "awaiting_confirmation")
     assert "project_id" in result
 
 
 # ── generate_docs ──────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_generate_docs_returns_valid_dict() -> None:
     from mcp_server.tools.docs_tool import generate_docs
+
     ctx = _make_mock_ctx()
 
     async def fake_docs(state: dict) -> dict:
@@ -400,22 +482,30 @@ async def test_generate_docs_returns_valid_dict() -> None:
         state["human_confirmation"] = ""
         return state
 
-    with patch("mcp_server.tools.docs_tool._build_infrastructure_shared",
-               return_value=_make_infra_tuple(7)):
-        with patch("mcp_server.tools.docs_tool._build_docs_agent") as mock_build:
-            from agents.agent_10_docs import DocsAgent
-            mock_agent = MagicMock(spec=DocsAgent)
-            mock_agent.run = AsyncMock(side_effect=fake_docs)
-            mock_build.return_value = mock_agent
-            result = await generate_docs(
-                project_id="p1", scope="full",
-                ctx=ctx, human_confirmation="100% GO",
-            )
+    with (
+        patch(
+            "mcp_server.tools.docs_tool._build_infrastructure_shared",
+            return_value=_make_infra_tuple(7),
+        ),
+        patch("mcp_server.tools.docs_tool._build_docs_agent") as mock_build,
+    ):
+        from agents.agent_10_docs import DocsAgent
+
+        mock_agent = MagicMock(spec=DocsAgent)
+        mock_agent.run = AsyncMock(side_effect=fake_docs)
+        mock_build.return_value = mock_agent
+        result = await generate_docs(
+            project_id="p1",
+            scope="full",
+            ctx=ctx,
+            human_confirmation="100% GO",
+        )
     assert result["status"] in ("complete", "awaiting_confirmation")
     assert "project_id" in result
 
 
 # ── track_progress ─────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_track_progress_returns_valid_dict() -> None:

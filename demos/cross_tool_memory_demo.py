@@ -17,6 +17,7 @@ Requirements:
 Usage:
   python demos/cross_tool_memory_demo.py
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -57,7 +58,6 @@ async def demo() -> int:
     print("   (unique per run — proves no shared state between steps)\n")
 
     async with httpx.AsyncClient(timeout=30) as client:
-
         # ── Step 1: Cursor saves decision ─────────────────────────────────────
         print("─" * 60)
         print("STEP 1 — Cursor saves an architecture decision")
@@ -71,9 +71,7 @@ async def demo() -> int:
                 json={
                     "name": "save_decision",
                     "arguments": {
-                        "decision": (
-                            "Use PostgreSQL with asyncpg for all database operations"
-                        ),
+                        "decision": ("Use PostgreSQL with asyncpg for all database operations"),
                         "rationale": (
                             "ACID compliance, native async support, "
                             "compatible with Supabase for scalability"
@@ -85,10 +83,10 @@ async def demo() -> int:
             )
             result = r.json()
             entry_id = result.get("entry_id", result.get("id", "n/a"))
-            print(f"  ✅ Decision saved")
+            print("  ✅ Decision saved")
             print(f"     Entry ID:  {entry_id}")
-            print(f"     Category:  architecture")
-            print(f"     Decision:  Use PostgreSQL with asyncpg")
+            print("     Category:  architecture")
+            print("     Decision:  Use PostgreSQL with asyncpg")
         except Exception as exc:
             print(f"  ❌ save_decision() failed: {exc}")
             return 1
@@ -138,10 +136,7 @@ async def demo() -> int:
 
         # ── Result ────────────────────────────────────────────────────────────
         print("\n" + "=" * 60)
-        found = any(
-            "PostgreSQL" in str(e.get("content", ""))
-            for e in org_memory
-        )
+        found = any("PostgreSQL" in str(e.get("content", "")) for e in org_memory)
 
         if found:
             print("✅  Cross-tool memory works!")

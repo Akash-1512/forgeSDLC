@@ -1,4 +1,5 @@
 """Alembic environment — async PostgreSQL via asyncpg."""
+
 from __future__ import annotations
 
 import asyncio

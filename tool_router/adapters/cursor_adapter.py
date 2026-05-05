@@ -21,9 +21,7 @@ class CursorAdapter:
         export CURSOR_API_VERIFIED=true
     """
 
-    async def generate(
-        self, task: str, context: str, workspace_path: str
-    ) -> ToolResult:
+    async def generate(self, task: str, context: str, workspace_path: str) -> ToolResult:
         api_key = os.getenv("CURSOR_API_KEY")
         verified = os.getenv("CURSOR_API_VERIFIED", "false").lower() == "true"
 

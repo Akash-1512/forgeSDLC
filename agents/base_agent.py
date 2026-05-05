@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import time
 from abc import ABC, abstractmethod
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 
@@ -99,7 +99,7 @@ class BaseAgent(ABC):
         # Step 4: Gate check — execute only on exact "100% GO"
         # M5: use interrupt_node() for structured logging before gate evaluation
         if not check_gate(str(state.get("human_confirmation", ""))):
-            interrupt_node(display_str, hard_gate=getattr(self, 'hard_gate', False))  # M29
+            interrupt_node(display_str, hard_gate=getattr(self, "hard_gate", False))  # M29
             logger.info(
                 "base_agent.awaiting_confirmation",
                 agent=self.name,
@@ -114,9 +114,9 @@ class BaseAgent(ABC):
         latency_ms = int((time.monotonic() - t_start) * 1000)
 
         # H7 Fix: record token usage — model_router emits usage via structlog; read it here
-        # We use estimated tokens from interpretation as a proxy until adapters expose usage directly
+        # We use estimated tokens from interpretation as a proxy until adapters expose usage directly  # noqa: E501
         model_used = interpretation.model_selected or "unknown"
-        estimated_input = 500   # conservative estimate — improved when adapters expose usage
+        estimated_input = 500  # conservative estimate — improved when adapters expose usage
         estimated_output = 800
         cost_usd = 0.0
         _SHARED_TOKEN_TRACKER.record(
@@ -206,7 +206,7 @@ class BaseAgent(ABC):
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=files_write or [],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.agent",

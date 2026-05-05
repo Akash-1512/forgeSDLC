@@ -6,7 +6,6 @@ from pathlib import Path
 import structlog
 from fastmcp import Context
 
-from interpret.gate import check_gate
 from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
@@ -16,6 +15,7 @@ def _build_codegen_state(
     task: str, project_id: str, workspace_path: str, human_confirmation: str
 ) -> dict[str, object]:
     import uuid
+
     return {
         "user_prompt": task,
         "mcp_session_id": project_id,
@@ -41,7 +41,11 @@ def _build_codegen_state(
         "hitl_reason": "",
         "workspace_path": workspace_path,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
+        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"])
+        .get_tier("free")
+        .budget_usd_per_session
+        if True
+        else 5.0,
         "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,
@@ -63,24 +67,36 @@ def _build_infrastructure_shared() -> tuple:
     """H2 Fix: delegate to shared infrastructure factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
     from tool_router.router import ToolRouter  # noqa: PLC0415
+
     infra = build_infrastructure()
     tool_router = ToolRouter()
     return (
-        infra.model_router, tool_router, infra.context_window_manager, infra.memory_archiver,
-        infra.memory_context_builder, infra.context_file_manager,
-        infra.workspace_bridge, infra.diff_engine,
+        infra.model_router,
+        tool_router,
+        infra.context_window_manager,
+        infra.memory_archiver,
+        infra.memory_context_builder,
+        infra.context_file_manager,
+        infra.workspace_bridge,
+        infra.diff_engine,
     )
 
 
 def _build_codegen_agents(infra: tuple) -> tuple:
     from agents.agent_4_tool_router import ToolRouterAgent
     from agents.agent_5_coord_review import CoordinatedReview
-
     from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
     from tool_router.router import ToolRouter  # noqa: PLC0415
+
     (
-        model_router, tool_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        tool_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
     tool_router = ToolRouter()
     base_kwargs = build_agent_kwargs(infra)
@@ -129,6 +145,7 @@ async def route_code_generation(
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": f"codegen-{project_id}"}}
         existing = checkpointer.get(config)
@@ -162,8 +179,7 @@ async def route_code_generation(
                     "status": "awaiting_confirmation",
                     "stage": "code_generation",
                     "interpretation": (
-                        state["interpret_log"][-1]
-                        if state.get("interpret_log") else {}
+                        state["interpret_log"][-1] if state.get("interpret_log") else {}
                     ),
                     "displayed_interpretation": state.get("displayed_interpretation", ""),
                     "project_id": project_id,
@@ -192,14 +208,12 @@ async def route_code_generation(
                 "status": "awaiting_confirmation",
                 "stage": "code_review",
                 "interpretation": (
-                    state["interpret_log"][-1]
-                    if state.get("interpret_log") else {}
+                    state["interpret_log"][-1] if state.get("interpret_log") else {}
                 ),
                 "displayed_interpretation": state.get("displayed_interpretation", ""),
                 "project_id": project_id,
                 "instructions": (
-                    "Review the code quality report. "
-                    "Pass human_confirmation='100% GO' to accept."
+                    "Review the code quality report. Pass human_confirmation='100% GO' to accept."
                 ),
             }
 
@@ -238,11 +252,13 @@ async def route_code_generation(
         "generated_files": state.get("generated_files", []),
         "review_findings": state.get("review_findings", []),
         "blocking_count": sum(
-            1 for f in list(state.get("review_findings", []) or [])
+            1
+            for f in list(state.get("review_findings", []) or [])
             if f.get("severity") == "BLOCKING"
         ),
         "advisory_count": sum(
-            1 for f in list(state.get("review_findings", []) or [])
+            1
+            for f in list(state.get("review_findings", []) or [])
             if f.get("severity") == "ADVISORY"
         ),
     }

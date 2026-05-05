@@ -23,9 +23,7 @@ def _make_agent_7() -> object:
     mock_workspace = MagicMock()
     mock_workspace.get_context = AsyncMock(return_value=MagicMock(root_path="."))
     mock_diff = MagicMock()
-    mock_diff.generate_diff = AsyncMock(
-        return_value=MagicMock(filepath="ci.yml", new_content="")
-    )
+    mock_diff.generate_diff = AsyncMock(return_value=MagicMock(filepath="ci.yml", new_content=""))
     mock_diff.apply_diff = AsyncMock()
     mock_model_router = MagicMock(spec=ModelRouter)
 
@@ -43,9 +41,7 @@ def _make_agent_7() -> object:
 
 def _fake_docs_fetcher(version: str = "v6.0.2") -> object:
     fetcher = MagicMock()
-    fetcher.fetch = AsyncMock(
-        return_value=json.dumps({"tag_name": version, "name": version})
-    )
+    fetcher.fetch = AsyncMock(return_value=json.dumps({"tag_name": version, "name": version}))
     return fetcher
 
 
@@ -57,7 +53,9 @@ def _base_state(human_confirmation: str = "100% GO") -> dict:
         "human_corrections": [],
         "interpret_log": [],
         "interpret_round": 0,
-        "prd": "", "adr": "Stack: FastAPI", "rfc": "",
+        "prd": "",
+        "adr": "Stack: FastAPI",
+        "rfc": "",
         "budget_used_usd": 0.0,
         "budget_remaining_usd": 999.0,
         "subscription_tier": "free",
@@ -75,7 +73,8 @@ async def test_agent_7_generates_github_actions_yaml() -> None:
 @pytest.mark.asyncio
 async def test_generated_yaml_is_valid_github_actions_syntax() -> None:
     """yaml.safe_load() must succeed on the generated YAML."""
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],
@@ -87,7 +86,8 @@ async def test_generated_yaml_is_valid_github_actions_syntax() -> None:
 
 
 def test_generated_yaml_contains_ruff_not_black() -> None:
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],
@@ -98,7 +98,8 @@ def test_generated_yaml_contains_ruff_not_black() -> None:
 
 
 def test_generated_yaml_contains_ruff_not_isort() -> None:
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],
@@ -108,7 +109,8 @@ def test_generated_yaml_contains_ruff_not_isort() -> None:
 
 
 def test_generated_yaml_contains_semgrep_p_python() -> None:
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],
@@ -118,7 +120,8 @@ def test_generated_yaml_contains_semgrep_p_python() -> None:
 
 
 def test_generated_yaml_contains_semgrep_p_security() -> None:
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],
@@ -129,7 +132,8 @@ def test_generated_yaml_contains_semgrep_p_security() -> None:
 
 def test_generated_yaml_does_not_contain_semgrep_auto() -> None:
     """CRITICAL: semgrep must NEVER use --config=auto anywhere in CI YAML."""
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],
@@ -141,7 +145,8 @@ def test_generated_yaml_does_not_contain_semgrep_auto() -> None:
 
 
 def test_generated_yaml_uses_python_3_12() -> None:
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],
@@ -152,7 +157,8 @@ def test_generated_yaml_uses_python_3_12() -> None:
 
 def test_generated_yaml_uses_node_24_not_node_20() -> None:
     """Node.js 24 required — Node 20 EOL deadline June 2 2026."""
-    from agents.agent_7_cicd import _CI_YAML_TEMPLATE, _ACTION_DEFAULTS
+    from agents.agent_7_cicd import _ACTION_DEFAULTS, _CI_YAML_TEMPLATE
+
     ci_yaml = _CI_YAML_TEMPLATE.format(
         checkout_version=_ACTION_DEFAULTS["actions/checkout"],
         setup_python_version=_ACTION_DEFAULTS["actions/setup-python"],

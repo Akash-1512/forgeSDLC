@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import ast as ast_module
+import asyncio
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -62,7 +63,7 @@ class CoordinatedReview(BaseAgent):
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.agent",
@@ -98,10 +99,10 @@ class CoordinatedReview(BaseAgent):
                 findings_p3,
                 findings_p5,
             ) = await asyncio.gather(
-                self._pass_correctness(code, state),    # Pass 1: Correctness
-                self._pass_security(code, state),       # Pass 2: OWASP Security
-                self._pass_performance(code, state),    # Pass 3: Performance
-                self._pass_error_handling(code, state), # Pass 5: Error Handling
+                self._pass_correctness(code, state),  # Pass 1: Correctness
+                self._pass_security(code, state),  # Pass 2: OWASP Security
+                self._pass_performance(code, state),  # Pass 3: Performance
+                self._pass_error_handling(code, state),  # Pass 5: Error Handling
             )
 
             # Pass 4: MAANG Standards — deterministic AST (no await needed)
@@ -118,9 +119,7 @@ class CoordinatedReview(BaseAgent):
 
         if blocking and delegation_count < 2:
             state["review_delegation_count"] = delegation_count + 1
-            correction_notes = "\n".join(
-                f"- {f['message']}" for f in blocking
-            )
+            correction_notes = "\n".join(f"- {f['message']}" for f in blocking)
             state["review_corrections"] = correction_notes
             state["trigger_agent_4_retry"] = True
             logger.warning(
@@ -132,8 +131,7 @@ class CoordinatedReview(BaseAgent):
             # Max 2 delegations exceeded — escalate to HITL
             state["hitl_required"] = True
             state["hitl_reason"] = (
-                f"Code review found {len(blocking)} BLOCKING issues after "
-                f"2 Agent 4 re-delegations."
+                f"Code review found {len(blocking)} BLOCKING issues after 2 Agent 4 re-delegations."
             )
             state["trigger_agent_4_retry"] = False
             logger.error(
@@ -172,17 +170,19 @@ class CoordinatedReview(BaseAgent):
         is_python = filepath.endswith(".py") or not filepath  # default to Python if no path
         if not is_python:
             ext = filepath.rsplit(".", 1)[-1] if "." in filepath else "unknown"
-            findings.append({
-                "pass": 4,
-                "severity": "ADVISORY",
-                "message": (
-                    f"Pass 4 (MAANG Standards): AST check skipped for .{ext} file. "
-                    "AST-based rules only apply to Python. "
-                    "Manual review recommended for function length and bare catch blocks."
-                ),
-                "file": filepath,
-                "line": None,
-            })
+            findings.append(
+                {
+                    "pass": 4,
+                    "severity": "ADVISORY",
+                    "message": (
+                        f"Pass 4 (MAANG Standards): AST check skipped for .{ext} file. "
+                        "AST-based rules only apply to Python. "
+                        "Manual review recommended for function length and bare catch blocks."
+                    ),
+                    "file": filepath,
+                    "line": None,
+                }
+            )
             return findings
 
         findings: list[dict[str, object]] = []
@@ -192,37 +192,39 @@ class CoordinatedReview(BaseAgent):
         try:
             tree = ast_module.parse(code)
             for node in ast_module.walk(tree):
-                if isinstance(
-                    node, (ast_module.FunctionDef, ast_module.AsyncFunctionDef)
-                ):
+                if isinstance(node, (ast_module.FunctionDef, ast_module.AsyncFunctionDef)):
                     lines = (node.end_lineno or 0) - node.lineno
                     if lines > 50:
-                        findings.append({
-                            "pass": 4,
-                            "severity": "BLOCKING",
-                            "rule": "function_length",
-                            "message": (
-                                f"Function '{node.name}' is {lines} lines (max 50). "
-                                "Split into smaller functions."
-                            ),
-                        })
+                        findings.append(
+                            {
+                                "pass": 4,
+                                "severity": "BLOCKING",
+                                "rule": "function_length",
+                                "message": (
+                                    f"Function '{node.name}' is {lines} lines (max 50). "
+                                    "Split into smaller functions."
+                                ),
+                            }
+                        )
                     if not node.returns:
-                        findings.append({
-                            "pass": 4,
-                            "severity": "ADVISORY",
-                            "rule": "type_hints",
-                            "message": (
-                                f"Function '{node.name}' missing return type hint."
-                            ),
-                        })
-                if isinstance(node, ast_module.ExceptHandler):
+                        findings.append(
+                            {
+                                "pass": 4,
+                                "severity": "ADVISORY",
+                                "rule": "type_hints",
+                                "message": (f"Function '{node.name}' missing return type hint."),
+                            }
+                        )
+                if isinstance(node, ast_module.ExceptHandler):  # noqa: SIM102
                     if node.type is None:
-                        findings.append({
-                            "pass": 4,
-                            "severity": "BLOCKING",
-                            "rule": "bare_except",
-                            "message": "Bare 'except:' found. Use specific exception types.",
-                        })
+                        findings.append(
+                            {
+                                "pass": 4,
+                                "severity": "BLOCKING",
+                                "rule": "bare_except",
+                                "message": "Bare 'except:' found. Use specific exception types.",
+                            }
+                        )
         except SyntaxError:
             pass
 
@@ -258,30 +260,32 @@ class CoordinatedReview(BaseAgent):
         adapter = await self._get_adapter(state)
         response = await adapter.ainvoke(  # type: ignore[union-attr]
             [
-                SystemMessage(content=(
-                    "Review this code for correctness issues: logic errors, "
-                    "off-by-one, race conditions, null pointer risks. "
-                    'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
-                    '"message": "..."}]. Empty array [] if none found.'
-                )),
+                SystemMessage(
+                    content=(
+                        "Review this code for correctness issues: logic errors, "
+                        "off-by-one, race conditions, null pointer risks. "
+                        'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
+                        '"message": "..."}]. Empty array [] if none found.'
+                    )
+                ),
                 HumanMessage(content=code[:4000]),
             ]
         )
         return self._parse_findings(str(response.content), pass_num=1)
 
-    async def _pass_security(
-        self, code: str, state: dict[str, object]
-    ) -> list[dict[str, object]]:
+    async def _pass_security(self, code: str, state: dict[str, object]) -> list[dict[str, object]]:
         """Pass 2: Security — OWASP Top 10 (injection, XSS, IDOR, etc.)."""
         adapter = await self._get_adapter(state)
         response = await adapter.ainvoke(  # type: ignore[union-attr]
             [
-                SystemMessage(content=(
-                    "Review this code for OWASP Top 10 security vulnerabilities: "
-                    "SQL injection, XSS, broken auth, IDOR, sensitive data exposure. "
-                    'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
-                    '"message": "..."}]. Empty array [] if none found.'
-                )),
+                SystemMessage(
+                    content=(
+                        "Review this code for OWASP Top 10 security vulnerabilities: "
+                        "SQL injection, XSS, broken auth, IDOR, sensitive data exposure. "
+                        'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
+                        '"message": "..."}]. Empty array [] if none found.'
+                    )
+                ),
                 HumanMessage(content=code[:4000]),
             ]
         )
@@ -294,13 +298,15 @@ class CoordinatedReview(BaseAgent):
         adapter = await self._get_adapter(state)
         response = await adapter.ainvoke(  # type: ignore[union-attr]
             [
-                SystemMessage(content=(
-                    "Review this code for performance issues: N+1 queries, "
-                    "missing indexes, blocking I/O in async context, "
-                    "O(n²) algorithms, unbounded memory growth. "
-                    'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
-                    '"message": "..."}]. Empty array [] if none found.'
-                )),
+                SystemMessage(
+                    content=(
+                        "Review this code for performance issues: N+1 queries, "
+                        "missing indexes, blocking I/O in async context, "
+                        "O(n²) algorithms, unbounded memory growth. "
+                        'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
+                        '"message": "..."}]. Empty array [] if none found.'
+                    )
+                ),
                 HumanMessage(content=code[:4000]),
             ]
         )
@@ -313,13 +319,15 @@ class CoordinatedReview(BaseAgent):
         adapter = await self._get_adapter(state)
         response = await adapter.ainvoke(  # type: ignore[union-attr]
             [
-                SystemMessage(content=(
-                    "Review this code for error handling issues: swallowed exceptions, "
-                    "missing error boundaries, no retry logic for transient failures, "
-                    "unhandled promise rejections. "
-                    'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
-                    '"message": "..."}]. Empty array [] if none found.'
-                )),
+                SystemMessage(
+                    content=(
+                        "Review this code for error handling issues: swallowed exceptions, "
+                        "missing error boundaries, no retry logic for transient failures, "
+                        "unhandled promise rejections. "
+                        'Respond ONLY as JSON array: [{"severity": "BLOCKING|ADVISORY", '
+                        '"message": "..."}]. Empty array [] if none found.'
+                    )
+                ),
                 HumanMessage(content=code[:4000]),
             ]
         )

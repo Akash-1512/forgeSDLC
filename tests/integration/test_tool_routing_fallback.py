@@ -1,16 +1,15 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa: E402
 
 """Integration tests — real ContextFileManager + mocked adapters.
 Tests ordering guarantee and fallback chain without external tool dependencies.
 """
 
-import tempfile
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path  # noqa: E402
+from unittest.mock import AsyncMock, MagicMock, patch  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
-from tool_router.context import AvailableTool, ToolResult
+from tool_router.context import AvailableTool, ToolResult  # noqa: E402
 
 
 def _stub_result(tool: AvailableTool = AvailableTool.DIRECT_LLM) -> ToolResult:
@@ -139,8 +138,10 @@ async def test_fallback_chain_cursor_unavailable_then_claude_code(
 async def test_route_code_generation_mcp_tool_returns_valid_response(
     tmp_path: Path,
 ) -> None:
-    from unittest.mock import AsyncMock, MagicMock
+    from unittest.mock import AsyncMock
+
     from fastmcp import Context
+
     from agents.agent_4_tool_router import ToolRouterAgent
     from agents.agent_5_coord_review import CoordinatedReview
 
@@ -148,8 +149,14 @@ async def test_route_code_generation_mcp_tool_returns_valid_response(
     mock_ctx.report_progress = AsyncMock()
 
     infra_tuple = (
-        MagicMock(), MagicMock(), MagicMock(),
-        MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
+        MagicMock(),
     )
 
     async def fake_a4_run(state: dict) -> dict:
@@ -180,6 +187,7 @@ async def test_route_code_generation_mcp_tool_returns_valid_response(
         ),
     ):
         from mcp_server.tools.code_generation_tool import route_code_generation
+
         result = await route_code_generation(
             task="write a hello world function",
             project_id=f"test-codegen-{tmp_path.name}",

@@ -7,10 +7,10 @@ plain dict with no schema enforcement. Any typo in a key name passed silently.
 This factory is the single source of truth for the initial state shape.
 It matches the SDLCState TypedDict exactly so mypy can verify it.
 """
+
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 from typing import Any
 
 
@@ -67,7 +67,7 @@ def build_initial_state(
         "project_context_graph": None,
         # ── budget / subscription ─────────────────────────────────────────
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 0.0,   # free tier: no cap (Groq is free)
+        "budget_remaining_usd": 0.0,  # free tier: no cap (Groq is free)
         "subscription_tier": "free",
         "session_token_records": [],
         # ── tool delegation ───────────────────────────────────────────────

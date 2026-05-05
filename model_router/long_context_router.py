@@ -19,6 +19,7 @@ class LongContextRouter:
     def select(self) -> BaseLLMAdapter:
         """Return GeminiAdapter for 1M context window."""
         from model_router.adapters.gemini_adapter import GeminiAdapter  # noqa: PLC0415
+
         logger.info(
             "long_context_router.selected",
             model=_LONG_CONTEXT_MODEL,

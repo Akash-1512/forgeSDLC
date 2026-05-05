@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-import os
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import structlog
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
@@ -12,13 +11,15 @@ from subscription.byok_manager import BYOKManager
 logger = structlog.get_logger()
 
 # Models retired as of April 2026 — raise immediately if selected
-RETIRED_MODELS: frozenset[str] = frozenset({
-    "claude-3-5-sonnet-20241022",
-    "claude-3-5-sonnet-20240620",
-    "claude-3-opus-20240229",
-    "claude-3-sonnet-20240229",
-    "claude-3-haiku-20240307",
-})
+RETIRED_MODELS: frozenset[str] = frozenset(
+    {
+        "claude-3-5-sonnet-20241022",
+        "claude-3-5-sonnet-20240620",
+        "claude-3-opus-20240229",
+        "claude-3-sonnet-20240229",
+        "claude-3-haiku-20240307",
+    }
+)
 
 
 class ClaudeNotConfiguredError(ForgeSDLCError):
@@ -47,6 +48,7 @@ class ClaudeAdapter:
                 "See subscription/anthropic_tos_warning.py for the required flow."
             )
         import anthropic  # noqa: PLC0415
+
         self._client = anthropic.AsyncAnthropic(api_key=key)
         self._model = model
         logger.info("claude_adapter.init", model=model)
@@ -101,8 +103,10 @@ class ClaudeAdapter:
         temperature: float = 0.0,
     ) -> AsyncIterator[AIMessageChunk]:
         response = await self.ainvoke(messages, max_tokens=max_tokens, temperature=temperature)
+
         async def _gen() -> AsyncIterator[AIMessageChunk]:
             yield AIMessageChunk(content=str(response.content))
+
         return _gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:

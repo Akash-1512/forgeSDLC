@@ -24,9 +24,7 @@ def _make_base_kwargs() -> dict:
     mock_workspace = MagicMock()
     mock_workspace.get_context = AsyncMock(return_value=MagicMock(root_path="."))
     mock_diff = MagicMock()
-    mock_diff.generate_diff = AsyncMock(
-        return_value=MagicMock(filepath="test.py", new_content="")
-    )
+    mock_diff.generate_diff = AsyncMock(return_value=MagicMock(filepath="test.py", new_content=""))
     mock_diff.apply_diff = AsyncMock()
     mock_model_router = MagicMock(spec=ModelRouter)
     mock_adapter = MagicMock()
@@ -84,6 +82,7 @@ def _multi_state(has_openapi: bool = True) -> dict:
 
 # ── Agent 11 ─────────────────────────────────────────────────────────────────
 
+
 @pytest.mark.asyncio
 async def test_agent_11_skips_silently_for_monolith() -> None:
     agent = IntegrationAgent(name="agent_11_integration", **_make_base_kwargs())
@@ -130,14 +129,14 @@ async def test_agent_11_uses_gemini_via_long_context_router() -> None:
     real_router = ModelRouter()
     kwargs["model_router"] = real_router
 
-    agent = IntegrationAgent(name="agent_11_integration", **kwargs)
+    IntegrationAgent(name="agent_11_integration", **kwargs)
 
     with patch("subscription.byok_manager.keyring") as mk:
         mk.get_password.return_value = None
         adapter = await real_router.route(
             agent="agent_11_integration",
             task_type="integration_testing",
-            estimated_tokens=150_000,   # > 100K → long-context router → gemini
+            estimated_tokens=150_000,  # > 100K → long-context router → gemini
             subscription_tier="pro",
             budget_used=0.0,
             budget_total=50.0,
@@ -150,6 +149,7 @@ async def test_agent_11_uses_gemini_via_long_context_router() -> None:
 
 
 # ── Agent 12 ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_agent_12_skips_when_monolith() -> None:
@@ -176,6 +176,7 @@ async def test_agent_12_runs_when_multi_service_and_openapi_exists() -> None:
 
 
 # ── Agent 13 ─────────────────────────────────────────────────────────────────
+
 
 @pytest.mark.asyncio
 async def test_agent_13_skips_silently_for_monolith() -> None:
@@ -210,7 +211,8 @@ async def test_agent_13_generates_docker_compose() -> None:
     # DiffEngine was called for docker-compose.yml
     calls = agent.diff_engine.generate_diff.call_args_list  # type: ignore[union-attr]
     compose_calls = [
-        c for c in calls
+        c
+        for c in calls
         if "docker-compose" in str(c.args[0] if c.args else c.kwargs.get("filepath", ""))
     ]
     assert len(compose_calls) >= 1

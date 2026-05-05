@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -16,9 +16,7 @@ def test_save_key_stores_in_keychain() -> None:
     manager = _make_manager()
     with patch("subscription.byok_manager.keyring") as mock_keyring:
         manager.save_key("openai", "sk-test-key")
-        mock_keyring.set_password.assert_called_once_with(
-            "forgesdlc", "openai", "sk-test-key"
-        )
+        mock_keyring.set_password.assert_called_once_with("forgesdlc", "openai", "sk-test-key")
 
 
 def test_save_key_never_logs_key_value(caplog: pytest.LogCaptureFixture) -> None:

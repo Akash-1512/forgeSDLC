@@ -10,6 +10,7 @@ Usage:
     compiled = graph.compile()
     result = await compiled.ainvoke(state)
 """
+
 from __future__ import annotations
 
 import structlog
@@ -71,12 +72,12 @@ def build_graph(agents: dict[str, object] | None = None) -> object:
     graph = StateGraph(dict)
 
     # Register nodes — real agents injected from caller, lambdas as fallback
-    graph.add_node("agent_5b_security",  _agents.get("agent_5b_security",  _passthrough))
+    graph.add_node("agent_5b_security", _agents.get("agent_5b_security", _passthrough))
     graph.add_node("agent_4_tool_router", _agents.get("agent_4_tool_router", _passthrough))
     graph.add_node("agent_5_coord_review", _agents.get("agent_5_coord_review", _passthrough))
-    graph.add_node("agent_7_cicd",        _agents.get("agent_7_cicd",        _passthrough))
-    graph.add_node("agent_8_deploy",      _agents.get("agent_8_deploy",      _passthrough))
-    graph.add_node("hitl_node",           _agents.get("hitl_node",           _passthrough))
+    graph.add_node("agent_7_cicd", _agents.get("agent_7_cicd", _passthrough))
+    graph.add_node("agent_8_deploy", _agents.get("agent_8_deploy", _passthrough))
+    graph.add_node("hitl_node", _agents.get("hitl_node", _passthrough))
     graph.add_node("hitl_security_blocked", _agents.get("hitl_security_blocked", _passthrough))
     graph.add_node("hitl_review_escalation", _agents.get("hitl_review_escalation", _passthrough))
 

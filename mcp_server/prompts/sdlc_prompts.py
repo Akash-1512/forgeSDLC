@@ -4,6 +4,7 @@ H14 Fix: MCP prompt handlers registered with the FastMCP server.
 These were previously defined as plain string constants but never registered.
 MCP prompts surface template instructions to MCP clients (Cursor, Claude Code, VS Code+Copilot).
 """
+
 from __future__ import annotations
 
 

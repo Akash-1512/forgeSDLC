@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-import pytest
-
 from architecture_intelligence.nfr_satisfiability import NFRSatisfiabilityChecker
 
 
@@ -40,6 +38,7 @@ def test_no_nfrs_in_prd_returns_empty_list() -> None:
 def test_all_satisfied_true_when_all_checks_pass() -> None:
     checker = NFRSatisfiabilityChecker()
     from architecture_intelligence.nfr_satisfiability import NFRCheck
+
     checks = [
         NFRCheck(nfr="99.9%", satisfied=True, evidence="replica", failure_reason=None),
         NFRCheck(nfr="< 200ms", satisfied=True, evidence="cache", failure_reason=None),
@@ -50,6 +49,7 @@ def test_all_satisfied_true_when_all_checks_pass() -> None:
 def test_all_satisfied_false_when_any_check_fails() -> None:
     checker = NFRSatisfiabilityChecker()
     from architecture_intelligence.nfr_satisfiability import NFRCheck
+
     checks = [
         NFRCheck(nfr="99.9%", satisfied=True, evidence="replica", failure_reason=None),
         NFRCheck(nfr="< 200ms", satisfied=False, evidence=None, failure_reason="needs cache"),
@@ -60,6 +60,7 @@ def test_all_satisfied_false_when_any_check_fails() -> None:
 def test_no_llm_calls_in_checker() -> None:
     """NFRSatisfiabilityChecker must never call ModelRouter — zero LLM."""
     from model_router.router import ModelRouter
+
     with patch.object(ModelRouter, "route") as mock_route:
         checker = NFRSatisfiabilityChecker()
         checker.check("99.9% uptime required.", "multi-az replica deployed.")

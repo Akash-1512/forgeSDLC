@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import jwt  # PyJWT — import as 'jwt'. NOT python-jose (has CVEs, unmaintained)
 import structlog
@@ -23,7 +23,7 @@ def _get_secret() -> str:
     if not secret:
         raise RuntimeError(
             "SECRET_KEY env var not set. "
-            "Generate one with: python -c \"import secrets; print(secrets.token_hex(32))\""
+            'Generate one with: python -c "import secrets; print(secrets.token_hex(32))"'
         )
     return secret
 
@@ -35,7 +35,7 @@ def create_session_token(user_id: str, tier: str) -> str:
     Uses PyJWT with HS256 — NOT python-jose.
     """
     secret = _get_secret()
-    now = datetime.now(tz=timezone.utc)
+    now = datetime.now(tz=UTC)
     payload = {
         "user_id": user_id,
         "tier": tier,
@@ -54,9 +54,7 @@ def verify_session_token(token: str) -> dict[str, object]:
     Raises jwt.InvalidTokenError for any other verification failure.
     """
     secret = _get_secret()
-    payload: dict[str, object] = jwt.decode(
-        token, secret, algorithms=[_ALGORITHM]
-    )
+    payload: dict[str, object] = jwt.decode(token, secret, algorithms=[_ALGORITHM])
     logger.info(
         "session_manager.token_verified",
         user_id=payload.get("user_id"),

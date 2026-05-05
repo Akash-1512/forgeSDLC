@@ -75,16 +75,12 @@ async def test_render_tool_wait_for_health_returns_true_on_200() -> None:
 async def test_render_tool_wait_for_health_returns_false_on_timeout() -> None:
     with patch("httpx.AsyncClient") as mock_client:
         mock_client.return_value.__aenter__ = AsyncMock(
-            return_value=MagicMock(
-                get=AsyncMock(side_effect=Exception("connection refused"))
-            )
+            return_value=MagicMock(get=AsyncMock(side_effect=Exception("connection refused")))
         )
         mock_client.return_value.__aexit__ = AsyncMock(return_value=False)
         with patch("asyncio.sleep", AsyncMock()):
             tool = RenderTool()
-            result = await tool.wait_for_health(
-                "https://myapp.onrender.com", timeout_seconds=0
-            )
+            result = await tool.wait_for_health("https://myapp.onrender.com", timeout_seconds=0)
 
     assert result is False
 

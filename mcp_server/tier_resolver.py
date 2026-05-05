@@ -14,6 +14,7 @@ Full JWT enforcement requires the auth flow (login → token → MCP header).
 This is the pragmatic intermediate fix that at least reads env var so
 developers can test pro-tier routing locally by setting FORGESDLC_TIER=pro.
 """
+
 from __future__ import annotations
 
 import os
@@ -37,7 +38,10 @@ def resolve_tier() -> str:
     token = os.getenv("FORGESDLC_SESSION_TOKEN", "")
     if token:
         try:
-            from subscription.session_manager import verify_session_token  # noqa: PLC0415
+            from subscription.session_manager import (
+                verify_session_token,  # noqa: PLC0415
+            )
+
             payload = verify_session_token(token)
             tier = str(payload.get("tier", "free"))
             if tier in _VALID_TIERS:

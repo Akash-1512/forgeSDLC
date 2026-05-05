@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 
 import structlog
 
@@ -91,7 +90,7 @@ jobs:
       - name: Run tests with coverage
         run: pytest tests/ --cov=. --cov-report=xml -q
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'changeme' }}@localhost:5432/forgesdlc
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'changeme' }}@localhost:5432/forgesdlc  # noqa: E501
 
       - uses: codecov/codecov-action@{codecov_version}
         with:
@@ -168,6 +167,7 @@ class CICDAgent(BaseAgent):
 
         # Step 3: Validate YAML — raises immediately if template is malformed
         import yaml  # noqa: PLC0415
+
         yaml.safe_load(ci_yaml)
 
         # Step 4: Write via DiffEngine (L3 InterpretRecord, creates .forgesdlc.bak)
@@ -179,6 +179,7 @@ class CICDAgent(BaseAgent):
             pass
 
         import os  # noqa: PLC0415
+
         ci_path = os.path.join(workspace_path, ".github", "workflows", "ci.yml")
         diff = await self.diff_engine.generate_diff(
             filepath=ci_path,

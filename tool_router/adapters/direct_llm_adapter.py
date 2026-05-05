@@ -17,11 +17,13 @@ class DirectLLMAdapter:
     All calls appear in TokenRecords via ModelRouter's tracking.
     """
 
-    async def generate(
-        self, task: str, context: str, workspace_path: str
-    ) -> ToolResult:
+    async def generate(self, task: str, context: str, workspace_path: str) -> ToolResult:
         try:
-            from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+            from langchain_core.messages import (  # noqa: PLC0415
+                HumanMessage,
+                SystemMessage,
+            )
+
             from model_router.router import ModelRouter  # noqa: PLC0415
 
             router = ModelRouter()
@@ -31,11 +33,13 @@ class DirectLLMAdapter:
                 estimated_tokens=int(len(task.split()) * 1.33) + 200,
                 subscription_tier=os.getenv("FORGESDLC_TIER", "free"),
                 budget_used=0.0,
-                budget_total=0.0  # free tier — no cap,  # no budget constraint for fallback path
+                budget_total=0.0,  # free tier — no cap,  # no budget constraint for fallback path
             )
             response = await adapter.ainvoke(
                 [
-                    SystemMessage(content=f"You are a code generation assistant.\nProject context:\n{context}"),
+                    SystemMessage(
+                        content=f"You are a code generation assistant.\nProject context:\n{context}"
+                    ),
                     HumanMessage(content=task),
                 ]
             )

@@ -20,7 +20,10 @@ class FIMRouter:
     def select(self) -> BaseLLMAdapter:
         """Return CodestralAdapter if key set, else OllamaAdapter(devstral)."""
         if os.getenv("MISTRAL_CODESTRAL_KEY"):
-            from model_router.adapters.codestral_adapter import CodestralAdapter  # noqa: PLC0415
+            from model_router.adapters.codestral_adapter import (
+                CodestralAdapter,  # noqa: PLC0415
+            )
+
             logger.info("fim_router.selected", adapter="codestral")
             return CodestralAdapter()
 
@@ -30,4 +33,5 @@ class FIMRouter:
             reason="MISTRAL_CODESTRAL_KEY not set",
         )
         from model_router.adapters.ollama_adapter import OllamaAdapter  # noqa: PLC0415
+
         return OllamaAdapter(model="devstral")

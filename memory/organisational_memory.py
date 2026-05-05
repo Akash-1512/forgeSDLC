@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import os
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import chromadb
 import structlog
@@ -15,9 +15,7 @@ from memory.schemas import OrgMemoryEntry
 logger = structlog.get_logger()
 
 # Fix #120: resolve absolute path at import time so CWD changes don't matter
-_DEFAULT_CHROMA_PATH = os.path.abspath(
-    os.getenv("FORGESDLC_CHROMA_PATH", "./chroma_db")
-)
+_DEFAULT_CHROMA_PATH = os.path.abspath(os.getenv("FORGESDLC_CHROMA_PATH", "./chroma_db"))
 
 # Fix #17: single shared embeddings instance — avoid 90MB reload per OrgMemory()
 _SHARED_EMBEDDINGS: HuggingFaceEmbeddings | None = None
@@ -91,9 +89,7 @@ class OrgMemory:
             category=entry.category,
         )
 
-    async def search(
-        self, query: str, project_id: str, limit: int = 10
-    ) -> list[OrgMemoryEntry]:
+    async def search(self, query: str, project_id: str, limit: int = 10) -> list[OrgMemoryEntry]:
         """Semantic similarity search filtered by project_id.
 
         Emits InterpretRecord before read.
@@ -130,8 +126,8 @@ class OrgMemory:
         distances = results.get("distances", [[]])[0]
 
         for entry_id, content, meta, distance in zip(
-            ids, documents, metadatas, distances
-        ):
+            ids, documents, metadatas, distances, strict=False
+        ):  # noqa: E501
             # Cosine distance → similarity score (0=identical, 2=opposite)
             relevance = max(0.0, 1.0 - (distance / 2.0))
             entries.append(
@@ -168,7 +164,7 @@ class OrgMemory:
             tool_delegated_to=None,
             reversible=(action_type == "read"),
             workspace_files_affected=[],
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
         )
         logger.info(
             "interpret_record.memory",

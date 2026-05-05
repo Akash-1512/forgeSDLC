@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 import structlog
 
@@ -9,26 +9,28 @@ from workspace.context import WorkspaceContext
 logger = structlog.get_logger()
 
 
-class Mode(str, Enum):
-    INLINE   = "inline"    # small targeted edit — companion panel diff view
+class Mode(StrEnum):
+    INLINE = "inline"  # small targeted edit — companion panel diff view
     PIPELINE = "pipeline"  # full SDLC agent graph via MCP
 
 
 # Keywords that always trigger PipelineMode regardless of request length.
 # These indicate explicit SDLC intent — never route to InlineMode.
-PIPELINE_KEYWORDS: frozenset[str] = frozenset({
-    "requirements",
-    "architecture",
-    "deploy",
-    "monitor",
-    "security scan",
-    "generate ci",
-    "full pipeline",
-    "new project",
-    "generate docs",
-    "design",
-    "scaffold",
-})
+PIPELINE_KEYWORDS: frozenset[str] = frozenset(
+    {
+        "requirements",
+        "architecture",
+        "deploy",
+        "monitor",
+        "security scan",
+        "generate ci",
+        "full pipeline",
+        "new project",
+        "generate docs",
+        "design",
+        "scaffold",
+    }
+)
 
 
 class ModeRouter:
@@ -62,10 +64,7 @@ class ModeRouter:
             return Mode.PIPELINE
 
         # InlineMode: short + focused file — narrow path, intentional
-        if (
-            len(request) <= 200
-            and workspace_context.active_file is not None
-        ):
+        if len(request) <= 200 and workspace_context.active_file is not None:
             logger.info(
                 "mode_router.inline",
                 active_file=workspace_context.active_file,

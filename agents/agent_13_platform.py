@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from datetime import datetime, timezone
 
 import structlog
 
@@ -27,9 +26,7 @@ class PlatformAgent(BaseAgent):
 
     async def run(self, state: dict[str, object]) -> dict[str, object]:
         """Override: silent skip on monolith."""
-        arch_type = str(
-            (state.get("service_graph") or {}).get("architecture_type", "monolith")
-        )
+        arch_type = str((state.get("service_graph") or {}).get("architecture_type", "monolith"))
         if arch_type != "multi_service":
             state[f"{self._skip_key}_skipped"] = True
             logger.info("agent_13.skipped", reason="monolith architecture")
@@ -138,9 +135,7 @@ class PlatformAgent(BaseAgent):
                 if dep_str not in in_degree:
                     in_degree[dep_str] = 0
 
-        queue: deque[str] = deque(
-            name for name, deg in in_degree.items() if deg == 0
-        )
+        queue: deque[str] = deque(name for name, deg in in_degree.items() if deg == 0)
         order: list[str] = []
         while queue:
             node = queue.popleft()
@@ -156,9 +151,7 @@ class PlatformAgent(BaseAgent):
 
         return order
 
-    def _generate_compose(
-        self, services: list[object], order: list[str]
-    ) -> str:
+    def _generate_compose(self, services: list[object], order: list[str]) -> str:
         """Generate Docker Compose YAML respecting topological deployment order."""
         lines = [
             "version: '3.9'",
@@ -176,31 +169,33 @@ class PlatformAgent(BaseAgent):
             deps = list(svc.get("depends_on", []) or []) if svc else []
             lines.append(f"  {name}:")
             lines.append(f"    build: ./{name}")
-            lines.append(f"    networks:")
-            lines.append(f"      - forgesdlc_net")
-            lines.append(f"    ports:")
-            lines.append(f"      - '8000'")
+            lines.append("    networks:")
+            lines.append("      - forgesdlc_net")
+            lines.append("    ports:")
+            lines.append("      - '8000'")
             lines.append(
                 f"    environment:"
                 f"\n      - OTEL_SERVICE_NAME={name}"
                 f"\n      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317"
             )
             if deps:
-                lines.append(f"    depends_on:")
+                lines.append("    depends_on:")
                 for dep in deps:
                     lines.append(f"      {dep}:")
-                    lines.append(f"        condition: service_healthy")
+                    lines.append("        condition: service_healthy")
 
         # Add OTel collector sidecar
-        lines.extend([
-            "  otel-collector:",
-            "    image: otel/opentelemetry-collector-contrib:latest",
-            "    networks:",
-            "      - forgesdlc_net",
-            "    ports:",
-            "      - '4317:4317'",
-            "      - '55679:55679'",
-        ])
+        lines.extend(
+            [
+                "  otel-collector:",
+                "    image: otel/opentelemetry-collector-contrib:latest",
+                "    networks:",
+                "      - forgesdlc_net",
+                "    ports:",
+                "      - '4317:4317'",
+                "      - '55679:55679'",
+            ]
+        )
 
         return "\n".join(lines) + "\n"
 

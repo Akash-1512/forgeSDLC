@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import csv
-import io
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
@@ -38,7 +36,7 @@ class TokenTracker:
         """Create and append a TokenRecord to state."""
         rec = TokenRecord(
             record_id=str(uuid4()),
-            timestamp=datetime.now(tz=timezone.utc),
+            timestamp=datetime.now(tz=UTC),
             trace_id=str(state.get("trace_id") or uuid4()),
             agent=agent,
             task=task,
@@ -56,9 +54,7 @@ class TokenTracker:
             tool_delegated_to=tool_delegated_to,
         )
 
-        records: list[dict[str, object]] = list(
-            state.get("session_token_records") or []
-        )
+        records: list[dict[str, object]] = list(state.get("session_token_records") or [])
         records.append(rec.model_dump())
         state["session_token_records"] = records  # type: ignore[index]
 

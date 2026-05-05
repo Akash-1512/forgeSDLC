@@ -1,19 +1,29 @@
 from __future__ import annotations
 
+import pydantic
 import pytest
 
 from context_management.agent_context_specs import AGENT_CONTEXT_SPECS, print_spec_table
 from context_management.context_packet import AgentContextSpec
-import pydantic
 
 
 def test_all_14_agents_have_specs() -> None:
     expected = {
-        "agent_0_decompose", "agent_1_requirements", "agent_2_stack",
-        "agent_3_architecture", "agent_4_tool_router", "agent_5_coord_review",
-        "agent_5b_security", "agent_6_test_coord", "agent_7_cicd",
-        "agent_8_deploy", "agent_9_monitor", "agent_10_docs",
-        "agent_11_integration", "agent_12_contracts", "agent_13_platform",
+        "agent_0_decompose",
+        "agent_1_requirements",
+        "agent_2_stack",
+        "agent_3_architecture",
+        "agent_4_tool_router",
+        "agent_5_coord_review",
+        "agent_5b_security",
+        "agent_6_test_coord",
+        "agent_7_cicd",
+        "agent_8_deploy",
+        "agent_9_monitor",
+        "agent_10_docs",
+        "agent_11_integration",
+        "agent_12_contracts",
+        "agent_13_platform",
     }
     assert set(AGENT_CONTEXT_SPECS.keys()) == expected
     assert len(AGENT_CONTEXT_SPECS) == 15  # 14 numbered + agent_5b
@@ -38,7 +48,11 @@ def test_tool_router_context_required_for_agent_6() -> None:
 
 def test_tool_router_context_not_required_for_other_agents() -> None:
     """Only Agent 4 and Agent 6 delegate via ToolRouter — others must not require it."""
-    delegation_agents = {"agent_4_tool_router", "agent_6_test_coord", "agent_5_coord_review"}
+    delegation_agents = {
+        "agent_4_tool_router",
+        "agent_6_test_coord",
+        "agent_5_coord_review",
+    }
     for agent_name, spec in AGENT_CONTEXT_SPECS.items():
         if agent_name not in delegation_agents:
             assert "tool_router_context" not in spec.required_fields, (

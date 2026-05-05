@@ -2,6 +2,7 @@
 Verifies DASTRunner emits L10 InterpretRecord BEFORE the RUN_DAST env check.
 The audit trail must show every intent to run a component, not just successful runs.
 """
+
 from __future__ import annotations
 
 import os
@@ -89,7 +90,10 @@ async def test_dast_l10_record_has_correct_fields(tmp_path: object) -> None:
         runner = DASTRunner()
         await runner.run(str(tmp_path))
 
-    l10 = next((r for r in records if r.layer == "security" and r.component == "DASTRunner"), None)
+    l10 = next(
+        (r for r in records if r.layer == "security" and r.component == "DASTRunner"),
+        None,
+    )
     assert l10 is not None
     assert l10.layer == "security"
     assert l10.component == "DASTRunner"
@@ -119,7 +123,6 @@ async def test_l10_emission_order_before_skip(tmp_path: object) -> None:
         emission_order.append("run_returned")
 
     assert emission_order[0] == "L10_emitted", (
-        f"Expected L10 to be emitted before run() returns. "
-        f"Actual order: {emission_order}"
+        f"Expected L10 to be emitted before run() returns. Actual order: {emission_order}"
     )
     assert result == [], "DAST must have skipped (RUN_DAST not set)"

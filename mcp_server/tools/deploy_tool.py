@@ -5,6 +5,7 @@ from pathlib import Path
 
 import structlog
 from fastmcp import Context
+
 from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
@@ -13,14 +14,15 @@ logger = structlog.get_logger()
 def _build_deploy_state(
     project_id: str, environment: str, human_confirmation: str
 ) -> dict[str, object]:
-    import uuid
     import sqlite3
+    import uuid
     from pathlib import Path
 
     # Fix #66: load prior security_gate from checkpoint so deploy respects it
     security_gate_from_checkpoint: dict[str, object] | None = None
     try:
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         Path("./data").mkdir(parents=True, exist_ok=True)
         with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
             checkpointer = SqliteSaver(conn)
@@ -41,7 +43,9 @@ def _build_deploy_state(
         "interpret_log": [],
         "trace_id": str(uuid.uuid4()),
         "mode": "mcp",
-        "prd": "", "adr": "", "rfc": "",
+        "prd": "",
+        "adr": "",
+        "rfc": "",
         "service_graph": {"services": []},
         "generated_files": [],
         "review_findings": [],
@@ -56,7 +60,11 @@ def _build_deploy_state(
         "ci_pipeline_url": "",
         "tool_delegated_to": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
+        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"])
+        .get_tier("free")
+        .budget_usd_per_session
+        if True
+        else 5.0,
         "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,
@@ -74,19 +82,30 @@ def _build_deploy_state(
 def _build_infrastructure_shared() -> tuple:
     """H2 Fix: delegate to shared infrastructure factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
+
     infra = build_infrastructure()
     return (
-        infra.model_router, infra.context_window_manager, infra.memory_archiver,
-        infra.memory_context_builder, infra.context_file_manager,
-        infra.workspace_bridge, infra.diff_engine,
+        infra.model_router,
+        infra.context_window_manager,
+        infra.memory_archiver,
+        infra.memory_context_builder,
+        infra.context_file_manager,
+        infra.workspace_bridge,
+        infra.diff_engine,
     )
 
 
 def _build_deploy_agent(infra: tuple) -> object:
     from agents.agent_8_deploy import DeployAgent
+
     (
-        model_router, cwm, memory_archiver,
-        memory_ctx_builder, cfm, workspace_bridge, diff_engine,
+        model_router,
+        cwm,
+        memory_archiver,
+        memory_ctx_builder,
+        cfm,
+        workspace_bridge,
+        diff_engine,
     ) = infra
     return DeployAgent(
         name="agent_8_deploy",
@@ -132,6 +151,7 @@ async def deploy_project(
         Path("./data").mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
+
         checkpointer = SqliteSaver(conn)
         config = {"configurable": {"thread_id": f"deploy-{project_id}"}}
         existing = checkpointer.get(config)
@@ -181,8 +201,7 @@ async def deploy_project(
             "displayed_interpretation": state.get("displayed_interpretation", ""),
             "project_id": project_id,
             "instructions": (
-                "Review the deployment plan. "
-                "Pass human_confirmation='100% GO' to proceed."
+                "Review the deployment plan. Pass human_confirmation='100% GO' to proceed."
             ),
         }
 

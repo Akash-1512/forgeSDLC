@@ -4,7 +4,7 @@ import asyncio
 import json
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 import structlog
@@ -56,7 +56,7 @@ def _emit_l10(component: str, action: str, code_path: str) -> None:
         tool_delegated_to=None,
         reversible=True,
         workspace_files_affected=[],
-        timestamp=datetime.now(tz=timezone.utc),
+        timestamp=datetime.now(tz=UTC),
     )
     logger.info("interpret_record.security", layer="security", component=component)
 
@@ -69,7 +69,12 @@ class BanditRunner:
         _emit_l10("BanditRunner", f"Running bandit SAST on {code_path}", code_path)
         try:
             proc = await asyncio.create_subprocess_exec(
-                "bandit", "-r", code_path, "-f", "json", "-q",
+                "bandit",
+                "-r",
+                code_path,
+                "-f",
+                "json",
+                "-q",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -88,16 +93,18 @@ class BanditRunner:
                 if severity not in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
                     severity = "LOW"
                 line_num = result.get("line_number")
-                findings.append(SecurityFinding(
-                    tool="bandit",
-                    rule=str(result.get("test_id", "B000")),
-                    severity=severity,  # type: ignore[arg-type]
-                    file=result.get("filename"),
-                    line=int(line_num) if line_num and int(line_num) >= 1 else None,
-                    description=str(result.get("issue_text", "")),
-                    fix_suggestion=result.get("more_info"),
-                    blocking=severity in ("CRITICAL", "HIGH"),
-                ))
+                findings.append(
+                    SecurityFinding(
+                        tool="bandit",
+                        rule=str(result.get("test_id", "B000")),
+                        severity=severity,  # type: ignore[arg-type]
+                        file=result.get("filename"),
+                        line=int(line_num) if line_num and int(line_num) >= 1 else None,
+                        description=str(result.get("issue_text", "")),
+                        fix_suggestion=result.get("more_info"),
+                        blocking=severity in ("CRITICAL", "HIGH"),
+                    )
+                )
             return findings
         except (json.JSONDecodeError, KeyError, ValueError):
             return []
@@ -116,7 +123,7 @@ class SemgrepRunner:
         try:
             proc = await asyncio.create_subprocess_exec(
                 "semgrep",
-                "--config=p/python",    # always — never --config=auto
+                "--config=p/python",  # always — never --config=auto
                 "--config=p/security",  # always — never --config=auto
                 "--json",
                 code_path,
@@ -134,22 +141,22 @@ class SemgrepRunner:
             data = json.loads(output)
             findings: list[SecurityFinding] = []
             for result in data.get("results", []):
-                severity = str(
-                    result.get("extra", {}).get("severity", "INFO")
-                ).upper()
+                severity = str(result.get("extra", {}).get("severity", "INFO")).upper()
                 if severity not in ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO"):
                     severity = "INFO"
                 line_num = result.get("start", {}).get("line")
-                findings.append(SecurityFinding(
-                    tool="semgrep",
-                    rule=str(result.get("check_id", "unknown")),
-                    severity=severity,  # type: ignore[arg-type]
-                    file=result.get("path"),
-                    line=int(line_num) if line_num and int(line_num) >= 1 else None,
-                    description=str(result.get("extra", {}).get("message", "")),
-                    fix_suggestion=result.get("extra", {}).get("fix"),
-                    blocking=severity in ("CRITICAL", "HIGH"),
-                ))
+                findings.append(
+                    SecurityFinding(
+                        tool="semgrep",
+                        rule=str(result.get("check_id", "unknown")),
+                        severity=severity,  # type: ignore[arg-type]
+                        file=result.get("path"),
+                        line=int(line_num) if line_num and int(line_num) >= 1 else None,
+                        description=str(result.get("extra", {}).get("message", "")),
+                        fix_suggestion=result.get("extra", {}).get("fix"),
+                        blocking=severity in ("CRITICAL", "HIGH"),
+                    )
+                )
             return findings
         except (json.JSONDecodeError, KeyError, ValueError):
             return []
@@ -176,7 +183,10 @@ class PipAuditRunner:
         _emit_l10("PipAuditRunner", f"Running pip-audit on {req_file}", req_file)
         try:
             proc = await asyncio.create_subprocess_exec(
-                "pip-audit", "-r", req_file, "--format=json",
+                "pip-audit",
+                "-r",
+                req_file,
+                "--format=json",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -192,19 +202,21 @@ class PipAuditRunner:
             findings: list[SecurityFinding] = []
             for dep in data if isinstance(data, list) else []:
                 for vuln in dep.get("vulns", []):
-                    findings.append(SecurityFinding(
-                        tool="pip_audit",
-                        rule=str(vuln.get("id", "CVE-UNKNOWN")),
-                        severity="HIGH",
-                        file=None,
-                        line=None,
-                        description=(
-                            f"{dep.get('name', '')} {dep.get('version', '')}: "
-                            f"{vuln.get('description', '')}"
-                        ),
-                        fix_suggestion=f"Upgrade to {vuln.get('fix_versions', ['latest'])}",
-                        blocking=True,
-                    ))
+                    findings.append(
+                        SecurityFinding(
+                            tool="pip_audit",
+                            rule=str(vuln.get("id", "CVE-UNKNOWN")),
+                            severity="HIGH",
+                            file=None,
+                            line=None,
+                            description=(
+                                f"{dep.get('name', '')} {dep.get('version', '')}: "
+                                f"{vuln.get('description', '')}"
+                            ),
+                            fix_suggestion=f"Upgrade to {vuln.get('fix_versions', ['latest'])}",
+                            blocking=True,
+                        )
+                    )
             return findings
         except (json.JSONDecodeError, KeyError, ValueError):
             return []
@@ -220,14 +232,26 @@ class DASTRunner:
 
     ATTACK_PAYLOADS = [
         # GET query-string SQLi
-        {"path": "/api/users?id=1' OR '1'='1", "check": "multiple_results", "method": "GET"},
+        {
+            "path": "/api/users?id=1' OR '1'='1",
+            "check": "multiple_results",
+            "method": "GET",
+        },
         # Path traversal
-        {"path": "/files?path=../../etc/passwd", "check": "root_in_body", "method": "GET"},
+        {
+            "path": "/files?path=../../etc/passwd",
+            "check": "root_in_body",
+            "method": "GET",
+        },
         # Unauthenticated admin access
         {"path": "/admin", "check": "status_200", "method": "GET"},
         # H15 Fix: POST body SQLi — previously missing
-        {"path": "/api/login", "check": "sqli_in_post", "method": "POST",
-         "body": {"username": "admin' OR '1'='1", "password": "x"}},
+        {
+            "path": "/api/login",
+            "check": "sqli_in_post",
+            "method": "POST",
+            "body": {"username": "admin' OR '1'='1", "password": "x"},
+        },
     ]
 
     async def run(self, workspace_path: str) -> list[SecurityFinding]:
@@ -245,9 +269,16 @@ class DASTRunner:
         app_proc = None
         try:
             app_proc = await asyncio.create_subprocess_exec(
-                sys.executable, "-m", "uvicorn", "main:app",
-                "--host", "127.0.0.1", "--port", "18080",
-                "--log-level", "error",
+                sys.executable,
+                "-m",
+                "uvicorn",
+                "main:app",
+                "--host",
+                "127.0.0.1",
+                "--port",
+                "18080",
+                "--log-level",
+                "error",
                 cwd=workspace_path,
             )
             await self._wait_for_health(
@@ -261,14 +292,17 @@ class DASTRunner:
         finally:
             if app_proc:
                 app_proc.terminate()
-                try:
+                import contextlib  # noqa: PLC0415
+
+                with contextlib.suppress(Exception):
                     await asyncio.wait_for(app_proc.wait(), timeout=5)
-                except Exception:
-                    pass
 
     async def _wait_for_health(self, url: str, timeout: int) -> None:
+        import time as _time
+
         import httpx  # noqa: PLC0415
-        import time as _time; deadline = _time.monotonic() + timeout
+
+        deadline = _time.monotonic() + timeout
         async with httpx.AsyncClient() as client:
             while _time.monotonic() < deadline:
                 try:
@@ -282,6 +316,7 @@ class DASTRunner:
 
     async def _run_payloads(self) -> list[SecurityFinding]:
         import httpx  # noqa: PLC0415
+
         findings: list[SecurityFinding] = []
         async with httpx.AsyncClient(timeout=5) as client:
             for payload in self.ATTACK_PAYLOADS:
@@ -310,19 +345,25 @@ class DASTRunner:
 
             if check == "status_200" and status == 200:
                 return SecurityFinding(
-                    tool="dast", rule="auth_bypass",
-                    severity="HIGH", file=None, line=None,
-                    description=f"Admin endpoint accessible without authentication: {payload['path']}",
+                    tool="dast",
+                    rule="auth_bypass",
+                    severity="HIGH",
+                    file=None,
+                    line=None,
+                    description=f"Admin endpoint accessible without authentication: {payload['path']}",  # noqa: E501
                     fix_suggestion="Add authentication middleware to /admin routes",
                     blocking=True,
                 )
 
             if check == "root_in_body" and "root:" in text:
                 return SecurityFinding(
-                    tool="dast", rule="path_traversal",
-                    severity="CRITICAL", file=None, line=None,
+                    tool="dast",
+                    rule="path_traversal",
+                    severity="CRITICAL",
+                    file=None,
+                    line=None,
                     description="Path traversal vulnerability: /etc/passwd content returned",
-                    fix_suggestion="Validate and sanitise file path inputs. Use Path.resolve() and check is_relative_to(safe_root).",
+                    fix_suggestion="Validate and sanitise file path inputs. Use Path.resolve() and check is_relative_to(safe_root).",  # noqa: E501
                     blocking=True,
                 )
 
@@ -335,15 +376,18 @@ class DASTRunner:
                     "syntax error" in text.lower(),
                     "mysql" in text.lower() and "error" in text.lower(),
                     "postgresql" in text.lower() and "error" in text.lower(),
-                    "ora-" in text.lower(),   # Oracle error
+                    "ora-" in text.lower(),  # Oracle error
                     "sqlite" in text.lower() and "error" in text.lower(),
                 ]
                 if any(sqli_indicators):
                     return SecurityFinding(
-                        tool="dast", rule="sql_injection",
-                        severity="CRITICAL", file=None, line=None,
+                        tool="dast",
+                        rule="sql_injection",
+                        severity="CRITICAL",
+                        file=None,
+                        line=None,
                         description=f"Potential SQL injection via GET parameter: {payload['path']}",
-                        fix_suggestion="Use parameterised queries / prepared statements. Never interpolate user input into SQL strings.",
+                        fix_suggestion="Use parameterised queries / prepared statements. Never interpolate user input into SQL strings.",  # noqa: E501
                         blocking=True,
                     )
 
@@ -358,10 +402,13 @@ class DASTRunner:
                 ]
                 if any(auth_bypass_indicators):
                     return SecurityFinding(
-                        tool="dast", rule="sql_injection_auth_bypass",
-                        severity="CRITICAL", file=None, line=None,
-                        description="SQL injection authentication bypass: login succeeded with tautology payload",
-                        fix_suggestion="Use parameterised queries for authentication. Hash and compare passwords, never query by plain password.",
+                        tool="dast",
+                        rule="sql_injection_auth_bypass",
+                        severity="CRITICAL",
+                        file=None,
+                        line=None,
+                        description="SQL injection authentication bypass: login succeeded with tautology payload",  # noqa: E501
+                        fix_suggestion="Use parameterised queries for authentication. Hash and compare passwords, never query by plain password.",  # noqa: E501
                         blocking=True,
                     )
 

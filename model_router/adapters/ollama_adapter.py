@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import structlog
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
@@ -34,8 +34,7 @@ class OllamaAdapter:
         payload: dict[str, object] = {
             "model": self._model,
             "messages": [
-                {"role": self._map_role(m.type), "content": str(m.content)}
-                for m in messages
+                {"role": self._map_role(m.type), "content": str(m.content)} for m in messages
             ],
             "stream": False,
             "options": {"num_predict": max_tokens, "temperature": temperature},
@@ -62,8 +61,10 @@ class OllamaAdapter:
         temperature: float = 0.0,
     ) -> AsyncIterator[AIMessageChunk]:
         response = await self.ainvoke(messages, max_tokens=max_tokens, temperature=temperature)
+
         async def _gen() -> AsyncIterator[AIMessageChunk]:
             yield AIMessageChunk(content=str(response.content))
+
         return _gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:

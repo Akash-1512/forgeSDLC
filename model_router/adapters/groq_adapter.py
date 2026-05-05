@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import AsyncIterator
+from collections.abc import AsyncIterator
 
 import httpx
 import structlog
@@ -13,14 +13,21 @@ from tenacity import (
     wait_exponential,
 )
 
-from orchestrator.constants import EXPONENTIAL_BACKOFF_BASE, EXPONENTIAL_BACKOFF_MAX_SECONDS
+from orchestrator.constants import (
+    EXPONENTIAL_BACKOFF_BASE,
+    EXPONENTIAL_BACKOFF_MAX_SECONDS,
+)
 
 logger = structlog.get_logger()
 
 
 def _is_rate_limit(exc: BaseException) -> bool:
     """Return True for 429 rate limit and 503 service unavailable responses."""
-    return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (429, 503)
+    return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (
+        429,
+        503,
+    )
+
 
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
@@ -55,7 +62,9 @@ class GroqAdapter:
 
     @retry(
         retry=retry_if_exception(_is_rate_limit),
-        wait=wait_exponential(multiplier=EXPONENTIAL_BACKOFF_BASE, max=EXPONENTIAL_BACKOFF_MAX_SECONDS),
+        wait=wait_exponential(
+            multiplier=EXPONENTIAL_BACKOFF_BASE, max=EXPONENTIAL_BACKOFF_MAX_SECONDS
+        ),
         stop=stop_after_attempt(4),
         reraise=True,
     )
@@ -68,12 +77,10 @@ class GroqAdapter:
         stop: list[str] | None = None,
     ) -> AIMessage:
 
-
         payload: dict[str, object] = {
             "model": self._model.replace("groq/", ""),
             "messages": [
-                {"role": self._map_role(m.type), "content": str(m.content)}
-                for m in messages
+                {"role": self._map_role(m.type), "content": str(m.content)} for m in messages
             ],
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -118,8 +125,7 @@ class GroqAdapter:
         payload = {
             "model": self._model.replace("groq/", ""),
             "messages": [
-                {"role": self._map_role(m.type), "content": str(m.content)}
-                for m in messages
+                {"role": self._map_role(m.type), "content": str(m.content)} for m in messages
             ],
             "max_tokens": max_tokens,
             "temperature": temperature,
@@ -128,8 +134,10 @@ class GroqAdapter:
 
         async def _stream_gen() -> AsyncIterator[AIMessageChunk]:
             import json as _json  # noqa: PLC0415
-            async with httpx.AsyncClient(timeout=60) as client:
-                async with client.stream(
+
+            async with (
+                httpx.AsyncClient(timeout=60) as client,
+                client.stream(
                     "POST",
                     "https://api.groq.com/openai/v1/chat/completions",
                     headers={
@@ -137,29 +145,28 @@ class GroqAdapter:
                         "Content-Type": "application/json",
                     },
                     json=payload,
-                ) as response:
-                    response.raise_for_status()
-                    async for line in response.aiter_lines():
-                        if not line.startswith("data: "):
-                            continue
-                        data_str = line[6:]
-                        if data_str.strip() == "[DONE]":
-                            break
-                        try:
-                            chunk = _json.loads(data_str)
-                            delta = chunk["choices"][0]["delta"]
-                            token = delta.get("content", "")
-                            if token:
-                                yield AIMessageChunk(content=token)
-                        except (KeyError, _json.JSONDecodeError):
-                            continue
+                ) as response,
+            ):
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        chunk = _json.loads(data_str)
+                        delta = chunk["choices"][0]["delta"]
+                        token = delta.get("content", "")
+                        if token:
+                            yield AIMessageChunk(content=token)
+                    except (KeyError, _json.JSONDecodeError):
+                        continue
 
         return _stream_gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:
-        raise NotImplementedError(
-            "Groq does not support FIM. Use CodestralAdapter for FIM tasks."
-        )
+        raise NotImplementedError("Groq does not support FIM. Use CodestralAdapter for FIM tasks.")
 
     @property
     def model_name(self) -> str:

@@ -44,8 +44,10 @@ async def test_detect_always_includes_direct_llm_as_last_tool() -> None:
 async def test_detect_cursor_returns_false_without_cursor_api_verified_env() -> None:
     router = _make_router()
     import os
-    env = {k: v for k, v in os.environ.items()
-           if k not in ("CURSOR_API_KEY", "CURSOR_API_VERIFIED")}
+
+    env = {
+        k: v for k, v in os.environ.items() if k not in ("CURSOR_API_KEY", "CURSOR_API_VERIFIED")
+    }
     with patch.dict(os.environ, env, clear=True):
         result = await router._check_cursor()  # type: ignore[union-attr]
     assert result is False
@@ -55,6 +57,7 @@ async def test_detect_cursor_returns_false_without_cursor_api_verified_env() -> 
 async def test_detect_cursor_returns_false_with_key_but_without_verified_flag() -> None:
     router = _make_router()
     import os
+
     with patch.dict(os.environ, {"CURSOR_API_KEY": "sk-test", "CURSOR_API_VERIFIED": "false"}):
         result = await router._check_cursor()  # type: ignore[union-attr]
     assert result is False
@@ -75,6 +78,7 @@ async def test_detect_claude_code_returns_false_when_not_in_path() -> None:
 async def test_detect_devin_returns_false_without_devin_api_key() -> None:
     router = _make_router()
     import os
+
     env = {k: v for k, v in os.environ.items() if k != "DEVIN_API_KEY"}
     with patch.dict(os.environ, env, clear=True):
         result = await router._check_devin()  # type: ignore[union-attr]
@@ -87,6 +91,7 @@ async def test_route_emits_interpret_record_layer5_before_delegation() -> None:
     emitted_layers: list[str] = []
 
     from interpret.record import InterpretRecord
+
     original_init = InterpretRecord.__init__
 
     def capturing_init(self: InterpretRecord, **kwargs: object) -> None:
@@ -203,11 +208,9 @@ async def test_claude_code_adapter_times_out_after_mcp_tool_timeout_seconds() ->
             "tool_router.adapters.claude_code_adapter.MCP_TOOL_TIMEOUT_SECONDS",
             0.01,
         ),
+        pytest.raises(ToolRouterError, match="timed out"),
     ):
-        with pytest.raises(ToolRouterError, match="timed out"):
-            await adapter.generate(
-                task="write code", context="ctx", workspace_path="."
-            )
+        await adapter.generate(task="write code", context="ctx", workspace_path=".")
 
 
 @pytest.mark.asyncio
@@ -217,8 +220,8 @@ async def test_direct_llm_adapter_returns_tool_result_with_success_true() -> Non
     adapter = DirectLLMAdapter()
 
     import os
-    env = {k: v for k, v in os.environ.items()
-           if k not in ("OPENAI_API_KEY", "GROQ_API_KEY")}
+
+    env = {k: v for k, v in os.environ.items() if k not in ("OPENAI_API_KEY", "GROQ_API_KEY")}
     with patch.dict(os.environ, env, clear=True):
         result = await adapter.generate(
             task="write a hello world", context="ctx", workspace_path="."

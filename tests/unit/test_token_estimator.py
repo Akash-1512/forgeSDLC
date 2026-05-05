@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import inspect
-
-import pytest
-
 from context_management.token_estimator import TokenEstimator
 
 
@@ -30,18 +26,21 @@ def test_estimate_dict_converts_to_string_first() -> None:
 
 def test_token_estimator_never_calls_external_api() -> None:
     """TokenEstimator must not import tiktoken, transformers, or any tokenizer."""
-    import context_management.token_estimator as module
     import sys
+
+    import context_management.token_estimator as module
 
     # Check that no forbidden packages are imported by the module
     forbidden_modules = ["tiktoken", "transformers", "openai", "anthropic"]
-    module_imports = [
-        name for name in sys.modules
+    [
+        name
+        for name in sys.modules
         if any(forbidden in name for forbidden in forbidden_modules)
         and name in str(getattr(module, "__file__", ""))
     ]
     # Simpler: just verify the module loaded without pulling in forbidden packages
     import importlib
+
     spec = importlib.util.spec_from_file_location("_est_check", module.__file__)
     assert spec is not None
     # If we got here without tiktoken being required, we're good

@@ -14,6 +14,7 @@ def _get_router() -> object:
     global _SHARED_ROUTER
     if _SHARED_ROUTER is None:
         from model_router.router import ModelRouter  # noqa: PLC0415
+
         _SHARED_ROUTER = ModelRouter()
     return _SHARED_ROUTER
 
@@ -36,7 +37,7 @@ class ContextCompressor:
         # H13 Fix: reuse shared router — no new object created per call
         router = _get_router()
         adapter = await router.route(  # type: ignore[union-attr]
-            agent="context_compressor",     # → groq/llama-3.1-8b-instant always free
+            agent="context_compressor",  # → groq/llama-3.1-8b-instant always free
             task_type="compression",
             estimated_tokens=int(len(content.split()) * 1.33) + 50,
             subscription_tier="free",
