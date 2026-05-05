@@ -14,6 +14,7 @@ from tools.security_tools import DASTRunner
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_dast_emits_l10_before_env_check(tmp_path: object) -> None:
     """L10 fires even when RUN_DAST is not set."""
     records: list[InterpretRecord] = []
@@ -45,6 +46,7 @@ async def test_dast_emits_l10_before_env_check(tmp_path: object) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_dast_emits_l10_even_when_run_dast_false(tmp_path: object) -> None:
     """L10 fires when RUN_DAST=false (explicit false, not just absent)."""
     records: list[InterpretRecord] = []
@@ -69,6 +71,7 @@ async def test_dast_emits_l10_even_when_run_dast_false(tmp_path: object) -> None
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_dast_l10_record_has_correct_fields(tmp_path: object) -> None:
     """L10 record has required fields populated."""
     records: list[InterpretRecord] = []
@@ -95,6 +98,7 @@ async def test_dast_l10_record_has_correct_fields(tmp_path: object) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_l10_emission_order_before_skip(tmp_path: object) -> None:
     """L10 must be the FIRST thing that happens — before any conditional logic."""
     emission_order: list[str] = []

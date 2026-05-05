@@ -4,8 +4,8 @@ version: 1.1.0
 author: Akash Chaudhari
 email: ag.chaudhari.1512@gmail.com
 license: MIT
-homepage: https://github.com/Akash-1512/forgesdlc
-repository: https://github.com/Akash-1512/forgesdlc
+homepage: https://github.com/Akash-1512/forgeSDLC
+repository: https://github.com/Akash-1512/forgeSDLC
 
 install:
   npm: "@forgesdlc/agent"

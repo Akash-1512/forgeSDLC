@@ -74,8 +74,8 @@ class IntegrationAgent(BaseAgent):
             task_type="integration_testing",
             estimated_tokens=150_000,         # multi-service = large combined codebase
             subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         services = list((state.get("service_graph") or {}).get("services", []) or [])

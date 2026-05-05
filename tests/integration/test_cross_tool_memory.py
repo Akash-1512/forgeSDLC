@@ -29,6 +29,7 @@ _SKIP_POSTGRES = pytest.mark.skipif(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_decision_survives_orgmemory_reinstantiation() -> None:
     """
     Save a decision to OrgMemory. Create a NEW OrgMemory instance.
@@ -70,6 +71,7 @@ async def test_decision_survives_orgmemory_reinstantiation() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_architecture_decision_retrievable_by_different_query() -> None:
     """Semantic search — different wording should still find the decision."""
     project_id = f"test-semantic-{uuid4().hex[:8]}"
@@ -102,6 +104,7 @@ async def test_architecture_decision_retrievable_by_different_query() -> None:
 
 @pytest.mark.asyncio
 @_SKIP_POSTGRES
+@pytest.mark.slow
 async def test_pipeline_history_survives_store_reinstantiation(
     tmp_path: object,
 ) -> None:
@@ -139,6 +142,7 @@ async def test_pipeline_history_survives_store_reinstantiation(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_project_context_graph_survives_reinstantiation(
     tmp_path: object,
 ) -> None:

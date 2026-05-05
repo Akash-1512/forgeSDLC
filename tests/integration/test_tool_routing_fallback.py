@@ -24,6 +24,7 @@ def _stub_result(tool: AvailableTool = AvailableTool.DIRECT_LLM) -> ToolResult:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_full_route_delegates_to_direct_llm_when_no_tools_configured(
     tmp_path: Path,
 ) -> None:
@@ -54,6 +55,7 @@ async def test_full_route_delegates_to_direct_llm_when_no_tools_configured(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_context_files_written_before_delegation(tmp_path: Path) -> None:
     """Ordering guarantee: context files must be written before adapter.generate()."""
     from context_files.manager import ContextFileManager
@@ -102,6 +104,7 @@ async def test_context_files_written_before_delegation(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_fallback_chain_cursor_unavailable_then_claude_code(
     tmp_path: Path,
 ) -> None:
@@ -132,6 +135,7 @@ async def test_fallback_chain_cursor_unavailable_then_claude_code(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_route_code_generation_mcp_tool_returns_valid_response(
     tmp_path: Path,
 ) -> None:

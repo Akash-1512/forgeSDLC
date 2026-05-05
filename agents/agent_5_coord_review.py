@@ -184,8 +184,7 @@ class CoordinatedReview(BaseAgent):
                 "line": None,
             })
             return findings
-        - Bare except → BLOCKING
-        """
+
         findings: list[dict[str, object]] = []
         if not code or not code.strip():
             return findings
@@ -237,8 +236,8 @@ class CoordinatedReview(BaseAgent):
             task_type="review",
             estimated_tokens=2_000,
             subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
     def _parse_findings(self, raw: str, pass_num: int) -> list[dict[str, object]]:

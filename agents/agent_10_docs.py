@@ -91,8 +91,8 @@ class DocsAgent(BaseAgent):
             task_type="documentation",
             estimated_tokens=int(len(str(state.get("prd", "")).split()) * 3),
             subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         # Step 1: Generate README

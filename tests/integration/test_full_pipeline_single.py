@@ -41,6 +41,7 @@ def _decompose_content() -> str:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_gather_requirements_returns_awaiting_confirmation_first_call(
     tmp_path: Path,
 ) -> None:
@@ -83,6 +84,7 @@ async def test_gather_requirements_returns_awaiting_confirmation_first_call(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_gather_requirements_completes_after_100_go_sequence(
     tmp_path: Path,
 ) -> None:
@@ -161,6 +163,7 @@ async def test_gather_requirements_completes_after_100_go_sequence(
     assert result["service_graph"]
 
 
+@pytest.mark.slow
 def test_gather_requirements_writes_agents_md_to_workspace() -> None:
     """AGENTS.md is written by BaseAgent.run() via ContextFileManager after execute."""
     # Verified structurally: BaseAgent.run() step 6 calls cfm.write_all()
@@ -169,12 +172,14 @@ def test_gather_requirements_writes_agents_md_to_workspace() -> None:
     assert True  # structural guarantee verified in unit tests
 
 
+@pytest.mark.slow
 def test_gather_requirements_stores_run_in_layer1_memory() -> None:
     """MemoryArchiver.archive() is called after each agent execute."""
     # Verified by test_run_calls_memory_archiver_after_execute in test_base_agent.py
     assert True  # structural guarantee verified in unit tests
 
 
+@pytest.mark.slow
 def test_state_persists_between_mcp_calls_via_checkpointer() -> None:
     """SqliteSaver checkpoint uses project_id as thread_id."""
     # The checkpointer uses config = {"configurable": {"thread_id": project_id}}

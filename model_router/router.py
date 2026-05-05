@@ -194,16 +194,51 @@ class ModelRouter:
             adapter = GroqAdapter(model="groq/llama-3.3-70b-versatile")
             return _TrackingAdapter(adapter, agent, task_type, state, self._tracker)
 
-        # Step 7: Claude BYOK gate
+        # Step 7: BYOK gate — models requiring API keys beyond Groq free tier
         if default_model in ALWAYS_BYOK_MODELS:
-            if not self._byok_manager.has_key("anthropic"):
-                from model_router.adapters.claude_adapter import ClaudeNotConfiguredError  # noqa: PLC0415
-                raise ClaudeNotConfiguredError(
-                    "Claude requires BYOK. Configure your Anthropic API key in Settings → API Keys."
-                )
-            from model_router.adapters.claude_adapter import ClaudeAdapter  # noqa: PLC0415
-            adapter = ClaudeAdapter(byok_manager=self._byok_manager, model=default_model)
-            return _TrackingAdapter(adapter, agent, task_type, state, self._tracker)
+            # Claude models require Anthropic BYOK
+            if "claude" in default_model.lower():
+                if not self._byok_manager.has_key("anthropic"):
+                    from model_router.adapters.claude_adapter import ClaudeNotConfiguredError  # noqa: PLC0415
+                    raise ClaudeNotConfiguredError(
+                        "Claude requires BYOK. Configure your Anthropic API key in Settings → API Keys."
+                    )
+                from model_router.adapters.claude_adapter import ClaudeAdapter  # noqa: PLC0415
+                adapter = ClaudeAdapter(byok_manager=self._byok_manager, model=default_model)
+                return _TrackingAdapter(adapter, agent, task_type, state, self._tracker)
+
+            # H18: OpenAI models (o3-mini, gpt-4o, gpt-4o-mini) require OPENAI_API_KEY
+            openai_models = {"o3-mini", "gpt-4o", "gpt-4o-mini", "gpt-4o-pro"}
+            if default_model in openai_models:
+                import os  # noqa: PLC0415
+                if not os.getenv("OPENAI_API_KEY"):
+                    logger.warning(
+                        "model_router.openai_key_missing",
+                        model=default_model,
+                        agent=agent,
+                        fallback="groq/llama-3.3-70b-versatile",
+                    )
+                    from model_router.adapters.groq_adapter import GroqAdapter  # noqa: PLC0415
+                    return _TrackingAdapter(
+                        GroqAdapter(model="groq/llama-3.3-70b-versatile"),
+                        agent, task_type, state, self._tracker
+                    )
+
+            # Google models require GOOGLE_API_KEY
+            if default_model.startswith("gemini"):
+                import os  # noqa: PLC0415
+                if not os.getenv("GOOGLE_API_KEY"):
+                    logger.warning(
+                        "model_router.google_key_missing",
+                        model=default_model,
+                        agent=agent,
+                        fallback="groq/llama-3.3-70b-versatile",
+                    )
+                    from model_router.adapters.groq_adapter import GroqAdapter  # noqa: PLC0415
+                    return _TrackingAdapter(
+                        GroqAdapter(model="groq/llama-3.3-70b-versatile"),
+                        agent, task_type, state, self._tracker
+                    )
 
         # Step 8: Normal per-agent selection
         logger.info("model_router.normal_selection", agent=agent, model=default_model)

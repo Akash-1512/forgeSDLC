@@ -64,7 +64,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: forgesdlc
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'changeme' }}
         ports:
           - 5432:5432
         options: >-
@@ -91,7 +91,7 @@ jobs:
       - name: Run tests with coverage
         run: pytest tests/ --cov=. --cov-report=xml -q
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'changeme' }}@localhost:5432/forgesdlc
 
       - uses: codecov/codecov-action@{codecov_version}
         with:

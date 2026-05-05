@@ -118,7 +118,7 @@ class MemoryArchiver:
                 estimated_tokens=500,
                 subscription_tier=str(state.get("subscription_tier") or "free"),
                 budget_used=float(state.get("budget_used_usd") or 0.0),
-                budget_total=float(state.get("budget_remaining_usd") or 999.0),
+                budget_total=float(state.get("budget_remaining_usd") or 0.0),
             )
 
             prompt = (

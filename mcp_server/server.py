@@ -98,17 +98,65 @@ async def health(_request: object) -> dict[str, object]:
     return {"status": "ok", "version": "1.1.0", "transport": TRANSPORT}
 
 
+@mcp.custom_route("/auth/token", methods=["POST"])
+async def create_token(request: object) -> dict[str, object]:
+    """Issue a JWT session token with a tier claim.
+
+    M27: wires session_manager.create_session_token() into the MCP server.
+    M30: surfaces Anthropic ToS warning when tier=enterprise (Claude BYOK available).
+
+    Clients (Electron, Claude Desktop) POST:
+        {"user_id": "...", "tier": "free|pro|enterprise", "tos_confirmed": true}
+    and receive a signed JWT to set as FORGESDLC_SESSION_TOKEN.
+
+    SECRET_KEY must be set in environment for this to work.
+    """
+    try:
+        import json as _json  # noqa: PLC0415
+        body = await request.body()  # type: ignore[union-attr]
+        data = _json.loads(body)
+        user_id = str(data.get("user_id", "default"))
+        tier = str(data.get("tier", "free"))
+        tos_confirmed = data.get("tos_confirmed", False) is True
+
+        if tier not in {"free", "pro", "enterprise"}:
+            return {"error": f"Invalid tier: {tier!r}. Must be free, pro, or enterprise."}
+
+        # M30: surface Anthropic ToS warning for tiers that include Claude BYOK
+        anthropic_tos: dict[str, object] = {}
+        if tier in {"pro", "enterprise"}:
+            from subscription.anthropic_tos_warning import AnthropicTosWarning  # noqa: PLC0415
+            tos = AnthropicTosWarning()
+            anthropic_tos = {
+                "warning": tos.get_warning_text(),
+                "confirmed": tos_confirmed,
+                "required": True,
+            }
+
+        from subscription.session_manager import create_session_token  # noqa: PLC0415
+        token = create_session_token(user_id=user_id, tier=tier)
+        logger.info("auth.token_issued", user_id=user_id, tier=tier, tos_confirmed=tos_confirmed)
+        return {
+            "token": token,
+            "user_id": user_id,
+            "tier": tier,
+            "anthropic_tos": anthropic_tos,
+        }
+    except RuntimeError as exc:
+        return {"error": str(exc), "hint": "Set SECRET_KEY environment variable"}
+
+
 async def _startup() -> None:
-    """Initialise database tables and log provider status on server startup."""
-    # Fix #112: create all PostgreSQL tables on startup (idempotent)
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.user_preference_profile import UserPreferenceStore
+    """Initialise database tables, run health checks, log provider status."""
+    # M31 Fix: use shared singletons from memory_context_builder so init_db()
+    # is called on the SAME instances used at runtime (not throwaway objects)
+    from memory.memory_context_builder import _get_stores
+    l1, l2, l3, l4, l5 = _get_stores()
 
     try:
-        await PipelineHistoryStore().init_db()
-        await UserPreferenceStore().init_db()
-        await PostMortemStore().init_db()
+        await l1.init_db()
+        await l4.init_db()
+        await l5.init_db()
         logger.info("forgesdlc.startup.db_tables_ready")
     except Exception as exc:
         logger.error("forgesdlc.startup.db_init_failed", error=str(exc))
@@ -117,9 +165,35 @@ async def _startup() -> None:
             hint="Start PostgreSQL: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",
         )
 
-    # Fix #53: log provider resolution table at startup
+    # M26: run provider health checks at startup and log results
     try:
-        from providers.resolver import ProviderResolver
+        from providers.health_checks import check_postgresql, check_chromadb, check_ollama  # noqa: PLC0415
+        import os as _os  # noqa: PLC0415
+        from orchestrator.constants import LOCAL_DB_URL  # noqa: PLC0415
+        from memory.organisational_memory import _DEFAULT_CHROMA_PATH  # noqa: PLC0415
+        pg_ok = await check_postgresql(_os.getenv("DATABASE_URL", LOCAL_DB_URL))
+        chroma_ok = await check_chromadb(_DEFAULT_CHROMA_PATH)
+        logger.info(
+            "forgesdlc.startup.health_checks",
+            postgresql=pg_ok,
+            chromadb=chroma_ok,
+        )
+        if not pg_ok:
+            logger.warning(
+                "forgesdlc.startup.postgresql_unhealthy",
+                hint="Layer 1/4/5 memory will not persist. Start DB: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",
+            )
+        if not chroma_ok:
+            logger.warning(
+                "forgesdlc.startup.chromadb_unhealthy",
+                hint="Layer 2 (semantic memory) will not persist. Check chroma_db/ directory permissions.",
+            )
+    except Exception as exc:
+        logger.warning("forgesdlc.startup.health_checks_failed", error=str(exc))
+
+    # Log provider resolution table
+    try:
+        from providers.resolver import ProviderResolver  # noqa: PLC0415
         ProviderResolver().print_table()
     except Exception as exc:
         logger.warning("forgesdlc.startup.provider_resolution_failed", error=str(exc))

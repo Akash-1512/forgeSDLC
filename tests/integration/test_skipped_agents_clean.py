@@ -78,6 +78,7 @@ def _build_agent(AgentClass: type) -> object:
     (PlatformAgent, "agent_13_platform_skipped"),
 ])
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_agent_skips_silently_on_monolith(
     AgentClass: type, skip_key: str
 ) -> None:
@@ -105,6 +106,7 @@ async def test_agent_skips_silently_on_monolith(
     (PlatformAgent, "agent_13_platform_skipped"),
 ])
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_agent_does_not_modify_state_on_skip(
     AgentClass: type, skip_key: str
 ) -> None:
@@ -122,6 +124,7 @@ async def test_agent_does_not_modify_state_on_skip(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_agent_12_also_skips_when_multi_service_but_no_openapi() -> None:
     """Agent 12 skips when multi_service but has_openapi is False."""
     agent = _build_agent(ContractAgent)

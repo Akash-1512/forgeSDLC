@@ -7,6 +7,7 @@ import pytest
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_run_security_scan_returns_gate_blocked_false_for_clean_code(
     tmp_path: Path,
 ) -> None:
@@ -60,6 +61,7 @@ async def test_run_security_scan_returns_gate_blocked_false_for_clean_code(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_run_security_scan_gate_blocked_stored_in_state(
     tmp_path: Path,
 ) -> None:

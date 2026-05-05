@@ -38,6 +38,7 @@ def chroma_tmp() -> str:  # type: ignore[return]
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_data_survives_server_restart(chroma_tmp: str) -> None:
     """Core persistence guarantee: data written by instance A is readable
     by a completely new instance B — simulating a server restart."""
@@ -60,6 +61,7 @@ async def test_data_survives_server_restart(chroma_tmp: str) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_recall_context_returns_data_after_3_save_decisions(
     chroma_tmp: str,
 ) -> None:
@@ -76,6 +78,7 @@ async def test_recall_context_returns_data_after_3_save_decisions(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_save_decision_immediately_retrievable_via_recall_context(
     chroma_tmp: str,
 ) -> None:

@@ -38,6 +38,7 @@ def record_collector():
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_all_13_layers_emitted_in_full_pipeline(
     record_collector: list[InterpretRecord], tmp_path: object
 ) -> None:
@@ -270,6 +271,7 @@ async def _run_synthetic_pipeline(
     await bridge.stop()
 
 
+@pytest.mark.slow
 def test_no_unknown_layer_literals() -> None:
     """Verify InterpretRecord.layer Literal contains exactly 13 official layers."""
     import typing  # noqa: PLC0415
@@ -284,6 +286,7 @@ def test_no_unknown_layer_literals() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_workspace_bridge_never_writes_files(
     record_collector: list[InterpretRecord], tmp_path: object
 ) -> None:

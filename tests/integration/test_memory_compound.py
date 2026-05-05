@@ -72,6 +72,7 @@ def chroma_tmp() -> str:  # type: ignore[return]
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_recall_context_richer_after_5_runs_than_after_1(
     chroma_tmp: str,
 ) -> None:
@@ -96,6 +97,7 @@ async def test_recall_context_richer_after_5_runs_than_after_1(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_org_memory_contains_entries_from_multiple_categories_after_5_runs(
     chroma_tmp: str,
 ) -> None:

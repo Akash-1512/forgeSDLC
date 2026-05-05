@@ -67,7 +67,7 @@ class GroqAdapter:
         temperature: float = 0.0,
         stop: list[str] | None = None,
     ) -> AIMessage:
-        import httpx  # noqa: PLC0415
+
 
         payload: dict[str, object] = {
             "model": self._model.replace("groq/", ""),

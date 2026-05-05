@@ -72,16 +72,8 @@ def _build_security_agent(infra: tuple, workspace_path: str) -> object:
     # Pre-initialise workspace bridge to the scan path
     import asyncio
 
-    async def _start_bridge() -> None:
-        await workspace_bridge.start(workspace_path)
-
-    try:
-        # get_running_loop() is safe in Python 3.12; if no loop, bridge started lazily
-        asyncio.get_running_loop()  # just check a loop exists
-    except RuntimeError:
-        asyncio.run(_start_bridge())
-    except Exception:
-        pass
+    # H20: WorkspaceBridge starts lazily on first get_context() call.
+    # No asyncio.run() needed — it would crash if called from async context.
 
     return SecurityAgent(
         name="agent_5b_security",

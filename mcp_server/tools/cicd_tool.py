@@ -77,20 +77,14 @@ def _build_cicd_agents(infra: tuple) -> tuple:
     from agents.agent_6_test_coordinator import TestCoordinatorAgent
     from agents.agent_7_cicd import CICDAgent
 
+    from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
+    from tool_router.router import ToolRouter  # noqa: PLC0415
     (
         model_router, tool_router, cwm, memory_archiver,
         memory_ctx_builder, cfm, workspace_bridge, diff_engine,
     ) = infra
-
-    base_kwargs = {
-        "context_window_manager": cwm,
-        "model_router": model_router,
-        "memory_archiver": memory_archiver,
-        "memory_context_builder": memory_ctx_builder,
-        "context_file_manager": cfm,
-        "workspace_bridge": workspace_bridge,
-        "diff_engine": diff_engine,
-    }
+    tool_router = ToolRouter()
+    base_kwargs = build_agent_kwargs(infra)
 
     agent_6 = TestCoordinatorAgent(
         name="agent_6_test_coord",

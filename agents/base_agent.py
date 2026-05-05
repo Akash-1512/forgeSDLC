@@ -33,7 +33,14 @@ class BaseAgent(ABC):
 
     Loop: ContextWindowManager → memory read → _interpret (L1) →
           gate check → _execute → TokenTracker → ContextFileManager (L13) → MemoryArchiver
+
+    hard_gate: when True the companion panel renders a red border and requires
+               explicit confirmation before execute. Set to True on agents with
+               irreversible side effects (Agent 3 writes ADR, Agent 8 deploys).
+               M29: declared here at base level so build_graph() and UI can inspect it.
     """
+
+    hard_gate: bool = False  # overridden to True in Agent 3 and Agent 8
 
     def __init__(
         self,
@@ -92,7 +99,7 @@ class BaseAgent(ABC):
         # Step 4: Gate check — execute only on exact "100% GO"
         # M5: use interrupt_node() for structured logging before gate evaluation
         if not check_gate(str(state.get("human_confirmation", ""))):
-            interrupt_node(display_str)
+            interrupt_node(display_str, hard_gate=getattr(self, 'hard_gate', False))  # M29
             logger.info(
                 "base_agent.awaiting_confirmation",
                 agent=self.name,

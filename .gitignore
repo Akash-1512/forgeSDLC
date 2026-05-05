@@ -47,3 +47,12 @@ Thumbs.db
 # LangGraph SQLite checkpoint (dev only)
 *.sqlite
 *.db
+# forgeSDLC runtime data — never commit these
+chroma_db/
+data/
+mlruns/
+*.forgesdlc.bak
+out/
+
+# Node
+node_modules/

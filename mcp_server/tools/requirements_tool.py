@@ -10,43 +10,13 @@ logger = structlog.get_logger()
 
 
 def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
-    """Build a fresh SDLCState for a new project."""
-    import uuid
-    from datetime import datetime, timezone
-    return {
-        "user_prompt": prompt,
-        "mcp_session_id": project_id,
-        "human_confirmation": "",
-        "human_corrections": [],
-        "displayed_interpretation": "",
-        "interpret_round": 0,
-        "interpret_log": [],
-        "trace_id": str(uuid.uuid4()),
-        "tool_router_context": None,
-        "model_router_context": None,
-        "workspace_context": None,
-        "memory_context": None,
-        "mode": "mcp",
-        "service_graph": None,
-        "prd": "",
-        "adr": "",
-        "rfc": "",
-        "generated_files": [],
-        "review_findings": [],
-        "security_findings": None,
-        "security_gate": None,
-        "test_coverage": 0.0,
-        "ci_pipeline_url": "",
-        "deployment_url": None,
-        "monitoring_config": None,
-        "project_context_graph": None,
-        "budget_used_usd": 0.0,
-        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"]).get_tier("free").budget_usd_per_session if True else 5.0,
-        "subscription_tier": _resolve_tier(),
-        "session_token_records": [],
-        "tool_delegated_to": None,
-        "_agent0_raw": "",
-    }
+    """H23: delegate to canonical state factory — no more manual dict."""
+    from mcp_server.state_factory import build_initial_state  # noqa: PLC0415
+    return build_initial_state(
+        user_prompt=prompt,
+        project_id=project_id,
+        extra={"subscription_tier": _resolve_tier()},
+    )
 
 
 def _build_infrastructure() -> tuple:
@@ -66,17 +36,9 @@ def _build_agents(infra: tuple) -> tuple:
     from agents.agent_1_requirements import RequirementsAgent
     from agents.agent_2_stack import TechStackAgent
 
-    model_router, cwm, memory_archiver, memory_ctx_builder, cfm, workspace_bridge, diff_engine = infra
-
-    kwargs = {
-        "context_window_manager": cwm,
-        "model_router": model_router,
-        "memory_archiver": memory_archiver,
-        "memory_context_builder": memory_ctx_builder,
-        "context_file_manager": cfm,
-        "workspace_bridge": workspace_bridge,
-        "diff_engine": diff_engine,
-    }
+    # H22: use build_agent_kwargs() from shared factory — no repeated tuple destructuring
+    from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
+    kwargs = build_agent_kwargs(infra)
     agent_0 = ServiceDecompositionAgent(name="agent_0_decompose", **kwargs)
     agent_1 = RequirementsAgent(name="agent_1_requirements", **kwargs)
     agent_2 = TechStackAgent(name="agent_2_stack", **kwargs)
@@ -137,7 +99,6 @@ async def gather_requirements(
         from pathlib import Path  # noqa: PLC0415
         import sqlite3  # noqa: PLC0415
         Path("./data").mkdir(parents=True, exist_ok=True)
-        # Fix #9: use context manager — connection closed after state read, no leak
         with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
             checkpointer = SqliteSaver(conn)
             existing = checkpointer.get(config)
@@ -146,9 +107,6 @@ async def gather_requirements(
                 logger.info("gather_requirements.state_restored", project_id=project_id)
             else:
                 state = _build_initial_state(prompt, project_id)
-            checkpointer = None  # conn closed by context manager exit
-        else:
-            state = _build_initial_state(prompt, project_id)
     except Exception as exc:
         logger.warning("gather_requirements.checkpointer_failed", error=str(exc))
         state = _build_initial_state(prompt, project_id)

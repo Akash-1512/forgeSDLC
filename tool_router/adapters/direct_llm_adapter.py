@@ -31,7 +31,7 @@ class DirectLLMAdapter:
                 estimated_tokens=int(len(task.split()) * 1.33) + 200,
                 subscription_tier=os.getenv("FORGESDLC_TIER", "free"),
                 budget_used=0.0,
-                budget_total=999.0,  # no budget constraint for fallback path
+                budget_total=0.0  # free tier — no cap,  # no budget constraint for fallback path
             )
             response = await adapter.ainvoke(
                 [

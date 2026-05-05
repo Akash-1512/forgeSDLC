@@ -37,14 +37,19 @@ def interpret_node(
     return base
 
 
-def interrupt_node(displayed_interpretation: str) -> None:
+def interrupt_node(displayed_interpretation: str, hard_gate: bool = False) -> None:
     """Pause execution and surface the interpretation to the companion panel.
 
+    M29: now accepts hard_gate so callers can signal irreversible operations.
+    When hard_gate=True, companion panel renders red border and requires explicit approval.
     Wires to the WebSocket / companion panel UI when desktop app is running.
-    For now it logs — the [✅ Approve] button will call check_gate() with
-    HUMAN_CONFIRMATION_PHRASE before execute_node is allowed to fire.
     """
-    logger.info("interrupt_node — awaiting gate", interpretation=displayed_interpretation)
+    logger.info(
+        "interrupt_node — awaiting gate",
+        interpretation=displayed_interpretation,
+        hard_gate=hard_gate,
+        ui_hint="red_border" if hard_gate else "standard",
+    )
 
 
 def execute_node(confirmation: str, fn: object, *args: object) -> object:
