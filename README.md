@@ -218,8 +218,4 @@ python scripts/commercial_readiness_check.py
 PRs welcome. Please read [AGENTS.md](AGENTS.md) before contributing — it
 contains the full forgeSDLC architecture context for AI coding tools.
 
----
-
-Built with forgeSDLC — https://github.com/Akash-1512/forgesdlc
-'@ | Set-Content README.md
 ```
