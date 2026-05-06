@@ -74,7 +74,7 @@ _TIERS: dict[str, SubscriptionTier] = {
 def get_tier(name: str) -> SubscriptionTier:
     """Return tier by name. Falls back to FREE for unknown values.
 
-    Fix #55: previously raised KeyError on unknown tier strings, crashing
+    Returns the free tier as a safe fallback for unknown tier strings, avoiding
     mid-pipeline if a corrupted checkpoint or migration produced an unexpected
     value. Now logs a warning and falls back to FREE (safe default).
     """

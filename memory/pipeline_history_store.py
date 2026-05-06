@@ -30,7 +30,7 @@ class _PipelineRunRow(_Base):
     project_id = Column(String, nullable=False, index=True)
     user_prompt = Column(Text, nullable=False)
     stack_chosen = Column(String, nullable=True)
-    # Fix #117: Boolean column — no more "true"/"false" string round-trip
+    # Native Boolean — no more string round-trips
     deployment_success = Column(Boolean, nullable=True)
     cost_total_usd = Column(Float, nullable=False, default=0.0)
     hitl_rounds = Column(Integer, nullable=False, default=0)
@@ -69,9 +69,9 @@ class PipelineHistoryStore:
     async def save_run(self, record: PipelineRunRecord) -> None:
         """Upsert a pipeline run record. Emits InterpretRecord before write.
 
-        Fix #115: uses PostgreSQL INSERT ... ON CONFLICT DO UPDATE instead of
+        Uses PostgreSQL INSERT ... ON CONFLICT DO UPDATE instead of
         delete+insert, eliminating the race condition under concurrent saves.
-        Fix #117: deployment_success stored as native Boolean, not string.
+        deployment_success stored as a native Boolean column.
         """
         self._emit_record("write", "save_run", record.run_id)
         values = {

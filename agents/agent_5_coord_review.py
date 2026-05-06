@@ -86,10 +86,10 @@ class CoordinatedReview(BaseAgent):
 
         for file_info in generated:
             code = str(file_info.get("content", ""))
-            # H9 Fix: extract filepath for language detection in Pass 4
-            filepath = str(file_info.get("filepath", file_info.get("path", "")))
+            # Extract filepath for language detection in Pass 4
+            filepath = str(file_info.get("filepath") or file_info.get("path") or "")
 
-            # Fix #90: run the 4 LLM passes concurrently with asyncio.gather().
+            # Run all LLM passes concurrently — ~8s sequential becomes ~2s parallel.
             # Pass 4 (MAANG Standards) is deterministic/synchronous — run separately.
             # Sequential: ~8s per file (4 × 2s LLM latency).
             # Parallel:   ~2s per file (all 4 overlap).
@@ -106,7 +106,7 @@ class CoordinatedReview(BaseAgent):
             )
 
             # Pass 4: MAANG Standards — deterministic AST (no await needed)
-            # H9 Fix: filepath passed for language detection
+
             findings_p4 = self._pass_maang_standards(code, filepath=filepath)
 
             all_findings.extend(findings_p1)
@@ -159,14 +159,14 @@ class CoordinatedReview(BaseAgent):
         - Missing return type hint → ADVISORY
         - Bare except → BLOCKING
 
-        H9 Fix: non-Python files return an ADVISORY noting AST check was skipped.
+        Non-Python files return an ADVISORY — AST rules only apply to Python.
         Previously silently returned [] for TypeScript/Go/Rust/SQL — now explicit.
         """
         findings: list[dict[str, object]] = []
         if not code or not code.strip():
             return findings
 
-        # H9: detect language from file extension
+        # Detect language from file extension — AST rules only apply to Python
         is_python = filepath.endswith(".py") or not filepath  # default to Python if no path
         if not is_python:
             ext = filepath.rsplit(".", 1)[-1] if "." in filepath else "unknown"

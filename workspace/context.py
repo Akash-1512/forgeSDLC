@@ -43,6 +43,6 @@ class WorkspaceContext(BaseModel):
     # Empty list = ContextFileManager has not run yet for this project
     context_files: list[str]
     last_updated: datetime
-    # Fix #111: project_graph populated by WorkspaceBridge when .forgesdlc/graph.json exists.
+    # Populated by WorkspaceBridge when .forgesdlc/graph.json exists
     # MemoryArchiver._archive_layer3 checks this field — must be present for Layer 3 to write.
     project_graph: dict[str, object] | None = None

@@ -61,7 +61,7 @@ def _build_initial_arch_state(requirements: str, project_id: str) -> dict[str, o
 
 
 def _build_infrastructure_shared() -> tuple:
-    """H2 Fix: delegate to shared infrastructure factory."""
+    """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     infra = build_infrastructure()

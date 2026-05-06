@@ -30,7 +30,7 @@ class ServiceDecompositionAgent(BaseAgent):
     ) -> InterpretRecord:
         """Preview scope analysis plan. Emits L1 InterpretRecord.
 
-        Fix #35: NO LLM call here — _interpret is a preview only.
+        No LLM call here — _interpret is a preview only.
         LLM call moved to _execute so it only fires after gate approval.
         """
         return self._emit_l1_record(
@@ -49,7 +49,7 @@ class ServiceDecompositionAgent(BaseAgent):
         memory_context: object,
     ) -> dict[str, object]:
         """Call LLM, parse decomposition result, populate state["service_graph"]."""
-        # Fix #35: LLM call moved here from _interpret — only runs after gate approval
+        # LLM call runs here — only after the user has approved the interpretation
         adapter = await self.model_router.route(
             agent="agent_0_decompose",
             task_type="analysis",

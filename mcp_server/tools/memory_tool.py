@@ -60,7 +60,7 @@ async def recall_context(
     return {
         "status": "ok",
         "project_id": project_id,
-        # Fix #3/#100: context is a MemoryContext Pydantic model — use attribute access, not subscript  # noqa: E501
+        # MemoryContext is a Pydantic model — use attribute access, not subscript
         "org_memory": [e.model_dump() for e in context.relevant_patterns],
         "similar_runs": [r.model_dump() for r in context.similar_runs],
         "past_failures": [f.model_dump() for f in context.past_failures],

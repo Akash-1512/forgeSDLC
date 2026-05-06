@@ -1,5 +1,5 @@
 """
-M6 Fix: subscription tier resolution for MCP tool handlers.
+Subscription tier resolution for MCP tool handlers.
 
 Previously all 8 tool handlers hardcoded subscription_tier='free', which meant:
 - Pro and Enterprise users got Groq-only free models regardless of payment

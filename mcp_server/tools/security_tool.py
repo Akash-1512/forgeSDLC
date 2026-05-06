@@ -61,7 +61,7 @@ def _build_security_state(
 
 
 def _build_infrastructure_shared() -> tuple:
-    """H2 Fix: delegate to shared infrastructure factory."""
+    """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     infra = build_infrastructure()
@@ -91,7 +91,7 @@ def _build_security_agent(infra: tuple, workspace_path: str) -> object:
 
     # Pre-initialise workspace bridge to the scan path
 
-    # H20: WorkspaceBridge starts lazily on first get_context() call.
+    # WorkspaceBridge starts lazily on first get_context() call
     # No asyncio.run() needed — it would crash if called from async context.
 
     return SecurityAgent(

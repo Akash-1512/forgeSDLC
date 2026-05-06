@@ -79,7 +79,7 @@ class SecurityAgent(BaseAgent):
     ) -> dict[str, object]:
         """Run all security tools and compute gate status.
 
-        Fix #96: scans BOTH the workspace root AND any in-memory generated files
+        Scans both the workspace root and any in-memory generated files
         from state['generated_files']. Generated files are written to a temporary
         scan directory so bandit/semgrep can analyse newly created code that hasn't
         been written to the workspace yet.

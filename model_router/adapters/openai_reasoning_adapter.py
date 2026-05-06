@@ -79,7 +79,7 @@ class OpenAIReasoningAdapter:
     ) -> AsyncIterator[AIMessageChunk]:
         """Real token-by-token streaming via OpenAI Responses API stream=True.
 
-        Fix #20/#46: replaces the full-response stub with genuine SSE streaming.
+        Streams token-by-token via the Responses API.
         The Responses API supports stream=True which yields ResponseTextDeltaEvent
         events. Each delta is yielded as an AIMessageChunk for real-time display.
         """

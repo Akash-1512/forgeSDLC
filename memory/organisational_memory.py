@@ -21,10 +21,10 @@ from memory.schemas import OrgMemoryEntry
 
 logger = structlog.get_logger()
 
-# Fix #120: resolve absolute path at import time so CWD changes don't matter
+# Resolve to absolute path at import time — CWD changes don't affect it
 _DEFAULT_CHROMA_PATH = os.path.abspath(os.getenv("FORGESDLC_CHROMA_PATH", "./chroma_db"))
 
-# Fix #17: single shared embeddings instance — avoid 90MB reload per OrgMemory()
+# Shared singleton — the 90 MB model loads once per process
 _SHARED_EMBEDDINGS: HuggingFaceEmbeddings | None = None
 
 
@@ -53,7 +53,7 @@ class OrgMemory:
     """
 
     def __init__(self, chroma_path: str = _DEFAULT_CHROMA_PATH) -> None:
-        # Fix #120: accept absolute path — relative paths cause CWD-dependent data loss
+
         self._chroma_path = os.path.abspath(chroma_path)
         if chromadb is None:
             raise ImportError(
@@ -64,7 +64,7 @@ class OrgMemory:
             "forgesdlc_org_memory",
             metadata={"hnsw:space": "cosine"},
         )
-        # Fix #17: use shared singleton — no repeated 90MB download
+        # Reuse shared singleton
         self._embeddings = _get_embeddings()
         logger.info(
             "org_memory.init",
@@ -75,7 +75,7 @@ class OrgMemory:
     async def upsert(self, entry: OrgMemoryEntry) -> None:
         """Store a learnable fact. Emits InterpretRecord before write."""
         self._emit_record("write", "upsert", entry.entry_id)
-        # Fix #18/#123: run sync CPU-bound embedding in executor — never block event loop
+        # Embedding is CPU-bound — run in thread executor to avoid blocking the event loop
         loop = asyncio.get_running_loop()
         embedding = await loop.run_in_executor(
             None,
@@ -115,12 +115,11 @@ class OrgMemory:
             logger.info("org_memory.search.empty_collection")
             return []
 
-        # Fix #116: n_results must not exceed total collection count.
+        # ChromaDB raises if n_results exceeds total collection size — cap it first
         # Use min(limit, total) — project filter applied by ChromaDB after candidate fetch.
         # If project has fewer results than n_results, ChromaDB returns what it finds.
         n_results = min(limit, total)
 
-        # Fix #18: run sync embedding in executor
         loop = asyncio.get_running_loop()
         embedding = await loop.run_in_executor(
             None,

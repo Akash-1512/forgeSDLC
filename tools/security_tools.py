@@ -245,7 +245,7 @@ class DASTRunner:
         },
         # Unauthenticated admin access
         {"path": "/admin", "check": "status_200", "method": "GET"},
-        # H15 Fix: POST body SQLi — previously missing
+        # POST body SQLi — tests login endpoint with tautology payload
         {
             "path": "/api/login",
             "check": "sqli_in_post",
@@ -367,7 +367,7 @@ class DASTRunner:
                     blocking=True,
                 )
 
-            # H15 Fix: implement the SQLi detection branch that was empty before
+            # Detect SQLi via tautology — more rows than expected or SQL error in response
             if check == "multiple_results" and status == 200:
                 # Heuristic: SQLi tautology returns more rows than a normal single-user query
                 # Signs: JSON array with more than 1 item, or error message containing SQL keywords
@@ -391,7 +391,7 @@ class DASTRunner:
                         blocking=True,
                     )
 
-            # H15 Fix: POST body SQLi response check
+            # Successful login with SQLi tautology indicates auth bypass
             if check == "sqli_in_post" and status == 200:
                 # Successful login with SQLi tautology payload indicates bypass
                 auth_bypass_indicators = [

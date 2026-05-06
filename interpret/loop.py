@@ -40,7 +40,7 @@ def interpret_node(
 def interrupt_node(displayed_interpretation: str, hard_gate: bool = False) -> None:
     """Pause execution and surface the interpretation to the companion panel.
 
-    M29: now accepts hard_gate so callers can signal irreversible operations.
+    When hard_gate=True, the companion panel renders a red border requiring explicit approval.
     When hard_gate=True, companion panel renders red border and requires explicit approval.
     Wires to the WebSocket / companion panel UI when desktop app is running.
     """

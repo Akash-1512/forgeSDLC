@@ -82,12 +82,12 @@ class DiffEngine:
         Emits L3 InterpretRecord before any write.
         Backup extension: .forgesdlc.bak (exact — not .bak, not .backup).
         New files: backup skipped (nothing to back up — no empty .bak created).
-        Fix #39: raises ValueError if path escapes workspace_root (path traversal guard).
+        Raises ValueError if the target path is outside workspace_root.
         """
         p = Path(diff.filepath).resolve()
         bak = Path(f"{diff.filepath}{_BAK_EXTENSION}").resolve()
 
-        # Fix #39: path traversal guard — reject any write outside workspace root
+        # Reject writes outside the workspace root — prevents path traversal
         if workspace_root is not None:
             root = Path(workspace_root).resolve()
             if not str(p).startswith(str(root)):

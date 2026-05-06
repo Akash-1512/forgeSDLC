@@ -21,7 +21,7 @@ from memory.user_preference_profile import UserPreferenceStore
 
 logger = structlog.get_logger()
 
-# H1 Fix: module-level singleton stores — created once, shared across all 9 tool files.
+# Module-level singleton stores — created once, shared across all tool handlers.
 # Previously each MemoryContextBuilder() call created 5 new DB engines (PipelineHistoryStore,
 # UserPreferenceStore, PostMortemStore each open their own SQLAlchemy async engine with
 # pool_size=5). With 9 tool files each instantiating their own builder, that was 45 engines.
@@ -76,13 +76,13 @@ class MemoryContext(BaseModel):
 class MemoryContextBuilder:
     """Assembles MemoryContext from all 5 memory layers.
 
-    H1 Fix: uses module-level singleton stores — safe to instantiate multiple times,
+    Uses module-level singleton stores — safe to instantiate multiple times,
     will always reuse the same DB engine pool.
     Emits InterpretRecord(layer="memory") before assembly.
     """
 
     def __init__(self) -> None:
-        # H1: fetch singletons — no new engines created after first instantiation
+        # Reuse shared singletons — no new DB engine pool per call
         self._l1, self._l2, self._l3, self._l4, self._l5 = _get_stores()
 
     async def build(

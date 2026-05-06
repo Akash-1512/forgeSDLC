@@ -4,7 +4,7 @@ import structlog
 
 logger = structlog.get_logger()
 
-# H13 Fix: module-level shared router — created once per process, not per compress() call.
+# Module-level shared router — created once per process.
 # Previously every compress() call created a new ModelRouter() which instantiates
 # BudgetMonitor, ModelSelector, BudgetOptimizer — lightweight but wasteful.
 _SHARED_ROUTER: object | None = None
@@ -34,7 +34,7 @@ class ContextCompressor:
         """Summarise content to under 200 words. Routes via shared ModelRouter."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
-        # H13 Fix: reuse shared router — no new object created per call
+        # Reuse shared router
         router = _get_router()
         adapter = await router.route(  # type: ignore[union-attr]
             agent="context_compressor",  # → groq/llama-3.1-8b-instant always free

@@ -13,7 +13,7 @@ logger = structlog.get_logger()
 
 
 def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
-    """H23: delegate to canonical state factory — no more manual dict."""
+    """Build initial pipeline state using the canonical state factory."""
     from mcp_server.state_factory import build_initial_state  # noqa: PLC0415
 
     return build_initial_state(
@@ -24,7 +24,7 @@ def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
 
 
 def _build_infrastructure() -> tuple:
-    """H2 Fix: delegate to shared infrastructure factory — no more copy-paste."""
+    """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     infra = build_infrastructure()
@@ -45,7 +45,7 @@ def _build_agents(infra: tuple) -> tuple:
     from agents.agent_1_requirements import RequirementsAgent
     from agents.agent_2_stack import TechStackAgent
 
-    # H22: use build_agent_kwargs() from shared factory — no repeated tuple destructuring
+    # Build agent kwargs from shared factory
     from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
 
     kwargs = build_agent_kwargs(infra)
@@ -77,7 +77,7 @@ async def gather_requirements(
     Call 4: human_confirmation="100% GO"
             → {"status": "complete", "prd": "...", "adr": "...", ...}
     """
-    # Fix #15: input validation — reject oversized or empty inputs at tool boundary
+    # Validate inputs at the MCP tool boundary
     if not prompt or not prompt.strip():
         return {"status": "error", "error": "prompt must not be empty"}
     if len(prompt) > 50_000:
@@ -148,7 +148,7 @@ async def gather_requirements(
     if not state.get("service_graph"):
         await ctx.report_progress(10, 100, "Analysing project scope")
         state = await agent_0.run(state)
-        # Fix #2: Agent 0 produces service_graph — gate on service_graph, not adr
+
         if not state.get("service_graph"):
             return {
                 "status": "awaiting_confirmation",
@@ -171,7 +171,7 @@ async def gather_requirements(
         state["human_confirmation"] = human_confirmation
         await ctx.report_progress(40, 100, "Generating requirements")
         state = await agent_1.run(state)
-        # Fix #2: Agent 1 produces prd — gate on prd, not service_graph
+
         if not state.get("prd"):
             return {
                 "status": "awaiting_confirmation",
@@ -193,7 +193,7 @@ async def gather_requirements(
         state["human_confirmation"] = human_confirmation
         await ctx.report_progress(70, 100, "Recommending tech stack")
         state = await agent_2.run(state)
-        # Fix #2: Agent 2 produces adr — gate on adr, not prd
+
         if not state.get("adr"):
             return {
                 "status": "awaiting_confirmation",

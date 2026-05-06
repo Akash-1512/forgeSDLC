@@ -62,7 +62,7 @@ async def test_gather_requirements_input_validation_empty_project_id() -> None:
 @pytest.mark.asyncio
 async def test_gather_requirements_hitl_gate_correct_keys() -> None:
     """
-    Fix #2 regression test: each agent must be gated on ITS OWN output key.
+    Each agent must be gated on its own output key.
     Agent 0 → service_graph, Agent 1 → prd, Agent 2 → adr.
     """
     ctx = _make_mock_ctx()
@@ -150,7 +150,7 @@ async def test_gather_requirements_awaiting_after_agent0() -> None:
 @pytest.mark.asyncio
 async def test_recall_context_returns_valid_dict() -> None:
     """
-    Fix #3/#100 regression test: recall_context uses Pydantic attribute access.
+    recall_context must use Pydantic attribute access, not dict subscript.
     Mock must return a MemoryContext object, NOT a plain dict.
     """
     from datetime import datetime

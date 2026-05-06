@@ -13,7 +13,7 @@ logger = structlog.get_logger()
 async def track_progress(project_id: str) -> dict[str, object]:
     """Return current SDLC phase, completion status, and token spend for a project.
 
-    M25: now wires TokenAggregator to surface actual token data.
+    Reads checkpoint state and aggregates token usage via TokenAggregator.
     Reads checkpoint to determine which pipeline stages have completed.
     """
     logger.info("track_progress.called", project_id=project_id)
@@ -75,9 +75,9 @@ async def track_progress(project_id: str) -> dict[str, object]:
             agg = TokenAggregator()
             token_summary = {
                 "total_calls": len(token_records),
-                "by_agent": agg.by_agent(token_records),  # M25: wired
-                "by_model": agg.by_model(token_records),  # M25: wired
-                "by_provider": agg.by_provider(token_records),  # M25: wired
+                "by_agent": agg.by_agent(token_records),
+                "by_model": agg.by_model(token_records),
+                "by_provider": agg.by_provider(token_records),
             }
         except Exception as exc:
             logger.warning("track_progress.aggregation_failed", error=str(exc))

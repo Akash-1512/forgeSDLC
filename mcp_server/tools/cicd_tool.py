@@ -67,7 +67,7 @@ def _build_cicd_state(project_id: str, stack: str, human_confirmation: str) -> d
 
 
 def _build_infrastructure_shared() -> tuple:
-    """H2 Fix: delegate to shared infrastructure factory."""
+    """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
     from tool_router.router import ToolRouter  # noqa: PLC0415
 

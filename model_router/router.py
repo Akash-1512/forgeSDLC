@@ -25,7 +25,7 @@ logger = structlog.get_logger()
 class _TrackingAdapter:
     """Wraps any BaseLLMAdapter to record token usage via TokenTracker.
 
-    Fix #52: intercepts ainvoke() responses, extracts usage metadata from
+    Intercepts ainvoke() responses and extracts usage metadata from
     the response object, and calls TokenTracker.record() to update state.
     budget_used_usd is incremented so BudgetMonitor thresholds actually fire.
     """
@@ -146,7 +146,7 @@ class ModelRouter:
     ) -> BaseLLMAdapter:
         """Select and return the correct LLM adapter. Emits L4 InterpretRecord first.
 
-        Fix #52: wraps the returned adapter in _TrackingAdapter so every
+        Wraps the returned adapter in _TrackingAdapter so every
         ainvoke() call records token usage and updates state["budget_used_usd"].
         state parameter is optional for callers that don't have access to it.
         """
@@ -219,7 +219,7 @@ class ModelRouter:
                 adapter = ClaudeAdapter(byok_manager=self._byok_manager, model=default_model)
                 return _TrackingAdapter(adapter, agent, task_type, state, self._tracker)
 
-            # H18: OpenAI models (o3-mini, gpt-4o, gpt-4o-mini) require OPENAI_API_KEY
+            # OpenAI models require OPENAI_API_KEY — fall back to Groq if missing
             openai_models = {"o3-mini", "gpt-4o", "gpt-4o-mini", "gpt-4o-pro"}
             if default_model in openai_models:
                 import os  # noqa: PLC0415

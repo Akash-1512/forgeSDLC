@@ -20,7 +20,7 @@ from workspace.diff_engine import DiffEngine
 
 logger = structlog.get_logger()
 
-# H7: module-level shared token tracker — lightweight, no DB connection
+# Shared tracker instance — lightweight, no DB connection
 _SHARED_TOKEN_TRACKER = TokenTracker()
 
 
@@ -37,7 +37,7 @@ class BaseAgent(ABC):
     hard_gate: when True the companion panel renders a red border and requires
                explicit confirmation before execute. Set to True on agents with
                irreversible side effects (Agent 3 writes ADR, Agent 8 deploys).
-               M29: declared here at base level so build_graph() and UI can inspect it.
+               Declared at base level so build_graph() and the companion panel can inspect it.
     """
 
     hard_gate: bool = False  # overridden to True in Agent 3 and Agent 8
@@ -68,7 +68,7 @@ class BaseAgent(ABC):
         Returns state with interpret_log updated.
         Does NOT execute unless human_confirmation == '100% GO'.
 
-        M5: Now uses interpret_node() and interrupt_node() from interpret/loop.py
+        Uses interpret_node() and interrupt_node() from interpret/loop.py
         as the canonical HITL contract — no more inline reimplementation.
         """
         # Step 1: Build ContextPacket — emits L11 InterpretRecord
@@ -83,7 +83,7 @@ class BaseAgent(ABC):
         # Step 3: Generate interpretation — emits L1 InterpretRecord
         interpretation = await self._interpret(packet, memory_context, state)
 
-        # M5: use interpret_node() to build the display string (canonical, testable)
+        # Build display string via interpret_node() — single canonical formatting path
         correction = None
         corrections = list(state.get("human_corrections") or [])
         if corrections:
@@ -97,7 +97,7 @@ class BaseAgent(ABC):
         state["interpret_round"] = int(state.get("interpret_round", 0) or 0) + 1
 
         # Step 4: Gate check — execute only on exact "100% GO"
-        # M5: use interrupt_node() for structured logging before gate evaluation
+        # Signal HITL gate — companion panel shows interpretation for approval
         if not check_gate(str(state.get("human_confirmation", ""))):
             interrupt_node(display_str, hard_gate=getattr(self, "hard_gate", False))  # M29
             logger.info(
@@ -113,7 +113,7 @@ class BaseAgent(ABC):
         state = await self._execute(state, packet, memory_context)
         latency_ms = int((time.monotonic() - t_start) * 1000)
 
-        # H7 Fix: record token usage — model_router emits usage via structlog; read it here
+        # Record token usage after execute completes
         # We use estimated tokens from interpretation as a proxy until adapters expose usage directly  # noqa: E501
         model_used = interpretation.model_selected or "unknown"
         estimated_input = 500  # conservative estimate — improved when adapters expose usage

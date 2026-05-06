@@ -59,7 +59,7 @@ class MemoryArchiver:
     # ------------------------------------------------------------------ L1
 
     async def _archive_layer1(self, state: SDLCState) -> None:
-        # H4 Fix: extract short stack identifier from ADR — not the full document
+        # Extract a short stack label from the ADR header line
         # ADR typically starts with "# ADR-001: FastAPI + PostgreSQL + Redis"
         # Extract just the stack part after the colon for the stack_chosen field
         adr_text = str(state.get("adr") or "")
@@ -72,7 +72,7 @@ class MemoryArchiver:
             elif first_line:
                 stack_chosen = first_line.lstrip("#").strip()[:100]
 
-        # H5 Fix: use trace_id as run_id so Layer 5 post-mortems can link back to this run
+        # Use trace_id as run_id so Layer 5 post-mortems can link back to this pipeline run
         run_id = str(state.get("trace_id") or uuid4())
 
         record = PipelineRunRecord(
@@ -207,7 +207,7 @@ class MemoryArchiver:
                     timestamp=datetime.now(tz=UTC),
                 )
                 await self.l2.upsert(entry)
-        # Fix #34: removed dead code block that was here — old rule-based extraction
+
         # duplicated after try/except, reassigning facts=[] and iterating empty list.
         # LLM path (try block) and fallback rule-based path (except block) are sufficient.
 
@@ -216,7 +216,7 @@ class MemoryArchiver:
     async def _archive_layer3(self, state: SDLCState) -> None:
         """Update project graph if workspace context contains graph data.
 
-        M13 Fix: workspace_context is stored as a plain dict (model_dump).
+        workspace_context is stored as a plain dict via model_dump().
         project_graph field added to WorkspaceContext in v1.1.0 (H11 fix).
         Reconstruct ProjectContextGraph object before passing to l3.save_graph().
         """
@@ -258,7 +258,7 @@ class MemoryArchiver:
         if not tool:
             logger.info("memory_archiver.layer4_skipped", reason="no tool_delegated_to in state")
             return
-        # Fix #114: use mcp_session_id as user_id so preferences are per-session not global
+        # Use session ID as user key so preferences are per-session, not global
         user_id = str(state.get("mcp_session_id") or "default")
         # l4 emits InterpretRecord before write inside update_tool_preference
         await self.l4.update_tool_preference(user_id, tool)
@@ -268,7 +268,7 @@ class MemoryArchiver:
 
     async def _archive_layer5(self, state: SDLCState) -> None:
         """Write post-mortem when pipeline failed."""
-        # H5 Fix: run_id = trace_id so PostMortem links to the Layer 1 pipeline_run row
+        # run_id = trace_id links this post-mortem to the Layer 1 pipeline_run row
         run_id = str(state.get("trace_id") or uuid4())
         pm = PostMortem(
             post_mortem_id=str(uuid4()),

@@ -41,7 +41,7 @@ async def test_route_agent_0_returns_groq_adapter() -> None:
 @pytest.mark.asyncio
 async def test_route_agent_3_returns_gpt_5_4_adapter() -> None:
     router = _make_router()
-    # H18: must set OPENAI_API_KEY or router falls back to Groq
+    # OPENAI_API_KEY must be present or the BYOK gate falls back to Groq
     with (
         patch("subscription.byok_manager._keyring") as mk,
         patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test-key-for-unit-test"}),

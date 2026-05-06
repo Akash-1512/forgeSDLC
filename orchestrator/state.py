@@ -52,7 +52,7 @@ class SDLCState(TypedDict):
     # ------------------------------------------------------------------ tool delegation
     tool_delegated_to: str | None
     # ------------------------------------------------------------------ agent internals
-    # Fix #99: all keys written by agents must be declared here so the
+    # All state keys must be declared here — TypedDict enforces schema at development time
     # checkpointer serialises them correctly and mypy can verify access.
     arch_validation: dict[str, object] | None  # Agent 3 anti-pattern + NFR results
     anti_pattern_result: dict[str, object] | None  # Agent 3 AntiPatternDetector output

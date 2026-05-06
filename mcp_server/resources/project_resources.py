@@ -1,5 +1,5 @@
 """
-H14 Fix: MCP resource handlers that serve project artefacts to MCP clients.
+MCP resource handlers — serve project artefacts via URI to MCP clients.
 
 MCP resources expose project memory and generated documents as readable
 URIs. Cursor, Claude Code, and Copilot can reference these via their

@@ -1,5 +1,5 @@
 """
-M14 Fix: shared initial state factory for all MCP tool handlers.
+Shared initial state factory used by all MCP tool handlers.
 
 All 8 tool handlers previously built SDLCState dicts manually — an untyped
 plain dict with no schema enforcement. Any typo in a key name passed silently.

@@ -1,6 +1,6 @@
 """LangGraph pipeline graph definition for forgeSDLC.
 
-M28: This module defines the StateGraph used by the orchestrated pipeline mode.
+StateGraph for the orchestrated pipeline mode.
 In v1.1.0 the MCP server uses per-agent run() calls (not the graph) for HITL
 flexibility. The graph is used for batch/automated runs without HITL pauses.
 
@@ -46,7 +46,7 @@ def _review_retry_router(state: dict[str, object]) -> str:
 def build_graph(agents: dict[str, object] | None = None) -> object:
     """Build and return the compiled forgeSDLC StateGraph.
 
-    M28: now accepts real agent instances so lambda placeholders are replaced.
+    Accepts real agent instances; pass None to use passthrough lambdas (testing only).
 
     Args:
         agents: dict mapping node name → callable (BaseAgent or lambda).

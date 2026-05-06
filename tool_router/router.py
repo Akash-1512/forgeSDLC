@@ -37,7 +37,7 @@ class ToolRouter:
     Emits InterpretRecord Layer 5 (tool_router) before every delegation.
     Agent 4 uses this class — it NEVER calls an LLM internally.
 
-    Fix #24: tool availability is cached for _CACHE_TTL_SECONDS (60s) to avoid
+    Tool availability is cached for _CACHE_TTL_SECONDS (60s) to avoid
     live network calls to Devin API on every route() invocation.
     """
 
@@ -51,7 +51,7 @@ class ToolRouter:
     async def detect_available_tools(self) -> list[AvailableTool]:
         """Probe each tool and return available ones in priority order.
 
-        Fix #24: result is cached for 60 seconds — tool availability rarely
+        Cached for 60 seconds — tool availability rarely
         changes between requests and each probe may make a live network call.
         """
         import time  # noqa: PLC0415

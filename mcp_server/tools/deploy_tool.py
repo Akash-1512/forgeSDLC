@@ -22,7 +22,7 @@ def _build_deploy_state(
     import uuid
     from pathlib import Path
 
-    # Fix #66: load prior security_gate from checkpoint so deploy respects it
+    # Load security gate from checkpoint so deploy respects a prior scan
     security_gate_from_checkpoint: dict[str, object] | None = None
     try:
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
@@ -53,8 +53,6 @@ def _build_deploy_state(
         "service_graph": {"services": []},
         "generated_files": [],
         "review_findings": [],
-        # Fix #67: removed duplicate security_findings key
-        # Fix #66: use checkpoint value so prior security scan gate is respected
         "security_findings": None,
         "security_gate": security_gate_from_checkpoint,
         "deployment_url": None,
@@ -84,7 +82,7 @@ def _build_deploy_state(
 
 
 def _build_infrastructure_shared() -> tuple:
-    """H2 Fix: delegate to shared infrastructure factory."""
+    """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     infra = build_infrastructure()
@@ -200,7 +198,7 @@ async def deploy_project(
         return {
             "status": "awaiting_confirmation",
             "stage": "deployment",
-            # M11 Fix: safe access — interpret_log is guaranteed non-empty here (guard above)
+            # Safe — interpret_log is guaranteed non-empty by the guard above
             "interpretation": state["interpret_log"][-1] if state.get("interpret_log") else {},
             "displayed_interpretation": state.get("displayed_interpretation", ""),
             "project_id": project_id,

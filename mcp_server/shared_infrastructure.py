@@ -1,5 +1,5 @@
 """
-H2 Fix: shared infrastructure factory for all MCP tool handlers.
+Shared infrastructure factory used by all MCP tool handlers.
 
 Previously each of the 8 tool files had an identical copy of _build_infrastructure()
 (400+ lines of duplication). Any change to the infrastructure stack required updating
@@ -56,7 +56,7 @@ def build_infrastructure() -> Infrastructure:
     model_router = ModelRouter()
     estimator = TokenEstimator()
 
-    # H13 Fix: ContextCompressor uses module-level ModelRouter singleton
+    # ContextCompressor uses a module-level ModelRouter singleton
     compressor = ContextCompressor()
 
     cwm = ContextWindowManager(
@@ -65,11 +65,11 @@ def build_infrastructure() -> Infrastructure:
         specs=AGENT_CONTEXT_SPECS,
     )
 
-    # H1 Fix: stores are singletons — reuses existing engines
+    # Stores are singletons — reuses existing engine pools
     l1, l2, l3, l4, l5 = _get_stores()
     memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
 
-    # H1 Fix: MemoryContextBuilder.__init__ now fetches singletons
+    # MemoryContextBuilder fetches singletons — no new engines
     memory_ctx_builder = MemoryContextBuilder()
 
     cfm = ContextFileManager()

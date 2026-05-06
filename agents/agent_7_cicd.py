@@ -30,7 +30,7 @@ _ACTIONS_TO_VERIFY = [
 ]
 
 _ACTION_DEFAULTS = {
-    # H10 Fix: real current versions as of 2026 — v6 does not exist for any of these
+    # Pinned to latest stable versions — update when new major versions release
     "actions/checkout": "v4",
     "actions/setup-python": "v5",
     "actions/setup-node": "v4",
@@ -202,4 +202,4 @@ class CICDAgent(BaseAgent):
                 return major
         except Exception:
             pass
-        return _ACTION_DEFAULTS.get(action_name, "v4")  # H10: "v4" safe default, not "v6"
+        return _ACTION_DEFAULTS.get(action_name, "v4")

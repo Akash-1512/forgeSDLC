@@ -1,5 +1,5 @@
 """
-H14 Fix: MCP prompt handlers registered with the FastMCP server.
+MCP prompt templates surfaced to clients as slash-commands.
 
 These were previously defined as plain string constants but never registered.
 MCP prompts surface template instructions to MCP clients (Cursor, Claude Code, VS Code+Copilot).

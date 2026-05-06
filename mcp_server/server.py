@@ -65,7 +65,7 @@ mcp.tool()(generate_docs)
 mcp.tool()(track_progress)
 
 
-# H14 Fix: Register MCP prompts — surfaced to MCP clients as slash-commands / templates
+# Register MCP prompts — surfaced to clients as slash-commands
 @mcp.prompt()
 def requirements_prompt(project_description: str = "") -> str:
     """Structured PRD generation prompt for requirements gathering."""
@@ -84,7 +84,7 @@ def review_prompt(files_summary: str = "") -> str:
     return get_review_prompt(files_summary)
 
 
-# H14 Fix: Register MCP resources — project artefacts readable via URI
+# Register MCP resources — project artefacts readable via resource URI
 @mcp.resource("project://{project_id}/prd")
 async def resource_prd(project_id: str) -> str:
     """PRD document for a project (from checkpoint)."""
@@ -103,7 +103,7 @@ async def resource_memory(project_id: str) -> str:
     return await get_project_memory(project_id)
 
 
-# Fix #6: /health endpoint — required by smithery.yaml and server_manager.js polling
+# Health check endpoint for smithery.yaml and Electron polling
 @mcp.custom_route("/health", methods=["GET"])
 async def health(_request: object) -> dict[str, object]:
     """Health check endpoint. Returns 200 when server is ready."""
@@ -114,8 +114,8 @@ async def health(_request: object) -> dict[str, object]:
 async def create_token(request: object) -> dict[str, object]:
     """Issue a JWT session token with a tier claim.
 
-    M27: wires session_manager.create_session_token() into the MCP server.
-    M30: surfaces Anthropic ToS warning when tier=enterprise (Claude BYOK available).
+    Issues a signed JWT with a tier claim via session_manager.
+    Returns the Anthropic ToS warning for tiers that include Claude BYOK.
 
     Clients (Electron, Claude Desktop) POST:
         {"user_id": "...", "tier": "free|pro|enterprise", "tos_confirmed": true}
@@ -135,7 +135,7 @@ async def create_token(request: object) -> dict[str, object]:
         if tier not in {"free", "pro", "enterprise"}:
             return {"error": f"Invalid tier: {tier!r}. Must be free, pro, or enterprise."}
 
-        # M30: surface Anthropic ToS warning for tiers that include Claude BYOK
+        # Surface Anthropic ToS for tiers that include Claude BYOK
         anthropic_tos: dict[str, object] = {}
         if tier in {"pro", "enterprise"}:
             from subscription.anthropic_tos_warning import (
@@ -165,7 +165,7 @@ async def create_token(request: object) -> dict[str, object]:
 
 async def _startup() -> None:
     """Initialise database tables, run health checks, log provider status."""
-    # M31 Fix: use shared singletons from memory_context_builder so init_db()
+    # Use shared singletons from memory_context_builder so init_db()
     # is called on the SAME instances used at runtime (not throwaway objects)
     from memory.memory_context_builder import _get_stores
 
@@ -183,7 +183,7 @@ async def _startup() -> None:
             hint="Start PostgreSQL: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",  # noqa: E501
         )
 
-    # M26: run provider health checks at startup and log results
+    # Run provider health checks on startup
     try:
         import os as _os  # noqa: PLC0415
 
@@ -224,7 +224,7 @@ async def _startup() -> None:
 
 
 def main() -> None:
-    # Fix #14: single source of truth — PORT from transport.py only
+    # Single source of truth for port — transport.py only
     logger.info("forgeSDLC MCP server starting", port=PORT, transport=TRANSPORT)
     asyncio.run(_startup())
     mcp.run(transport=TRANSPORT, host=HOST, port=PORT)

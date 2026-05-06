@@ -106,7 +106,7 @@ class PlatformAgent(BaseAgent):
         Guarantees: if service B depends on service A, A appears before B.
         Safe on cycles (returns partial ordering).
 
-        M9 Fix: handles both:
+        Handles both:
         - Plain strings: ["api", "worker", "db"] (from Agent 0 simple decomposition)
         - Dicts/ServiceNodes: [{"name": "api", "depends_on": ["db"]}] (from Agent 2+)
         """
@@ -114,7 +114,7 @@ class PlatformAgent(BaseAgent):
         in_degree: dict[str, int] = {}
 
         for svc in services:
-            # M9: handle plain string service names (Agent 0 output format)
+            # Services may be plain strings (from decomposition) or dicts (from full pipeline)
             if isinstance(svc, str):
                 name = svc
                 if name not in in_degree:
@@ -161,7 +161,6 @@ class PlatformAgent(BaseAgent):
             "services:",
         ]
         for name in order:
-            # M9: handle both string services and dict services
             svc = next(
                 (s for s in services if isinstance(s, dict) and s.get("name") == name),
                 None,
@@ -202,10 +201,7 @@ class PlatformAgent(BaseAgent):
     def _generate_otel_config(self, services: list[object]) -> str:
         """Generate OTel trace propagation config with W3C TraceContext."""
         service_names = [
-            # M9: handle both plain strings and dicts
-            str(s) if isinstance(s, str) else str(s.get("name", ""))
-            for s in services
-            if s
+            str(s) if isinstance(s, str) else str(s.get("name", "")) for s in services if s
         ]
         service_names = [n for n in service_names if n]
         return f"""\
@@ -220,7 +216,6 @@ from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExport
 from opentelemetry.propagate import set_global_textmap
 from opentelemetry.propagators.b3 import B3MultiFormat
 from opentelemetry.sdk.resources import Resource
-
 
 def configure_otel(service_name: str) -> TracerProvider:
     \"\"\"Configure OTel with W3C TraceContext propagation.\"\"\"

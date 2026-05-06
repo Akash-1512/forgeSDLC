@@ -56,7 +56,7 @@ def main() -> int:
         ),
     )
 
-    # Fix P17: in CI, missing API keys are advisory not hard-fail
+    # In CI, missing API keys are advisory — secrets may not be configured yet
     # Set FORGESDLC_CI=true to downgrade API key checks
     _ci_mode = os.getenv("FORGESDLC_CI", "").lower() == "true"
     check(
