@@ -42,6 +42,5 @@ linux:
 publish:
   provider: github
   owner: Akash-1512
-  repo: forgesdlc
-  # Actual publish happens in Session 20 with GH_TOKEN set in CI
-  # Run: vsce publish — Session 20 only
+  repo: forgeSDLC
+  # Publish requires GH_TOKEN set in CI/CD environment

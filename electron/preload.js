@@ -15,7 +15,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
     /**
-     * HITL gate: send "100% GO" programmatically.
+     * Approval gate: sends the internal gate phrase programmatically.
      * "100% GO" is the internal constant — NEVER shown in UI text.
      * UI shows [✅ Approve]. Server receives "100% GO".
      */
@@ -23,7 +23,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
         ipcRenderer.invoke('hitl:approve', { projectId }),
 
     /**
-     * HITL correction: overwrites state["human_corrections"][-1] on server.
+     * Approval correction: overwrites state["human_corrections"][-1] on server.
      * displayed_interpretation is replaced — user sees only current interpretation.
      */
     hitlCorrect: (projectId, correction) =>
@@ -46,7 +46,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     },
 
     /**
-     * Subscribe to HITL gate notifications (stage ready for approval).
+     * Subscribe to approval gate notifications (stage ready for human review).
      * Returns cleanup function.
      */
     onHitlReady: (callback) => {

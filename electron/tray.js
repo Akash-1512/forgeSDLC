@@ -1,8 +1,8 @@
 /**
- * tray.js — System tray icon and HITL gate notifications.
+ * tray.js — System tray icon and approval gate notifications.
  *
  * Tray icon shows/hides the companion panel on click.
- * notifyHitl(stage): pulses icon + shows system notification when agent reaches gate.
+ * notifyApprovalGate(stage): pulses icon + shows notification when agent reaches approval gate.
  * Icon resets to default after 3s.
  */
 
@@ -64,7 +64,7 @@ function setupTray(mainWindow) {
     });
 
     /**
-     * notifyHitl(stage) — called by main process when an agent reaches a HITL gate.
+     * notifyApprovalGate(stage) — called by main process when an agent reaches an approval gate.
      * Pulses the tray icon and shows a system notification.
      * Icon resets to default after 3s.
      *

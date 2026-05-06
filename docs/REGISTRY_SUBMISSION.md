@@ -43,7 +43,7 @@ Each registry is manual — no automated submission API exists.
 **URL:** https://smithery.ai/new
 
 **Steps:**
-1. Ensure `smithery.yaml` exists in repo root (committed in Session 20)
+1. Ensure `smithery.yaml` exists in repo root (already committed)
 2. Submit via https://smithery.ai/new
 3. Smithery reads `smithery.yaml` to auto-populate the listing
 4. Review and publish

@@ -60,7 +60,7 @@ export default function App() {
 
             {/* 4-zone layout */}
             <div style={{ flex: 1, overflowY: "auto" }}>
-                {/* Zone 1: HITL Panel */}
+                {/* Zone 1: Approval Panel */}
                 <div style={{ borderBottom: "1px solid #1e293b" }}>
                     <HitlPanel
                         interpretation="Waiting for agent interpretation..."
