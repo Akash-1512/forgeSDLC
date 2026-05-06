@@ -224,10 +224,26 @@ async def _startup() -> None:
 
 
 def main() -> None:
-    # Single source of truth for port — transport.py only
-    logger.info("forgeSDLC MCP server starting", port=PORT, transport=TRANSPORT)
+    import argparse  # noqa: PLC0415
+
+    parser = argparse.ArgumentParser(description="forgeSDLC MCP server")
+    parser.add_argument(
+        "--transport",
+        default=TRANSPORT,
+        choices=["streamable-http", "stdio"],
+        help="MCP transport (default: streamable-http)",
+    )
+    parser.add_argument(
+        "--port", type=int, default=PORT, help=f"HTTP port (default: {PORT}, streamable-http only)"
+    )
+    parser.add_argument("--host", default=HOST, help=f"Bind host (default: {HOST})")
+    args = parser.parse_args()
+
+    logger.info(
+        "forgeSDLC MCP server starting", transport=args.transport, host=args.host, port=args.port
+    )
     asyncio.run(_startup())
-    mcp.run(transport=TRANSPORT, host=HOST, port=PORT)
+    mcp.run(transport=args.transport, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

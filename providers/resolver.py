@@ -77,7 +77,7 @@ class ProviderResolver:
             return ProviderSelection(
                 service="llm",
                 provider="ollama_local",
-                connection_string="http://localhost:11434",
+                connection_string=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
                 healthy=False,
                 reason="No API keys set — Ollama local fallback",
             )

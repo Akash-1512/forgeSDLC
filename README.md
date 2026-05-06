@@ -61,7 +61,7 @@ npx @forgesdlc/agent
 
 # Python
 pip install forgesdlc-mcp
-python -m mcp_server.server --transport streamable-http --port 8080
+python -m mcp_server.server
 ```
 
 Add to your MCP config (`.vscode/mcp.json` or `~/.cursor/mcp.json`):
@@ -128,7 +128,7 @@ forgeSDLC's living memory persists decisions across tool sessions:
 
 ```bash
 # Start the MCP server first
-python -m mcp_server.server --transport streamable-http --port 8080
+python -m mcp_server.server
 
 # In another terminal
 python demos/cross_tool_memory_demo.py
@@ -169,7 +169,7 @@ Full architecture: [`docs/architecture/`](docs/architecture/)
 
 - Python 3.12+
 - PostgreSQL 16 (local Docker: `docker run -p 5432:5432 -e POSTGRES_PASSWORD=forgesdlc postgres:16`)
-- Node.js 24+ (for `npx @forgesdlc/agent`)
+- Node.js 20+ (for `npx @forgesdlc/agent`)
 - API key for at least one LLM provider (Groq recommended — free tier available)
 
 ---
@@ -186,7 +186,7 @@ pip install -e ".[dev]"
 python -m pytest tests/ -m "not slow"
 
 # Start MCP server
-python -m mcp_server.server --transport streamable-http --port 8080
+python -m mcp_server.server
 
 # Commercial readiness check
 python scripts/commercial_readiness_check.py

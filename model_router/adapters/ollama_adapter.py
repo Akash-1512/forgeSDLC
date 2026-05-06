@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os as _os
 from collections.abc import AsyncIterator
 
 import structlog
@@ -7,7 +8,7 @@ from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
 
 logger = structlog.get_logger()
 
-_OLLAMA_BASE_URL = "http://localhost:11434"
+_OLLAMA_BASE_URL = _os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
 
 
 class OllamaAdapter:

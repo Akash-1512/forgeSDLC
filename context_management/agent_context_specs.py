@@ -316,13 +316,16 @@ def print_spec_table() -> None:
 
     Used by: make context-stats
     """
-    print(f"\n{'Agent':<25} {'MaxTokens':>10} {'Required':>8} {'Optional':>8} {'Excluded':>8}")
-    print("-" * 65)
+    import structlog as _structlog  # noqa: PLC0415
+
+    _log = _structlog.get_logger()
     for name, spec in AGENT_CONTEXT_SPECS.items():
-        print(
-            f"{name:<25} {spec.max_context_tokens:>10,} "
-            f"{len(spec.required_fields):>8} "
-            f"{len(spec.optional_fields):>8} "
-            f"{len(spec.excluded_fields):>8}"
+        _log.debug(
+            "agent_context_spec",
+            agent=name,
+            max_tokens=spec.max_context_tokens,
+            required=len(spec.required_fields),
+            optional=len(spec.optional_fields),
+            excluded=len(spec.excluded_fields),
         )
-    print(f"\nTotal specs: {len(AGENT_CONTEXT_SPECS)}\n")
+    _log.info("agent_context_specs.loaded", count=len(AGENT_CONTEXT_SPECS))
