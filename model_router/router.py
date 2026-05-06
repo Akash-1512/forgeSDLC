@@ -66,7 +66,7 @@ class _TrackingAdapter:
                 output_tokens=output_tokens,
                 cost_usd=cost,
                 latency_ms=latency_ms,
-                api_key_source="byok" if "claude" in self._inner.model_name else "forgesdlc",
+                api_key_source="byok" if "claude" in self._inner.model_name else "subscription",
             )
             # Update running budget total in state
             current = float(self._state.get("budget_used_usd", 0.0) or 0.0)

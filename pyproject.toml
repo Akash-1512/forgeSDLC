@@ -87,6 +87,16 @@ packages = [
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+exclude = [
+    ".git",
+    "__pycache__",
+    ".venv",
+    "node_modules",
+    "alembic/versions",
+    "demos",
+    "docs",
+    "legal",
+]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "TID"]
@@ -107,3 +117,10 @@ filterwarnings = ["error", "ignore::ResourceWarning"]
 markers = [
     "slow: marks tests as slow (deselect with -m 'not slow')",
 ]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+no_error_summary = true
+warn_unused_ignores = false
+check_untyped_defs = false

@@ -55,6 +55,10 @@ class OrgMemory:
     def __init__(self, chroma_path: str = _DEFAULT_CHROMA_PATH) -> None:
         # Fix #120: accept absolute path — relative paths cause CWD-dependent data loss
         self._chroma_path = os.path.abspath(chroma_path)
+        if chromadb is None:
+            raise ImportError(
+                "chromadb is required for Layer 2 memory. Install it: pip install chromadb"
+            )
         self._client = chromadb.PersistentClient(path=self._chroma_path)
         self._collection = self._client.get_or_create_collection(
             "forgesdlc_org_memory",
