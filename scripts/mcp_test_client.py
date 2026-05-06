@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
 """Smoke test — connects to forgeSDLC MCP server on localhost:8080,

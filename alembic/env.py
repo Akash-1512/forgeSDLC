@@ -28,7 +28,7 @@ target_metadata = [L1Base.metadata, L4Base.metadata, L5Base.metadata]
 # Read DB URL from env — same logic as the app
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://postgres:changeme@localhost:5432/forgesdlc",
+    "postgresql+asyncpg://postgres:localdev@localhost:5432/forgesdlc",
 )
 config.set_main_option("sqlalchemy.url", DATABASE_URL)
 

@@ -18,7 +18,7 @@ mcp:
 
 tools:
   - name: gather_requirements
-    description: Generate PRD and NFRs from a prompt with HITL approval gate
+    description: Generate PRD and NFRs from a prompt with human approval gate
     tier: pro
   - name: design_architecture
     description: RFC + ADR + service decomposition with anti-pattern detection

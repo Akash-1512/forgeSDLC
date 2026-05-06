@@ -1,6 +1,6 @@
-# MCP Registry Submission — forgeSDLC v1.0.0
+# MCP Registry Submission — forgeSDLC v1.1.0
 
-Complete these steps AFTER v1.0.0 is live on npm and pip.
+Complete these steps after the release tag is live on npm and pip.
 Each registry is manual — no automated submission API exists.
 
 ---

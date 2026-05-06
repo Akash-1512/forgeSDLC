@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import collections.abc
+
 import structlog
 
 from interpret.gate import check_gate
@@ -41,7 +43,6 @@ def interrupt_node(displayed_interpretation: str, hard_gate: bool = False) -> No
     """Pause execution and surface the interpretation to the companion panel.
 
     When hard_gate=True, the companion panel renders a red border requiring explicit approval.
-    When hard_gate=True, companion panel renders red border and requires explicit approval.
     Wires to the WebSocket / companion panel UI when desktop app is running.
     """
     logger.info(
@@ -63,9 +64,6 @@ def execute_node(confirmation: str, fn: object, *args: object) -> object:
             f"execute_node blocked — gate phrase not matched. Received: {confirmation!r}"
         )
     logger.info("execute_node — gate passed, executing")
-    # Use proper callable protocol
-    import collections.abc  # noqa: PLC0415
-
     if not isinstance(fn, collections.abc.Callable):
         raise TypeError(f"execute_node: fn must be callable, got {type(fn).__name__!r}")
     return fn(*args)

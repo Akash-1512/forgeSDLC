@@ -29,7 +29,7 @@ PROJECT_ID="demo-$(date +%s)"   # unique per recording
 ## Script
 
 ### 00–05s — TITLE CARD
-forgeSDLC 1.0.0
+forgeSDLC v1.1.0
 The missing SDLC layer for your AI coding tools
 
 ### 05–15s — INSTALL (text overlay, terminal visible)
@@ -90,7 +90,7 @@ npm install -g @forgesdlc/agent
 - Resolution: 1920×1080, 60fps
 - No mouse cursor on text overlays
 - Terminal font: 18pt minimum (legible at 720p)
-- Record AFTER v1.0.0 is live on npm — show real `npx @forgesdlc/agent` install
+- Record after the package is live on npm — show real `npx @forgesdlc/agent` install
 - Upload to: YouTube (primary), GitHub Releases description, README
 
 ---

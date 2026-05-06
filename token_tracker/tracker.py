@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import structlog
 
+from subscription.tiers import FREE
 from token_tracker.record import TokenRecord
 
 logger = structlog.get_logger()
@@ -47,7 +48,7 @@ class TokenTracker:
             cost_usd=cost_usd,
             latency_ms=latency_ms,
             api_key_source=api_key_source,  # type: ignore[arg-type]
-            subscription_tier=str(state.get("subscription_tier") or "free"),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
             fim_call=fim_call,
             session_id=str(state.get("mcp_session_id") or "default"),
             run_id=None,

@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import structlog
 
+from orchestrator.state import SDLCState
+
 logger = structlog.get_logger()
 
 
@@ -65,7 +67,7 @@ def build_graph(agents: dict[str, object] | None = None) -> object:
     _agents = agents or {}
     _passthrough = lambda state: state  # noqa: E731
 
-    graph = StateGraph(dict)
+    graph = StateGraph(SDLCState)
 
     # Register nodes — real agents injected from caller, lambdas as fallback
     graph.add_node("agent_5b_security", _agents.get("agent_5b_security", _passthrough))
