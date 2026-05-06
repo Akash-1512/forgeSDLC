@@ -3,6 +3,10 @@ from __future__ import annotations
 import fnmatch
 from dataclasses import dataclass
 
+import structlog
+
+_log = structlog.get_logger()
+
 
 @dataclass(frozen=True)
 class SubscriptionTier:
@@ -74,15 +78,12 @@ _TIERS: dict[str, SubscriptionTier] = {
 def get_tier(name: str) -> SubscriptionTier:
     """Return tier by name. Falls back to FREE for unknown values.
 
-    Returns the free tier as a safe fallback for unknown tier strings, avoiding
-    mid-pipeline if a corrupted checkpoint or migration produced an unexpected
-    value. Now logs a warning and falls back to FREE (safe default).
+    Unknown tier strings (e.g. from a corrupted checkpoint or schema migration)
+    produce a structured warning log and return FREE rather than raising,
+    so a bad tier value never crashes a live pipeline.
     """
     if name not in _TIERS:
-        import structlog  # noqa: PLC0415
-
-        log = structlog.get_logger()
-        log.warning(
+        _log.warning(
             "subscription.unknown_tier_fallback",
             received=name,
             fallback="free",

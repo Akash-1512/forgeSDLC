@@ -7,6 +7,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
@@ -86,7 +87,7 @@ class MonitoringAgent(BaseAgent):
             agent="agent_9_monitor",  # → groq/llama-3.3-70b-versatile
             task_type="documentation",
             estimated_tokens=int(len(rfc.split()) * 2),
-            subscription_tier=str(state.get("subscription_tier", "free")),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
             budget_used=float(state.get("budget_used_usd") or 0.0),
             budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )

@@ -11,6 +11,7 @@ from architecture_intelligence.anti_pattern_detector import AntiPatternDetector
 from architecture_intelligence.architecture_scorer import ArchitectureScorer
 from architecture_intelligence.nfr_satisfiability import NFRSatisfiabilityChecker
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
@@ -124,7 +125,7 @@ class ArchitectureAgent(BaseAgent):
             agent="agent_3_architecture",
             task_type="architecture",
             estimated_tokens=int(len(str(state.get("prd", "")).split()) * 3),
-            subscription_tier=str(state.get("subscription_tier", "free")),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
             budget_used=float(state.get("budget_used_usd") or 0.0),
             budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )

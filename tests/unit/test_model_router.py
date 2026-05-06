@@ -39,7 +39,7 @@ async def test_route_agent_0_returns_groq_adapter() -> None:
 
 
 @pytest.mark.asyncio
-async def test_route_agent_3_returns_gpt_5_4_adapter() -> None:
+async def test_route_agent_3_returns_gpt4o_adapter() -> None:
     router = _make_router()
     # OPENAI_API_KEY must be present or the BYOK gate falls back to Groq
     with (
@@ -140,7 +140,7 @@ async def test_long_context_routing_over_100k_uses_gemini() -> None:
 
 
 @pytest.mark.asyncio
-async def test_budget_optimise_downgrades_gpt_5_4_to_mini() -> None:
+async def test_budget_optimise_downgrades_gpt4o_to_mini() -> None:
     router = _make_router()
     with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None

@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
@@ -100,7 +101,7 @@ class TechStackAgent(BaseAgent):
             agent="agent_2_stack",
             task_type="generation",
             estimated_tokens=1_500,
-            subscription_tier=str(state.get("subscription_tier", "free")),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
             budget_used=float(state.get("budget_used_usd") or 0.0),
             budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )

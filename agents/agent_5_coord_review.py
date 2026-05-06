@@ -11,6 +11,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
@@ -236,7 +237,7 @@ class CoordinatedReview(BaseAgent):
             agent="agent_5_coord_review",
             task_type="review",
             estimated_tokens=2_000,
-            subscription_tier=str(state.get("subscription_tier", "free")),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
             budget_used=float(state.get("budget_used_usd") or 0.0),
             budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )

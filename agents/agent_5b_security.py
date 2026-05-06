@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 from tools.security_tools import (
     BanditRunner,
     DASTRunner,
@@ -188,7 +189,7 @@ class SecurityAgent(BaseAgent):
             agent="agent_5b_security",  # → o3-mini via AGENT_MODELS catalog
             task_type="security_reasoning",
             estimated_tokens=int(len(rfc.split()) * 2),
-            subscription_tier=str(state.get("subscription_tier", "free")),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
             budget_used=float(state.get("budget_used_usd") or 0.0),
             budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
