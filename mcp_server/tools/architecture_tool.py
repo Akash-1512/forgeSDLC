@@ -60,45 +60,26 @@ def _build_initial_arch_state(requirements: str, project_id: str) -> dict[str, o
     }
 
 
-def _build_infrastructure_shared() -> tuple:
+def _build_infrastructure_shared() -> object:
     """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
-    infra = build_infrastructure()
-    return (
-        infra.model_router,
-        infra.context_window_manager,
-        infra.memory_archiver,
-        infra.memory_context_builder,
-        infra.context_file_manager,
-        infra.workspace_bridge,
-        infra.diff_engine,
-    )
+    return build_infrastructure()
 
 
-def _build_arch_agent(infra: tuple) -> object:
+def _build_arch_agent(infra: object) -> object:
     """Instantiate Agent 3."""
     from agents.agent_3_architecture import ArchitectureAgent
 
-    (
-        model_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    ) = infra
-
     return ArchitectureAgent(
         name="agent_3_architecture",
-        context_window_manager=cwm,
-        model_router=model_router,
-        memory_archiver=memory_archiver,
-        memory_context_builder=memory_ctx_builder,
-        context_file_manager=cfm,
-        workspace_bridge=workspace_bridge,
-        diff_engine=diff_engine,
+        context_window_manager=infra.context_window_manager,
+        model_router=infra.model_router,
+        memory_archiver=infra.memory_archiver,
+        memory_context_builder=infra.memory_context_builder,
+        context_file_manager=infra.context_file_manager,
+        workspace_bridge=infra.workspace_bridge,
+        diff_engine=infra.diff_engine,
     )
 
 

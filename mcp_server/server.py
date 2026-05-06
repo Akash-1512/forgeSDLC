@@ -33,6 +33,13 @@ from mcp_server.transport import HOST, PORT, TRANSPORT
 
 logger = structlog.get_logger()
 
+try:
+    from starlette.requests import Request
+    from starlette.responses import JSONResponse
+except ImportError:
+    Request = object  # type: ignore[misc,assignment]
+    JSONResponse = None  # type: ignore[assignment,misc]
+
 # Guard: FastMCP may be None when fastmcp is not installed (e.g. in test environments).
 # In production, pip install forgesdlc-mcp installs fastmcp as a runtime dependency.
 if FastMCP is None:
@@ -105,13 +112,13 @@ async def resource_memory(project_id: str) -> str:
 
 # Health check endpoint for smithery.yaml and Electron polling
 @mcp.custom_route("/health", methods=["GET"])
-async def health(_request: object) -> dict[str, object]:
+async def health(_request: Request) -> JSONResponse:
     """Health check endpoint. Returns 200 when server is ready."""
-    return {"status": "ok", "version": "1.1.0", "transport": TRANSPORT}
+    return JSONResponse({"status": "ok", "version": "1.1.0", "transport": TRANSPORT})
 
 
 @mcp.custom_route("/auth/token", methods=["POST"])
-async def create_token(request: object) -> dict[str, object]:
+async def create_token(request: Request) -> JSONResponse:
     """Issue a JWT session token with a tier claim.
 
     Issues a signed JWT with a tier claim via session_manager.
@@ -133,7 +140,8 @@ async def create_token(request: object) -> dict[str, object]:
         tos_confirmed = data.get("tos_confirmed", False) is True
 
         if tier not in {"free", "pro", "enterprise"}:
-            return {"error": f"Invalid tier: {tier!r}. Must be free, pro, or enterprise."}
+            msg = f"Invalid tier: {tier!r}. Must be free, pro, or enterprise."
+            return JSONResponse({"error": msg})
 
         # Surface Anthropic ToS for tiers that include Claude BYOK
         anthropic_tos: dict[str, object] = {}
@@ -153,28 +161,32 @@ async def create_token(request: object) -> dict[str, object]:
 
         token = create_session_token(user_id=user_id, tier=tier)
         logger.info("auth.token_issued", user_id=user_id, tier=tier, tos_confirmed=tos_confirmed)
-        return {
-            "token": token,
-            "user_id": user_id,
-            "tier": tier,
-            "anthropic_tos": anthropic_tos,
-        }
+        return JSONResponse(
+            {
+                "token": token,
+                "user_id": user_id,
+                "tier": tier,
+                "anthropic_tos": anthropic_tos,
+            }
+        )
     except RuntimeError as exc:
-        return {"error": str(exc), "hint": "Set SECRET_KEY environment variable"}
+        return JSONResponse({"error": str(exc), "hint": "Set SECRET_KEY environment variable"})
 
 
 async def _startup() -> None:
-    """Initialise database tables, run health checks, log provider status."""
-    # Use shared singletons from memory_context_builder so init_db()
-    # is called on the SAME instances used at runtime (not throwaway objects)
-    from memory.memory_context_builder import _get_stores
+    """Initialise database tables, run health checks, log provider status.
 
-    l1, l2, l3, l4, l5 = _get_stores()
+    Only initialises the three PostgreSQL stores — OrgMemory (Layer 2) loads
+    its embeddings model lazily on first use, not at startup.
+    """
+    from memory.pipeline_history_store import PipelineHistoryStore  # noqa: PLC0415
+    from memory.post_mortem_records import PostMortemStore  # noqa: PLC0415
+    from memory.user_preference_profile import UserPreferenceStore  # noqa: PLC0415
 
     try:
-        await l1.init_db()
-        await l4.init_db()
-        await l5.init_db()
+        await PipelineHistoryStore().init_db()
+        await UserPreferenceStore().init_db()
+        await PostMortemStore().init_db()
         logger.info("forgesdlc.startup.db_tables_ready")
     except Exception as exc:
         logger.error("forgesdlc.startup.db_init_failed", error=str(exc))

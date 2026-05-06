@@ -29,17 +29,35 @@ _SHARED_EMBEDDINGS: HuggingFaceEmbeddings | None = None
 
 
 def _get_embeddings() -> HuggingFaceEmbeddings:
-    """Return shared HuggingFaceEmbeddings — loaded once, never reloaded."""
+    """Return shared HuggingFaceEmbeddings — loaded once, never reloaded.
+
+    The model (~90 MB) is downloaded from HuggingFace on first use and cached.
+    Override the cache directory with TRANSFORMERS_CACHE.
+    Set HF_HUB_OFFLINE=1 to force offline mode once the model is cached.
+    """
     global _SHARED_EMBEDDINGS
     if _SHARED_EMBEDDINGS is None:
         if HuggingFaceEmbeddings is None:
-            raise ImportError("langchain-huggingface required: pip install langchain-huggingface")
+            raise ImportError(
+                "langchain-huggingface is required for Layer 2 memory. "
+                "Install: pip install langchain-huggingface sentence-transformers"
+            )
         cache_folder = os.getenv("TRANSFORMERS_CACHE", os.path.expanduser("~/.cache/huggingface"))
-        _SHARED_EMBEDDINGS = HuggingFaceEmbeddings(
-            model_name="all-MiniLM-L6-v2",
-            cache_folder=cache_folder,
-        )
-        logger.info("org_memory.embeddings_loaded", model="all-MiniLM-L6-v2")
+        try:
+            _SHARED_EMBEDDINGS = HuggingFaceEmbeddings(
+                model_name="all-MiniLM-L6-v2",
+                cache_folder=cache_folder,
+                model_kwargs={"device": "cpu"},
+            )
+            logger.info("org_memory.embeddings_loaded", model="all-MiniLM-L6-v2")
+        except OSError as exc:
+            raise RuntimeError(
+                "Could not load the all-MiniLM-L6-v2 embedding model. "
+                "Network download failed and model is not in local cache. "
+                "Either run with internet access once to download it, "
+                "or set HF_HUB_OFFLINE=1 if the model is already cached. "
+                f"Detail: {exc}"
+            ) from exc
     return _SHARED_EMBEDDINGS
 
 
@@ -53,19 +71,43 @@ class OrgMemory:
     """
 
     def __init__(self, chroma_path: str = _DEFAULT_CHROMA_PATH) -> None:
-
         self._chroma_path = os.path.abspath(chroma_path)
+        self._degraded = False
+        self._degraded_reason = ""
+        self._client = None
+        self._collection = None
+        self._embeddings = None
+
         if chromadb is None:
-            raise ImportError(
-                "chromadb is required for Layer 2 memory. Install it: pip install chromadb"
+            self._degraded = True
+            self._degraded_reason = "chromadb not installed"
+            logger.warning("org_memory.degraded", reason=self._degraded_reason)
+            return
+
+        try:
+            self._client = chromadb.PersistentClient(path=self._chroma_path)
+            self._collection = self._client.get_or_create_collection(
+                "forgesdlc_org_memory",
+                metadata={"hnsw:space": "cosine"},
             )
-        self._client = chromadb.PersistentClient(path=self._chroma_path)
-        self._collection = self._client.get_or_create_collection(
-            "forgesdlc_org_memory",
-            metadata={"hnsw:space": "cosine"},
-        )
-        # Reuse shared singleton
-        self._embeddings = _get_embeddings()
+        except Exception as exc:
+            self._degraded = True
+            self._degraded_reason = f"ChromaDB init failed: {exc}"
+            logger.warning("org_memory.degraded", reason=self._degraded_reason)
+            return
+
+        try:
+            self._embeddings = _get_embeddings()
+        except (RuntimeError, ImportError, OSError):
+            self._degraded = True
+            self._degraded_reason = "Embeddings model unavailable"
+            logger.warning(
+                "org_memory.degraded",
+                reason="Embeddings model not cached — Layer 2 returns empty results",
+                hint="Ensure network access once to download all-MiniLM-L6-v2 (~90MB)",
+            )
+            return
+
         logger.info(
             "org_memory.init",
             chroma_path=self._chroma_path,
@@ -74,6 +116,9 @@ class OrgMemory:
 
     async def upsert(self, entry: OrgMemoryEntry) -> None:
         """Store a learnable fact. Emits InterpretRecord before write."""
+        if self._degraded:
+            logger.warning("org_memory.upsert.skipped", reason=self._degraded_reason)
+            return
         self._emit_record("write", "upsert", entry.entry_id)
         # Embedding is CPU-bound — run in thread executor to avoid blocking the event loop
         loop = asyncio.get_running_loop()

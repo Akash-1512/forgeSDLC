@@ -23,23 +23,14 @@ def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
     )
 
 
-def _build_infrastructure() -> tuple:
+def _build_infrastructure() -> object:
     """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
-    infra = build_infrastructure()
-    return (
-        infra.model_router,
-        infra.context_window_manager,
-        infra.memory_archiver,
-        infra.memory_context_builder,
-        infra.context_file_manager,
-        infra.workspace_bridge,
-        infra.diff_engine,
-    )
+    return build_infrastructure()
 
 
-def _build_agents(infra: tuple) -> tuple:
+def _build_agents(infra: object) -> tuple:
     """Instantiate Agents 0, 1, 2."""
     from agents.agent_0_decompose import ServiceDecompositionAgent
     from agents.agent_1_requirements import RequirementsAgent

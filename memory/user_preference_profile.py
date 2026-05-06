@@ -73,13 +73,20 @@ class UserPreferenceStore:
         logger.info("user_preference_store.save_profile", user_id=profile.user_id)
 
     async def load_profile(self, user_id: str) -> UserPreferenceProfile | None:
-        """Fetch user profile by user_id. Emits InterpretRecord before read."""
+        """Fetch user profile by user_id. Emits InterpretRecord before read.
+
+        Returns None when the database is unavailable.
+        """
         self._emit("read", "load_profile", user_id)
-        async with self._session_factory() as session:
-            result = await session.execute(
-                select(_UserPreferenceRow).where(_UserPreferenceRow.user_id == user_id)
-            )
-            row = result.scalars().first()
+        try:
+            async with self._session_factory() as session:
+                result = await session.execute(
+                    select(_UserPreferenceRow).where(_UserPreferenceRow.user_id == user_id)
+                )
+                row = result.scalars().first()
+        except OSError as exc:
+            logger.warning("user_preference_store.db_unavailable", error=str(exc))
+            return None
         if row is None:
             logger.info("user_preference_store.not_found", user_id=user_id)
             return None
@@ -108,7 +115,10 @@ class UserPreferenceStore:
         )
         profile.preferred_code_gen_tool = tool
         profile.last_updated = datetime.now(tz=UTC)
-        await self.save_profile(profile)
+        try:
+            await self.save_profile(profile)
+        except OSError as exc:
+            logger.warning("user_preference_store.update_failed", error=str(exc))
         logger.info(
             "user_preference_store.tool_preference_updated",
             user_id=user_id,

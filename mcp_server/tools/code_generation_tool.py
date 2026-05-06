@@ -67,42 +67,20 @@ def _build_codegen_state(
     }
 
 
-def _build_infrastructure_shared() -> tuple:
+def _build_infrastructure_shared() -> object:
     """Build infrastructure using the shared factory."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
-    from tool_router.router import ToolRouter  # noqa: PLC0415
 
-    infra = build_infrastructure()
-    tool_router = ToolRouter()
-    return (
-        infra.model_router,
-        tool_router,
-        infra.context_window_manager,
-        infra.memory_archiver,
-        infra.memory_context_builder,
-        infra.context_file_manager,
-        infra.workspace_bridge,
-        infra.diff_engine,
-    )
+    return build_infrastructure()
 
 
-def _build_codegen_agents(infra: tuple) -> tuple:
+def _build_codegen_agents(infra: object) -> tuple:
     from agents.agent_4_tool_router import ToolRouterAgent
     from agents.agent_5_coord_review import CoordinatedReview
     from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
     from tool_router.router import ToolRouter  # noqa: PLC0415
 
-    (
-        model_router,
-        tool_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    ) = infra
-    tool_router = ToolRouter()
+    tool_router = ToolRouter(context_file_manager=infra.context_file_manager)
     base_kwargs = build_agent_kwargs(infra)
 
     agent_4 = ToolRouterAgent(

@@ -43,16 +43,37 @@ class MemoryArchiver:
         self.l5 = layer5
 
     async def archive(self, state: SDLCState) -> None:
-        """Archive learnings from a completed pipeline run to all 5 layers."""
+        """Archive learnings from a completed pipeline run to all 5 layers.
+
+        Individual layer failures (e.g. database unavailable) are caught and
+        logged — archival is best-effort and must never block the pipeline.
+        """
         self._emit_archiver_record(state)
 
-        await self._archive_layer1(state)
-        await self._archive_layer2(state)
-        await self._archive_layer3(state)
-        await self._archive_layer4(state)
+        for layer_fn, label in [
+            (self._archive_layer1, "layer1"),
+            (self._archive_layer2, "layer2"),
+            (self._archive_layer3, "layer3"),
+            (self._archive_layer4, "layer4"),
+        ]:
+            try:
+                await layer_fn(state)
+            except OSError as exc:
+                logger.warning(
+                    f"memory_archiver.{label}_skipped",
+                    reason="database unavailable",
+                    error=str(exc),
+                )
+            except Exception as exc:
+                logger.warning(f"memory_archiver.{label}_failed", error=str(exc))
 
         if state.get("failure_type"):
-            await self._archive_layer5(state)
+            try:
+                await self._archive_layer5(state)
+            except OSError as exc:
+                logger.warning(
+                    "memory_archiver.layer5_skipped", reason="database unavailable", error=str(exc)
+                )
         else:
             logger.info("memory_archiver.layer5_skipped", reason="no failure_type in state")
 

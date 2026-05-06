@@ -96,33 +96,45 @@ class PipelineHistoryStore:
                 set_={k: v for k, v in values.items() if k != "run_id"},
             )
         )
-        async with self._session_factory() as session, session.begin():
-            await session.execute(stmt)
-        logger.info("pipeline_history_store.save_run", run_id=record.run_id)
+        try:
+            async with self._session_factory() as session, session.begin():
+                await session.execute(stmt)
+            logger.info("pipeline_history_store.save_run", run_id=record.run_id)
+        except OSError as exc:
+            logger.warning(
+                "pipeline_history_store.save_run.db_unavailable",
+                run_id=record.run_id,
+                error=str(exc),
+            )
 
     async def get_similar_runs(self, project_id: str, limit: int = 5) -> list[PipelineRunRecord]:
         """Fetch recent runs for a project ordered by timestamp desc.
 
         Emits InterpretRecord before read.
+        Returns an empty list when the database is unavailable.
         """
         self._emit_record("read", "get_similar_runs", project_id)
-        async with self._session_factory() as session:
-            result = await session.execute(
-                select(_PipelineRunRow)
-                .where(_PipelineRunRow.project_id == project_id)
-                .order_by(_PipelineRunRow.timestamp.desc())
-                .limit(limit)
-            )
-            rows = result.scalars().all()
+        try:
+            async with self._session_factory() as session:
+                result = await session.execute(
+                    select(_PipelineRunRow)
+                    .where(_PipelineRunRow.project_id == project_id)
+                    .order_by(_PipelineRunRow.timestamp.desc())
+                    .limit(limit)
+                )
+                rows = result.scalars().all()
+        except OSError as exc:
+            logger.warning("pipeline_history_store.db_unavailable", error=str(exc))
+            return []
 
-        records = [
+        return [
             PipelineRunRecord(
                 run_id=row.run_id,
                 timestamp=row.timestamp,
                 project_id=row.project_id,
                 user_prompt=row.user_prompt,
                 stack_chosen=row.stack_chosen,
-                deployment_success=row.deployment_success,  # native bool, fix #117
+                deployment_success=row.deployment_success,
                 cost_total_usd=row.cost_total_usd,
                 hitl_rounds=row.hitl_rounds,
                 human_corrections=row.human_corrections or [],
@@ -132,12 +144,6 @@ class PipelineHistoryStore:
             )
             for row in rows
         ]
-        logger.info(
-            "pipeline_history_store.get_similar_runs",
-            project_id=project_id,
-            count=len(records),
-        )
-        return records
 
     def _emit_record(self, action_type: str, action: str, key: str) -> InterpretRecord:
         record = InterpretRecord(
