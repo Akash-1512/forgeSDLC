@@ -4,7 +4,11 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
-from fastmcp import Context
+
+try:
+    from fastmcp import Context
+except ImportError:  # pragma: no cover
+    Context = object  # type: ignore[assignment,misc]
 
 from interpret.record import InterpretRecord
 from memory.memory_context_builder import MemoryContextBuilder

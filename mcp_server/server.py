@@ -3,7 +3,11 @@ from __future__ import annotations
 import asyncio
 
 import structlog
-from fastmcp import FastMCP
+
+try:
+    from fastmcp import FastMCP
+except ImportError:  # pragma: no cover
+    FastMCP = None  # type: ignore[assignment,misc]
 
 from mcp_server.prompts.sdlc_prompts import (
     get_architecture_prompt,
@@ -28,6 +32,13 @@ from mcp_server.tools.security_tool import run_security_scan
 from mcp_server.transport import HOST, PORT, TRANSPORT
 
 logger = structlog.get_logger()
+
+# Guard: FastMCP may be None when fastmcp is not installed (e.g. in test environments).
+# In production, pip install forgesdlc-mcp installs fastmcp as a runtime dependency.
+if FastMCP is None:
+    raise ImportError(
+        "fastmcp is required to run the forgeSDLC MCP server. Install it: pip install forgesdlc-mcp"
+    )
 
 mcp = FastMCP(
     name="forgesdlc",

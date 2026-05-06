@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -54,7 +55,7 @@ def test_chromadb_uses_persistent_client_not_in_memory() -> None:
         from memory.organisational_memory import OrgMemory
 
         OrgMemory(chroma_path="./test_chroma")
-        mock_chroma.PersistentClient.assert_called_once_with(path="./test_chroma")
+        mock_chroma.PersistentClient.assert_called_once_with(path=os.path.abspath("./test_chroma"))
         mock_chroma.Client.assert_not_called() if hasattr(mock_chroma, "Client") else None
         mock_chroma.EphemeralClient.assert_not_called() if hasattr(
             mock_chroma, "EphemeralClient"

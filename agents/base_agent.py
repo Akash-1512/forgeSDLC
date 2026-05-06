@@ -129,7 +129,7 @@ class BaseAgent(ABC):
             output_tokens=estimated_output,
             cost_usd=cost_usd,
             latency_ms=latency_ms,
-            api_key_source="env",
+            api_key_source="free_tier",  # Groq free tier by default
         )
         # Accumulate cost in state so BudgetMonitor has real data
         current_budget_used = float(state.get("budget_used_usd", 0.0) or 0.0)

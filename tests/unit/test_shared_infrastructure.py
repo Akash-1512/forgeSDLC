@@ -6,32 +6,30 @@ from unittest.mock import MagicMock, patch
 
 
 def test_build_infrastructure_returns_infrastructure_namedtuple() -> None:
-    """build_infrastructure() returns a typed Infrastructure NamedTuple."""
-    from mcp_server.shared_infrastructure import Infrastructure
+    """build_infrastructure() returns a typed Infrastructure NamedTuple.
 
+    Patches are on source modules because shared_infrastructure uses lazy imports.
+    """
+    from mcp_server.shared_infrastructure import Infrastructure, build_infrastructure
+
+    # Patch the heavy deps at their source — lazy imports in build_infrastructure
+    # mean we cannot patch "mcp_server.shared_infrastructure.X"
     with (
-        patch("mcp_server.shared_infrastructure.ModelRouter"),
-        patch("mcp_server.shared_infrastructure.TokenEstimator"),
-        patch("mcp_server.shared_infrastructure.ContextCompressor"),
-        patch("mcp_server.shared_infrastructure.ContextWindowManager"),
+        patch("model_router.router.ModelRouter"),
+        patch("context_management.token_estimator.TokenEstimator"),
+        patch("context_management.context_compressor._get_router", return_value=MagicMock()),
+        patch("context_management.context_compressor.ContextCompressor"),
+        patch("context_management.context_window_manager.ContextWindowManager"),
         patch(
-            "mcp_server.shared_infrastructure._get_stores",
-            return_value=(
-                MagicMock(),
-                MagicMock(),
-                MagicMock(),
-                MagicMock(),
-                MagicMock(),
-            ),
+            "memory.memory_context_builder._get_stores",
+            return_value=(MagicMock(), MagicMock(), MagicMock(), MagicMock(), MagicMock()),
         ),
-        patch("mcp_server.shared_infrastructure.MemoryArchiver"),
-        patch("mcp_server.shared_infrastructure.MemoryContextBuilder"),
-        patch("mcp_server.shared_infrastructure.ContextFileManager"),
-        patch("mcp_server.shared_infrastructure.WorkspaceBridge"),
-        patch("mcp_server.shared_infrastructure.DiffEngine"),
+        patch("memory.memory_archiver.MemoryArchiver"),
+        patch("memory.memory_context_builder.MemoryContextBuilder"),
+        patch("context_files.manager.ContextFileManager"),
+        patch("workspace.bridge.WorkspaceBridge"),
+        patch("workspace.diff_engine.DiffEngine"),
     ):
-        from mcp_server.shared_infrastructure import build_infrastructure
-
         infra = build_infrastructure()
         assert isinstance(infra, Infrastructure)
 

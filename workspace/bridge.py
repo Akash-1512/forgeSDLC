@@ -5,9 +5,19 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
-from git import InvalidGitRepositoryError, Repo
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+
+try:
+    from git import InvalidGitRepositoryError, Repo
+except ImportError:  # pragma: no cover
+    InvalidGitRepositoryError = Exception  # type: ignore[misc,assignment]
+    Repo = None  # type: ignore[assignment]
+
+try:
+    from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
+except ImportError:  # pragma: no cover
+    FileSystemEventHandler = object  # type: ignore[misc,assignment]
+    Observer = None  # type: ignore[assignment]
 
 from interpret.record import InterpretRecord
 from workspace.context import GitCommit, WorkspaceContext

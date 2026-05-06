@@ -48,7 +48,7 @@ async def test_gather_requirements_returns_awaiting_confirmation_first_call(
     mock_ctx.report_progress = AsyncMock()
 
     with (
-        patch("subscription.byok_manager.keyring") as mk,
+        patch("subscription.byok_manager._keyring") as mk,
         patch(
             "mcp_server.tools.requirements_tool._build_infrastructure",
             return_value=(
@@ -141,7 +141,7 @@ async def test_gather_requirements_completes_after_100_go_sequence(
     }
 
     with (
-        patch("subscription.byok_manager.keyring") as mk,
+        patch("subscription.byok_manager._keyring") as mk,
         patch(
             "mcp_server.tools.requirements_tool._build_infrastructure",
             return_value=(

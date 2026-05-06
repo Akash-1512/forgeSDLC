@@ -196,7 +196,8 @@ async def test_run_updates_displayed_interpretation_each_round() -> None:
     }
     result = await agent.run(state)
     # displayed_interpretation holds only the CURRENT one
-    assert result["displayed_interpretation"] == "round 1 interpretation"
+    # interpret_node() formats the record — check the action is present
+    assert "round 1 interpretation" in result["displayed_interpretation"]
     assert result["interpret_round"] == 1
 
 

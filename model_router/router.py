@@ -85,6 +85,11 @@ class _TrackingAdapter:
         return self._inner.model_name
 
     @property
+    def inner(self) -> object:
+        """Return the underlying adapter — for testing and inspection only."""
+        return self._inner
+
+    @property
     def context_window(self) -> int:
         return self._inner.context_window
 

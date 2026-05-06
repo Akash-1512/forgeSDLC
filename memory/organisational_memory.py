@@ -5,9 +5,16 @@ import functools
 import os
 from datetime import UTC, datetime
 
-import chromadb
+try:
+    import chromadb
+except ImportError:  # pragma: no cover
+    chromadb = None  # type: ignore[assignment]
 import structlog
-from langchain_huggingface import HuggingFaceEmbeddings
+
+try:
+    from langchain_huggingface import HuggingFaceEmbeddings
+except ImportError:  # pragma: no cover
+    HuggingFaceEmbeddings = None  # type: ignore[assignment,misc]
 
 from interpret.record import InterpretRecord
 from memory.schemas import OrgMemoryEntry
@@ -25,6 +32,8 @@ def _get_embeddings() -> HuggingFaceEmbeddings:
     """Return shared HuggingFaceEmbeddings — loaded once, never reloaded."""
     global _SHARED_EMBEDDINGS
     if _SHARED_EMBEDDINGS is None:
+        if HuggingFaceEmbeddings is None:
+            raise ImportError("langchain-huggingface required: pip install langchain-huggingface")
         cache_folder = os.getenv("TRANSFORMERS_CACHE", os.path.expanduser("~/.cache/huggingface"))
         _SHARED_EMBEDDINGS = HuggingFaceEmbeddings(
             model_name="all-MiniLM-L6-v2",

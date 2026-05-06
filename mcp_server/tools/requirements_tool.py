@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import structlog
-from fastmcp import Context
+
+try:
+    from fastmcp import Context
+except ImportError:  # pragma: no cover
+    Context = object  # type: ignore[assignment,misc]
 
 from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 

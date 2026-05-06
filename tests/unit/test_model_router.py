@@ -23,7 +23,7 @@ def _mock_byok(has_key: bool = False) -> object:
 @pytest.mark.asyncio
 async def test_route_agent_0_returns_groq_adapter() -> None:
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         adapter = await router.route(  # type: ignore[union-attr]
             agent="agent_0_decompose",
@@ -35,13 +35,17 @@ async def test_route_agent_0_returns_groq_adapter() -> None:
         )
     from model_router.adapters.groq_adapter import GroqAdapter
 
-    assert isinstance(adapter, GroqAdapter)
+    assert isinstance(adapter.inner, GroqAdapter)
 
 
 @pytest.mark.asyncio
 async def test_route_agent_3_returns_gpt_5_4_adapter() -> None:
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    # H18: must set OPENAI_API_KEY or router falls back to Groq
+    with (
+        patch("subscription.byok_manager._keyring") as mk,
+        patch.dict("os.environ", {"OPENAI_API_KEY": "sk-test-key-for-unit-test"}),
+    ):
         mk.get_password.return_value = None
         adapter = await router.route(  # type: ignore[union-attr]
             agent="agent_3_architecture",
@@ -53,7 +57,7 @@ async def test_route_agent_3_returns_gpt_5_4_adapter() -> None:
         )
     from model_router.adapters.openai_adapter import OpenAIAdapter
 
-    assert isinstance(adapter, OpenAIAdapter)
+    assert isinstance(adapter.inner, OpenAIAdapter)
     assert adapter.model_name == "gpt-4o"
 
 
@@ -61,7 +65,7 @@ async def test_route_agent_3_returns_gpt_5_4_adapter() -> None:
 async def test_route_agent_9_returns_groq_not_gpt_mini() -> None:
     """Regression guard: Agent 9 must return groq, never gpt-4o-mini."""
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         adapter = await router.route(  # type: ignore[union-attr]
             agent="agent_9_monitor",
@@ -73,7 +77,7 @@ async def test_route_agent_9_returns_groq_not_gpt_mini() -> None:
         )
     from model_router.adapters.groq_adapter import GroqAdapter
 
-    assert isinstance(adapter, GroqAdapter), (
+    assert isinstance(adapter.inner, GroqAdapter), (
         f"Agent 9 must use GroqAdapter, got {type(adapter).__name__}"
     )
     assert "groq" in adapter.model_name
@@ -85,7 +89,7 @@ async def test_route_agent_4_raises_error() -> None:
     from orchestrator.exceptions import ForgeSDLCError
 
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         with pytest.raises(ForgeSDLCError):
             await router.route(  # type: ignore[union-attr]
@@ -101,7 +105,7 @@ async def test_route_agent_4_raises_error() -> None:
 @pytest.mark.asyncio
 async def test_route_interpret_node_returns_groq_8b_instant() -> None:
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         adapter = await router.route(  # type: ignore[union-attr]
             agent="interpret_node",
@@ -113,14 +117,14 @@ async def test_route_interpret_node_returns_groq_8b_instant() -> None:
         )
     from model_router.adapters.groq_adapter import GroqAdapter
 
-    assert isinstance(adapter, GroqAdapter)
+    assert isinstance(adapter.inner, GroqAdapter)
     assert "8b-instant" in adapter.model_name
 
 
 @pytest.mark.asyncio
 async def test_long_context_routing_over_100k_uses_gemini() -> None:
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         adapter = await router.route(  # type: ignore[union-attr]
             agent="agent_3_architecture",
@@ -132,13 +136,13 @@ async def test_long_context_routing_over_100k_uses_gemini() -> None:
         )
     from model_router.adapters.gemini_adapter import GeminiAdapter
 
-    assert isinstance(adapter, GeminiAdapter)
+    assert isinstance(adapter.inner, GeminiAdapter)
 
 
 @pytest.mark.asyncio
 async def test_budget_optimise_downgrades_gpt_5_4_to_mini() -> None:
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         # 85% budget used → OPTIMISE → downgrade gpt-4o → gpt-4o-mini
         adapter = await router.route(  # type: ignore[union-attr]
@@ -153,7 +157,7 @@ async def test_budget_optimise_downgrades_gpt_5_4_to_mini() -> None:
     from model_router.adapters.openai_adapter import OpenAIAdapter
 
     # Should be downgraded — either gpt-4o-mini or groq
-    assert isinstance(adapter, (OpenAIAdapter, GroqAdapter))
+    assert isinstance(adapter.inner, (OpenAIAdapter, GroqAdapter))
     if isinstance(adapter, OpenAIAdapter):
         assert adapter.model_name != "gpt-4o"
 
@@ -161,7 +165,7 @@ async def test_budget_optimise_downgrades_gpt_5_4_to_mini() -> None:
 @pytest.mark.asyncio
 async def test_free_tier_forces_groq_for_openai_agents() -> None:
     router = _make_router()
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         # Free tier: gpt-4o-mini not allowed → falls back to groq
         adapter = await router.route(  # type: ignore[union-attr]
@@ -174,7 +178,7 @@ async def test_free_tier_forces_groq_for_openai_agents() -> None:
         )
     from model_router.adapters.groq_adapter import GroqAdapter
 
-    assert isinstance(adapter, GroqAdapter)
+    assert isinstance(adapter.inner, GroqAdapter)
 
 
 @pytest.mark.asyncio
@@ -189,7 +193,7 @@ async def test_route_emits_interpret_record_layer4_before_selection() -> None:
         return ir
 
     router._emit_record = capturing_emit  # type: ignore[union-attr, method-assign]
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         await router.route(  # type: ignore[union-attr]
             agent="agent_0_decompose",
@@ -208,7 +212,7 @@ async def test_claude_raises_when_no_byok_key() -> None:
 
     router = _make_router()
     with (
-        patch("subscription.byok_manager.keyring") as mk,
+        patch("subscription.byok_manager._keyring") as mk,
         patch.dict(
             "model_router.router.AGENT_MODELS",
             {"agent_10_docs": "claude-sonnet-4-6"},

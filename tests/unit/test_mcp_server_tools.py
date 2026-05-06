@@ -33,6 +33,7 @@ def _make_infra_tuple(n: int = 7) -> tuple:
 
 
 def test_server_instantiates_without_error() -> None:
+    pytest.importorskip("fastmcp", reason="fastmcp not installed")
     from mcp_server.server import mcp
 
     assert mcp.name == "forgesdlc"
