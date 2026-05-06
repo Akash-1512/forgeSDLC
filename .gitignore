@@ -56,3 +56,39 @@ out/
 
 # Node
 node_modules/
+
+# Runtime artifacts
+chroma_db/
+data/
+*.db
+*.sqlite3
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+__pycache__/
+*.pyc
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# Frontend build
+frontend/dist/
+frontend/node_modules/
+
+# Electron build
+electron/dist/
+electron/node_modules/
+
+# Environment
+.env
+.env.local
+
+# Coverage
+coverage.xml
+.coverage
+htmlcov/

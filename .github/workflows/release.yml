@@ -5,8 +5,7 @@ on:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
 
-# Fix P15: environment protection — require manual approval for production publish
-# Set up 'production' environment in GitHub repo settings with required reviewers.
+# Requires a 'production' environment in GitHub repo settings with required reviewers.
 
 jobs:
   test:
@@ -15,7 +14,6 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          # Fix P1/P5: consistent password via secret
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}
           POSTGRES_DB: forgesdlc
         ports:
@@ -62,7 +60,7 @@ jobs:
   publish-python:
     needs: test
     runs-on: ubuntu-latest
-    # Fix P15: production environment gate
+  
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -76,7 +74,6 @@ jobs:
           pip install build twine
           python -m build
 
-      # Fix P16: package name is 'forgesdlc' in pyproject.toml
       # pip install forgesdlc-mcp would need name = "forgesdlc-mcp" — keeping as forgesdlc
       - name: Publish to PyPI
         run: twine upload dist/*
@@ -96,7 +93,6 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      # Fix P8: npm ci requires package-lock.json — use npm install instead
       - name: Install and publish npm package
         run: |
           cd electron
@@ -107,15 +103,14 @@ jobs:
 
   build-electron:
     needs: test
-    # Fix P20: fail-fast false — one platform failure shouldn't cancel others
+  
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows-latest
             platform: win
-            # Fix P18: more specific artifact path
-            artifact_path: 'electron/dist/*.exe'
+                  artifact_path: 'electron/dist/*.exe'
             artifact_name: 'windows'
           - os: macos-latest
             platform: mac
@@ -131,10 +126,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Fix P7: Node 20 LTS — widely supported by electron-builder
-          node-version: '20'
+              node-version: '20'
 
-      # Fix P9: npm ci requires lock file — use npm install for build
       - name: Install electron dependencies
         run: cd electron && npm install
 
@@ -145,8 +138,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: electron-${{ matrix.artifact_name }}
-          # Fix P18: use explicit matrix artifact path
-          path: ${{ matrix.artifact_path }}
+              path: ${{ matrix.artifact_path }}
           if-no-files-found: warn
 
   github-release:
@@ -163,7 +155,6 @@ jobs:
           merge-multiple: true
           path: dist/
 
-      # Fix P6: guard against empty dist/ before listing
       - name: List release artifacts
         run: |
           echo "Release artifacts:"
@@ -208,7 +199,6 @@ jobs:
         with:
           node-version: '20'
 
-      # Fix P8: use npm install — no lock file present
       - name: Install extension dependencies
         run: cd vscode_extension && npm install
 

@@ -1,4 +1,4 @@
-# forgeSDLC v1.0.0 — 90-Second Demo Script
+# forgeSDLC v1.1.0 — 90-Second Demo Script
 
 **Target:** 90 seconds. No cuts. Real install, real tools, real memory.
 
@@ -8,7 +8,7 @@
 
 ```bash
 # 1. Publish must be live first
-npm install -g @forgesdlc/agent   # verify @forgesdlc/agent@1.0.0 on npm
+npm install -g @forgesdlc/agent   # verify @forgesdlc/agent@1.1.0 on npm
 
 # 2. Start MCP server
 python -m mcp_server.server --transport streamable-http --port 8080
@@ -21,7 +21,7 @@ python -m mcp_server.server --transport streamable-http --port 8080
 # Show system tray icon visible in taskbar
 
 # 5. Set project ID
-PROJECT_ID = "demo-$(date +%s)"   # unique per recording
+PROJECT_ID="demo-$(date +%s)"   # unique per recording
 ```
 
 ---

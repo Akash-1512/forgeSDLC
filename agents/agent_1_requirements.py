@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 _MODEL = "groq/llama-3.3-70b-versatile"
 
 _PRD_SYSTEM_PROMPT = """\
-You are a senior product manager. Generate a comprehensive PRD.
+You are a senior product manager. Generate a structured PRD.
 Always include ALL of these sections in this exact order:
 1. Executive Summary
 2. User Stories

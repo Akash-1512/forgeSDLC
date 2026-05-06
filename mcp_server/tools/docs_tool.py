@@ -62,7 +62,7 @@ def _build_docs_state(project_id: str, human_confirmation: str, scope: str) -> d
 
 
 def _build_infrastructure_shared() -> object:
-    """Build infrastructure using the shared factory."""
+    """Instantiate the shared components needed by the documentation pipeline."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     return build_infrastructure()
@@ -91,7 +91,7 @@ async def generate_docs(
 ) -> dict[str, object]:
     """Generate README, CHANGELOG, and build ProjectContextGraph.
 
-    Performs comprehensive 5-layer memory archive.
+    Archives results across all 5 memory layers.
     Sets pipeline_complete=True — marks single-service SDLC as done.
     ProjectContextGraph saved to Layer 3 — recall_context() now returns
     rich structured context for this project on all future calls.

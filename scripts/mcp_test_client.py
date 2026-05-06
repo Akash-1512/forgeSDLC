@@ -1,4 +1,4 @@
-from __future__ import annotations  # noqa: E402
+from __future__ import annotations
 
 """Smoke test — connects to forgeSDLC MCP server on localhost:8080,
 lists all 11 tools, calls each one, and exits 0 on success.
@@ -10,11 +10,11 @@ Then in another terminal:
     python scripts/mcp_test_client.py
 """
 
-import asyncio  # noqa: E402
-import sys  # noqa: E402
+import asyncio
+import sys
 
-from mcp import ClientSession  # noqa: E402
-from mcp.client.streamable_http import streamablehttp_client  # noqa: E402
+from mcp import ClientSession
+from mcp.client.streamable_http import streamablehttp_client
 
 BASE_URL = "http://localhost:8080/mcp"
 

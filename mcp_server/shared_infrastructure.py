@@ -1,15 +1,15 @@
 """
 Shared infrastructure factory used by all MCP tool handlers.
 
-Previously each of the 8 tool files had an identical copy of _build_infrastructure()
-(400+ lines of duplication). Any change to the infrastructure stack required updating
-8 files. This module is the single source of truth.
+All 8 tool files import from here rather than constructing their own components.
+Any change to the infrastructure stack only needs to happen in one place.
 
 Usage:
-    from mcp_server.shared_infrastructure import build_infrastructure
+    from mcp_server.shared_infrastructure import build_infrastructure, build_agent_kwargs
 
     infra = build_infrastructure()
-    model_router, cwm, memory_archiver, memory_ctx_builder, cfm, workspace_bridge, diff_engine = infra  # noqa: E501
+    kwargs = build_agent_kwargs(infra)
+    agent = MyAgent(name="agent_N", **kwargs)
 """
 
 from __future__ import annotations

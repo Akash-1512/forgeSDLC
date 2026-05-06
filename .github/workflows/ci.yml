@@ -4,7 +4,7 @@ on:
   push:
     branches: [develop, main]
   pull_request:
-    branches: [develop]
+    branches: [develop, main]
 
 jobs:
   test:
@@ -13,8 +13,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          # Fix P1: use a consistent CI-only password via env var (not hardcoded 'forgesdlc')
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}
+              POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}
           POSTGRES_DB: forgesdlc
         ports:
           - 5432:5432
@@ -31,7 +30,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Fix P11: cache pip dependencies — dramatically reduces install time
       - name: Cache pip dependencies
         uses: actions/cache@v4
         with:
@@ -46,13 +44,10 @@ jobs:
       - name: Lint and format check
         run: ruff check . && ruff format --check .
 
-      # Fix P12: add mypy type checking
       - name: Type check (mypy)
         run: mypy mcp_server/ orchestrator/ agents/ memory/ model_router/ --ignore-missing-imports --no-error-summary
         continue-on-error: true  # advisory — does not block merge in v1.1.0
 
-      # Fix P19: scope semgrep to src dirs only, exclude tests and generated files
-      # Fix P3: keep continue-on-error: true so findings are advisory not blocking
       - name: Security scan (semgrep)
         run: |
           semgrep --config=p/python --config=p/security \
@@ -62,12 +57,10 @@ jobs:
             --error --quiet
         continue-on-error: true
 
-      # Fix P13: enforce 60% minimum coverage (up from nothing)
       - name: Run tests with coverage
         run: pytest tests/ -m "not slow" --tb=short -q --cov=. --cov-report=xml --cov-fail-under=60
         env:
-          # Fix P1: match CI DB password
-          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}@localhost:5432/forgesdlc
+              DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}@localhost:5432/forgesdlc
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-secret-key-minimum-32-chars-long' }}
           # API keys optional in CI — tests mock LLM calls
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || '' }}
@@ -79,7 +72,6 @@ jobs:
           file: coverage.xml
           fail_ci_if_error: false
 
-      # Fix P17: make API key checks advisory-only in CI — secrets may not be set
       - name: Commercial readiness check
         run: python scripts/commercial_readiness_check.py
         env:

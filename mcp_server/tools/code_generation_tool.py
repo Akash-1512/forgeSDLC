@@ -68,7 +68,7 @@ def _build_codegen_state(
 
 
 def _build_infrastructure_shared() -> object:
-    """Build infrastructure using the shared factory."""
+    """Instantiate the shared components needed by the code generation pipeline."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     return build_infrastructure()

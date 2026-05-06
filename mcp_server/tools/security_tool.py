@@ -61,7 +61,7 @@ def _build_security_state(
 
 
 def _build_infrastructure_shared() -> object:
-    """Build infrastructure using the shared factory."""
+    """Instantiate the shared components needed by the security scan pipeline."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     return build_infrastructure()

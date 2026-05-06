@@ -6,7 +6,7 @@ from uuid import uuid4
 import structlog
 
 from interpret.record import InterpretRecord
-from memory.organisational_memory import OrgMemory
+from memory.organizational_memory import OrgMemory
 from memory.pipeline_history_store import PipelineHistoryStore
 from memory.post_mortem_records import PostMortemStore
 from memory.project_context_graph import ProjectContextGraphStore

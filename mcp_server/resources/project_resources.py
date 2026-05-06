@@ -62,7 +62,7 @@ async def get_project_adr(project_id: str) -> str:
 async def get_project_memory(project_id: str, query: str = "architecture decisions") -> str:
     """MCP Resource: return Layer 2 memory for a project."""
     try:
-        from memory.organisational_memory import OrgMemory  # noqa: PLC0415
+        from memory.organizational_memory import OrgMemory  # noqa: PLC0415
 
         org = OrgMemory()
         entries = await org.search(query=query, project_id=project_id, limit=10)

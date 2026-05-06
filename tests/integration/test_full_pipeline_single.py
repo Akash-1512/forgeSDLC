@@ -203,4 +203,8 @@ def test_state_persists_between_mcp_calls_via_checkpointer() -> None:
     # The checkpointer uses config = {"configurable": {"thread_id": project_id}}
     # State is restored via checkpointer.get(config) on each call.
     # Verified structurally in requirements_tool.py implementation.
-    assert True
+    # Structural test: verify state_factory builds valid state
+    from mcp_server.state_factory import build_initial_state
+
+    state = build_initial_state(project_id="pipeline-test", user_prompt="stub")
+    assert state["project_id"] == "pipeline-test"

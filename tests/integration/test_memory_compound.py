@@ -14,7 +14,7 @@ from uuid import uuid4  # noqa: E402
 import pytest  # noqa: E402
 
 from memory.memory_archiver import MemoryArchiver  # noqa: E402
-from memory.organisational_memory import OrgMemory  # noqa: E402
+from memory.organizational_memory import OrgMemory  # noqa: E402
 
 
 def _make_archiver_with_real_org(chroma_path: str) -> tuple[MemoryArchiver, OrgMemory]:

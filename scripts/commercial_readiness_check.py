@@ -2,7 +2,7 @@
 """
 forgeSDLC Commercial Readiness Check
 =====================================
-Exit 0: all hard checks passed — ready to tag v1.0.0.
+Exit 0: all hard checks passed — ready for release.
 Exit 1: one or more hard failures — prints actionable fix instructions.
 
 Usage:
@@ -156,15 +156,15 @@ def main() -> int:
         print()
 
     if hard_failures:
-        print(f"❌ {len(hard_failures)} hard failure(s). Resolve before tagging v1.0.0.\n")
+        print(f"❌ {len(hard_failures)} hard failure(s). Resolve before tagging this version.\n")
         return 1
 
     if FAILURES:
         # Only advisories
         print("✅ All hard checks passed (advisory warnings above).")
-        print("   Ready for v1.0.0 — address advisories before GA launch.\n")
+        print("   Address advisories before GA launch.\n")
     else:
-        print("\n✅ All checks passed. Ready to tag v1.0.0.\n")
+        print("\n✅ All checks passed. Ready to release.\n")
 
     return 0
 

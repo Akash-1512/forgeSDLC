@@ -12,7 +12,7 @@ except ImportError:  # pragma: no cover
 
 from interpret.record import InterpretRecord
 from memory.memory_context_builder import MemoryContextBuilder
-from memory.organisational_memory import OrgMemory
+from memory.organizational_memory import OrgMemory
 from memory.schemas import OrgMemoryEntry
 
 logger = structlog.get_logger()

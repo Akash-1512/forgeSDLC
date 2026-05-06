@@ -199,7 +199,7 @@ async def _startup() -> None:
     try:
         import os as _os  # noqa: PLC0415
 
-        from memory.organisational_memory import _DEFAULT_CHROMA_PATH  # noqa: PLC0415
+        from memory.organizational_memory import _DEFAULT_CHROMA_PATH  # noqa: PLC0415
         from orchestrator.constants import LOCAL_DB_URL  # noqa: PLC0415
         from providers.health_checks import (  # noqa: PLC0415
             check_chromadb,
@@ -230,7 +230,7 @@ async def _startup() -> None:
     try:
         from providers.resolver import ProviderResolver  # noqa: PLC0415
 
-        ProviderResolver().print_table()
+        ProviderResolver().log_table()
     except Exception as exc:
         logger.warning("forgesdlc.startup.provider_resolution_failed", error=str(exc))
 

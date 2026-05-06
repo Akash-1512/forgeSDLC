@@ -5,6 +5,37 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+- Server startup no longer downloads the HuggingFace embedding model eagerly.
+  `OrgMemory` now initialises lazily and runs in degraded mode when the model
+  is not cached, allowing the server to start without network access.
+- All 8 MCP tool handlers were unpacking `Infrastructure` (a `NamedTuple`) into
+  a plain `tuple` and passing it to `build_agent_kwargs`, which expected the
+  named tuple. Fixed by returning `infra` directly from `_build_infrastructure`.
+- `ToolRouter()` in `cicd_tool` and `code_generation_tool` was called without
+  the required `context_file_manager` argument.
+- `/health` and `/auth/token` endpoints returned HTTP 500 because FastMCP 3.x
+  `custom_route` handlers must return a Starlette `Response`, not a plain `dict`.
+- `BYOKManager.get_key()` raised `NoKeyringError` on headless Linux where no
+  keyring backend is available. Now returns `None` and continues.
+- All PostgreSQL store read/write methods now catch `OSError` and return empty
+  results gracefully, so the server operates without a database connection.
+- `PostMortemStore.get_recent_failures` was calling `self._emit_record` which
+  does not exist on that class (correct name is `self._emit`).
+- `get_recent_failures` was constructing `PostMortem` objects with wrong field
+  names (`what_went_wrong`, `fix_applied`) instead of the schema-defined fields.
+
+### Changed
+- `memory/organisational_memory.py` renamed to `memory/organizational_memory.py`
+  (American English, consistent with the rest of the codebase). The old path is
+  kept as a one-release compatibility shim.
+- `ProviderResolver.print_table()` renamed to `log_table()` — output now goes
+  through the `structlog` logger instead of `print()`.
+
+---
+
 ## [1.1.0] — 2026-05-05
 
 ### Added
@@ -92,4 +123,4 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Electron desktop app with system tray and companion panel
 - VS Code extension with MCP config injection
 - GitHub Actions CI/CD with Electron matrix build, PyPI and npm publish
-- 392 tests (330 Python unit, 62 integration, 19 JS/TS)
+- 353 Python tests (unit + integration), 19 VS Code extension tests

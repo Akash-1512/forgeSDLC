@@ -18,7 +18,7 @@ Each registry is manual — no automated submission API exists.
 | Install command | `npx @forgesdlc/agent` |
 | Alternative install | `pip install forgesdlc-mcp` |
 | Category | Developer Tools |
-| GitHub URL | https://github.com/Akash-1512/forgesdlc |
+| GitHub URL | https://github.com/Akash-1512/forgeSDLC |
 | MCP endpoint | http://localhost:8080/mcp |
 | Transport | streamable-http |
 | License | MIT |
@@ -65,7 +65,7 @@ Each registry is manual — no automated submission API exists.
   "id": "forgesdlc",
   "name": "forgeSDLC",
   "description": "The missing SDLC layer for AI coding tools",
-  "url": "https://github.com/Akash-1512/forgesdlc",
+  "url": "https://github.com/Akash-1512/forgeSDLC",
   "install": {
     "npm": "@forgesdlc/agent",
     "pip": "forgesdlc-mcp"

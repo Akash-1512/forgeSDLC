@@ -36,15 +36,21 @@ class ProviderResolver:
             cache=self._resolve_cache(),
         )
 
-    def print_table(self) -> None:
-        """Print a summary table of all resolved providers."""
+    def log_table(self) -> None:
+        """Log a structured summary of all resolved providers."""
         manifest = self.resolve_all()
-        print(f"\n{'Service':<22} {'Provider':<28} {'Healthy':<8} {'Reason'}")
-        print("-" * 90)
-        for sel in manifest.all_services():
-            mark = "✓" if sel.healthy else "✗"
-            print(f"{sel.service:<22} {sel.provider:<28} {mark:<8} {sel.reason}")
-        print()
+        logger.info(
+            "provider_resolver.resolved",
+            services=[
+                {
+                    "service": sel.service,
+                    "provider": sel.provider,
+                    "healthy": sel.healthy,
+                    "reason": sel.reason,
+                }
+                for sel in manifest.all_services()
+            ],
+        )
 
     # ------------------------------------------------------------------ resolvers
 

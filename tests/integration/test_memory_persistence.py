@@ -14,7 +14,7 @@ from uuid import uuid4  # noqa: E402
 
 import pytest  # noqa: E402
 
-from memory.organisational_memory import OrgMemory  # noqa: E402
+from memory.organizational_memory import OrgMemory  # noqa: E402
 from memory.schemas import OrgMemoryEntry  # noqa: E402
 
 

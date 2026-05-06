@@ -49,7 +49,7 @@ tools:
     tier: pro
   - name: track_progress
     description: Pipeline status across all 14 agents
-    tier: pro
+    tier: free
 
 pricing:
   free:

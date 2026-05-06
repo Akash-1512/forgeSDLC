@@ -19,7 +19,7 @@ class DocsFetcher:
     """Fetches documentation URLs with 24h filesystem cache.
 
     Emits InterpretRecord Layer 7 (docs_fetcher) before EVERY fetch —
-    including cache hits. This ensures the audit trail shows every fetch
+    including cache hits — the audit trail records every fetch
     attempt regardless of whether a network call was made.
     """
 

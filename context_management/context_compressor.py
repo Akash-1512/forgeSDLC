@@ -23,7 +23,7 @@ class ContextCompressor:
     """Summarises large optional fields using groq/llama-3.1-8b-instant via ModelRouter.
 
     Routes through ModelRouter — never imports groq or openai directly.
-    This ensures:
+    This means:
     - Budget tracking via TokenTracker
     - Tier filtering via SubscriptionTier
     - Non-Negotiable #1 compliance (all internal LLM calls through ModelRouter)

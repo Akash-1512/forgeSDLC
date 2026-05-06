@@ -98,7 +98,7 @@ class DocsAgent(BaseAgent):
             [
                 SystemMessage(
                     content=(
-                        "Generate a comprehensive README.md for this project. "
+                        "Generate a README.md for this project. "
                         "Include sections in order: project name + 2-line description, "
                         "Quick Start, Installation, Usage, Architecture, API Reference, "
                         "Known Limitations, Development, Contributing, License. "

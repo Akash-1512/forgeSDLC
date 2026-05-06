@@ -61,7 +61,7 @@ def _build_initial_arch_state(requirements: str, project_id: str) -> dict[str, o
 
 
 def _build_infrastructure_shared() -> object:
-    """Build infrastructure using the shared factory."""
+    """Instantiate the shared components needed by the architecture agent."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     return build_infrastructure()

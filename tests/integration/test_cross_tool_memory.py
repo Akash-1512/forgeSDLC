@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import pytest
 
-from memory.organisational_memory import OrgMemory
+from memory.organizational_memory import OrgMemory
 from memory.schemas import OrgMemoryEntry
 
 

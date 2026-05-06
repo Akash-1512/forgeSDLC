@@ -1,32 +1,30 @@
-.PHONY: run-local run-prod mode db-start db-stop db-logs install test lint
+.PHONY: run dev db-start db-stop db-logs install test lint check
 
-# ── Local dev (Groq + ChromaDB local + SQLite checkpoint + PostgreSQL Docker) ──
-run-local:
-	DATABASE_URL=postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc \
+DB_PASS ?= localdev
+
+# ── Development server (local PostgreSQL + ChromaDB) ─────────────────────────
+dev:
+	DATABASE_URL=postgresql+asyncpg://postgres:$(DB_PASS)@localhost:5432/forgesdlc \
 	python -m mcp_server.server
 
-# ── Production (set DATABASE_URL env var to managed PostgreSQL URL) ──────────
-run-prod:
+# ── Production (DATABASE_URL must be set externally) ─────────────────────────
+run:
 	@if [ -z "$$DATABASE_URL" ]; then \
-		echo "ERROR: DATABASE_URL must be set for production run."; \
-		echo "Example: export DATABASE_URL=postgresql+asyncpg://user:pass@host/db"; \
+		echo "ERROR: set DATABASE_URL before running in production."; \
 		exit 1; \
 	fi
 	python -m mcp_server.server
 
-# ── Show active mode ──────────────────────────────────────────────────────────
-mode:
-	@echo "LOCAL mode: PostgreSQL=localhost:5432 | ChromaDB=./chroma_db"
-	@echo "PROD  mode: PostgreSQL=\$$DATABASE_URL  | ChromaDB=./chroma_db"
-
-# ── Database (local Docker postgres:16) ──────────────────────────────────────
+# ── Local PostgreSQL via Docker ───────────────────────────────────────────────
 db-start:
 	docker run -d \
 		-p 5432:5432 \
-		-e POSTGRES_PASSWORD=forgesdlc \
+		-e POSTGRES_PASSWORD=$(DB_PASS) \
+		-e POSTGRES_DB=forgesdlc \
 		--name forgesdlc-db \
 		postgres:16
-	@echo "PostgreSQL started on localhost:5432 (password: forgesdlc)"
+	@echo "PostgreSQL listening on localhost:5432 (DB_PASS=$(DB_PASS))"
+	@echo "Override: make db-start DB_PASS=yourpass"
 
 db-stop:
 	docker stop forgesdlc-db && docker rm forgesdlc-db
@@ -34,14 +32,25 @@ db-stop:
 db-logs:
 	docker logs -f forgesdlc-db
 
-# ── Dev setup ─────────────────────────────────────────────────────────────────
+# ── Setup ─────────────────────────────────────────────────────────────────────
 install:
 	pip install -e ".[dev]"
+	pre-commit install
 
 # ── Tests ─────────────────────────────────────────────────────────────────────
 test:
-	python -m pytest
+	python -m pytest tests/ -m "not slow"
 
-# ── Lint ──────────────────────────────────────────────────────────────────────
+test-all:
+	python -m pytest tests/
+
+# ── Lint / format ─────────────────────────────────────────────────────────────
 lint:
 	ruff check . && ruff format --check .
+
+fix:
+	ruff check . --fix && ruff format .
+
+# ── Pre-release ───────────────────────────────────────────────────────────────
+check:
+	python scripts/commercial_readiness_check.py

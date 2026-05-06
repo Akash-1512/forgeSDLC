@@ -24,7 +24,7 @@ def _build_initial_state(prompt: str, project_id: str) -> dict[str, object]:
 
 
 def _build_infrastructure() -> object:
-    """Build infrastructure using the shared factory."""
+    """Instantiate the shared components needed by the requirements pipeline."""
     from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
     return build_infrastructure()
