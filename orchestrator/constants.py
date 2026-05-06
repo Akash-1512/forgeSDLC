@@ -53,5 +53,5 @@ MCP_TOOL_TIMEOUT_SECONDS: int = 300
 # Read DB URL from environment — never hardcode credentials
 LOCAL_DB_URL: str = _os.getenv(
     "DATABASE_URL",
-    "postgresql+asyncpg://postgres:changeme@localhost:5432/forgesdlc",
+    "postgresql+asyncpg://postgres:localdev@localhost:5432/forgesdlc",
 )

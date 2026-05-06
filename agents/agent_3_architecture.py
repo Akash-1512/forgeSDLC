@@ -190,12 +190,14 @@ class ArchitectureAgent(BaseAgent):
         score: object,
         blocked: bool,
     ) -> str:
-        from architecture_intelligence.nfr_satisfiability import (
-            NFRCheck,  # noqa: PLC0415
+        from architecture_intelligence.anti_pattern_detector import (
+            AntiPatternResult,  # noqa: PLC0415
         )
+        from architecture_intelligence.architecture_scorer import ArchitectureScore  # noqa: PLC0415
+        from architecture_intelligence.nfr_satisfiability import NFRCheck  # noqa: PLC0415
 
-        ap = ap_result  # type: ignore[assignment]
-        sc = score  # type: ignore[assignment]
+        ap: AntiPatternResult = ap_result  # type: ignore[assignment]
+        sc: ArchitectureScore = score  # type: ignore[assignment]
         checks: list[NFRCheck] = nfr_checks  # type: ignore[assignment]
 
         lines = [

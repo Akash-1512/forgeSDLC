@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 
 import structlog
 
@@ -131,10 +132,8 @@ async def create_token(request: Request) -> JSONResponse:
     SECRET_KEY must be set in environment for this to work.
     """
     try:
-        import json as _json  # noqa: PLC0415
-
         body = await request.body()  # type: ignore[union-attr]
-        data = _json.loads(body)
+        data = json.loads(body)
         user_id = str(data.get("user_id", "default"))
         tier = str(data.get("tier", "free"))
         tos_confirmed = data.get("tos_confirmed", False) is True
@@ -157,7 +156,7 @@ async def create_token(request: Request) -> JSONResponse:
                 "required": True,
             }
 
-        from subscription.session_manager import create_session_token  # noqa: PLC0415
+        from subscription.session_manager import create_session_token
 
         token = create_session_token(user_id=user_id, tier=tier)
         logger.info("auth.token_issued", user_id=user_id, tier=tier, tos_confirmed=tos_confirmed)
@@ -179,9 +178,9 @@ async def _startup() -> None:
     Only initialises the three PostgreSQL stores — OrgMemory (Layer 2) loads
     its embeddings model lazily on first use, not at startup.
     """
-    from memory.pipeline_history_store import PipelineHistoryStore  # noqa: PLC0415
-    from memory.post_mortem_records import PostMortemStore  # noqa: PLC0415
-    from memory.user_preference_profile import UserPreferenceStore  # noqa: PLC0415
+    from memory.pipeline_history_store import PipelineHistoryStore
+    from memory.post_mortem_records import PostMortemStore
+    from memory.user_preference_profile import UserPreferenceStore
 
     try:
         await PipelineHistoryStore().init_db()
@@ -236,7 +235,7 @@ async def _startup() -> None:
 
 
 def main() -> None:
-    import argparse  # noqa: PLC0415
+    import argparse
 
     parser = argparse.ArgumentParser(description="forgeSDLC MCP server")
     parser.add_argument(

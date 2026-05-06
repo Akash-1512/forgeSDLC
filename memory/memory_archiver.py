@@ -65,7 +65,7 @@ class MemoryArchiver:
                     error=str(exc),
                 )
             except Exception as exc:
-                logger.warning(f"memory_archiver.{label}_failed", error=str(exc))
+                logger.warning("memory_archiver.layer_failed", layer=label, error=str(exc))
 
         if state.get("failure_type"):
             try:

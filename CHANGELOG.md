@@ -9,7 +9,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 - Server startup no longer downloads the HuggingFace embedding model eagerly.
-  `OrgMemory` now initialises lazily and runs in degraded mode when the model
+  `OrgMemory` now initializes lazily and runs in degraded mode when the model
   is not cached, allowing the server to start without network access.
 - All 8 MCP tool handlers were unpacking `Infrastructure` (a `NamedTuple`) into
   a plain `tuple` and passing it to `build_agent_kwargs`, which expected the

@@ -3,7 +3,6 @@ from __future__ import annotations
 # AGENT_MODELS — authoritative source for agent→model assignment.
 # Any discrepancy between this dict and prose documentation: THE DICT WINS.
 # Agent 4 = None: ToolRouter only — ModelRouter raises if routed here.
-# Agent 9 = groq: NOT gpt-4o-mini — a v3 catalog error fixed here.
 
 AGENT_MODELS: dict[str, str | None] = {
     "agent_0_decompose": "groq/llama-3.3-70b-versatile",
@@ -16,7 +15,7 @@ AGENT_MODELS: dict[str, str | None] = {
     "agent_6_test_coord": "gpt-4o-mini",
     "agent_7_cicd": "gpt-4o-mini",
     "agent_8_deploy": "gpt-4o-mini",
-    "agent_9_monitor": "groq/llama-3.3-70b-versatile",  # ← GROQ, NOT gpt-4o-mini
+    "agent_9_monitor": "groq/llama-3.3-70b-versatile",
     "agent_10_docs": "gpt-4o-mini",  # BYOK Claude overrides via tier
     "agent_10_docs_byok": "claude-sonnet-4-6",  # BYOK only — better README prose
     "agent_11_integration": "gemini-1.5-pro",  # 1M context

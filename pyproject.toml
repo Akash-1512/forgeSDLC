@@ -134,3 +134,39 @@ ignore_missing_imports = true
 no_error_summary = true
 warn_unused_ignores = false
 check_untyped_defs = false
+
+[tool.coverage.run]
+source = [
+    "agents",
+    "architecture_intelligence",
+    "context_files",
+    "context_management",
+    "interpret",
+    "mcp_server",
+    "memory",
+    "model_router",
+    "orchestrator",
+    "providers",
+    "subscription",
+    "token_tracker",
+    "tool_router",
+    "tools",
+    "workspace",
+]
+omit = [
+    "tests/*",
+    "demos/*",
+    "scripts/*",
+    "alembic/*",
+    "electron/*",
+    "frontend/*",
+    "vscode_extension/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@abstractmethod",
+]
