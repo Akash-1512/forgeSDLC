@@ -5,6 +5,8 @@ from pathlib import Path
 
 import structlog
 
+from subscription.tiers import FREE
+
 try:
     from fastmcp import Context
 except ImportError:  # pragma: no cover
@@ -34,7 +36,7 @@ def _build_deploy_state(
             existing = checkpointer.get(config)
             if existing and existing.get("channel_values"):
                 security_gate_from_checkpoint = existing["channel_values"].get("security_gate")
-    except Exception:
+    except (KeyError, TypeError, OSError):
         pass  # no checkpoint — gate defaults to None (unscanned)
 
     return {
@@ -62,11 +64,7 @@ def _build_deploy_state(
         "ci_pipeline_url": "",
         "tool_delegated_to": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"])
-        .get_tier("free")
-        .budget_usd_per_session
-        if True
-        else 5.0,
+        "budget_remaining_usd": FREE.budget_usd_per_session,
         "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,

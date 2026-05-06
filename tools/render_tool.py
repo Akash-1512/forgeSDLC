@@ -99,7 +99,7 @@ class RenderTool:
                     if r.status_code == 200:
                         logger.info("render_health_ok", url=url)
                         return True
-                except Exception:
+                except (OSError, ValueError):
                     pass
                 await asyncio.sleep(10)
 

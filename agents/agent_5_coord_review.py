@@ -160,7 +160,6 @@ class CoordinatedReview(BaseAgent):
         - Bare except → BLOCKING
 
         Non-Python files return an ADVISORY — AST rules only apply to Python.
-        Previously silently returned [] for TypeScript/Go/Rust/SQL — now explicit.
         """
         findings: list[dict[str, object]] = []
         if not code or not code.strip():
@@ -250,7 +249,7 @@ class CoordinatedReview(BaseAgent):
                 return []
             findings = json.loads(match.group())
             return [{"pass": pass_num, **f} for f in findings if isinstance(f, dict)]
-        except Exception:
+        except (ValueError, AttributeError):
             return []
 
     async def _pass_correctness(

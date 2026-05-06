@@ -13,6 +13,8 @@ from __future__ import annotations
 import uuid
 from typing import Any
 
+from subscription.tiers import FREE
+
 
 def build_initial_state(
     *,
@@ -68,7 +70,7 @@ def build_initial_state(
         # ── budget / subscription ─────────────────────────────────────────
         "budget_used_usd": 0.0,
         "budget_remaining_usd": 0.0,  # free tier: no cap (Groq is free)
-        "subscription_tier": "free",
+        "subscription_tier": FREE.name,
         "session_token_records": [],
         # ── tool delegation ───────────────────────────────────────────────
         "tool_delegated_to": None,

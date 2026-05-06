@@ -171,7 +171,7 @@ class ToolRouter:
                     headers={"Authorization": f"Bearer {api_key}"},
                 )
                 return response.status_code == 200
-        except Exception:
+        except OSError:
             return False
 
         # ------------------------------------------------------------------ helpers

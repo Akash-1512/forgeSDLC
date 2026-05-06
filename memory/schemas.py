@@ -103,5 +103,5 @@ class PostMortem(BaseModel):
     resolution: str
     prevention_rule: str
     stack_context: str
-    tool_involved: str | None  # v4: which ToolRouter target failed
+    tool_involved: str | None
     timestamp: datetime

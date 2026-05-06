@@ -312,7 +312,7 @@ class DASTRunner:
                     r = await client.get(url, timeout=2)
                     if r.status_code == 200:
                         return
-                except Exception:
+                except OSError:
                     pass
                 await asyncio.sleep(0.5)
         raise TimeoutError(f"DAST health check timed out after {timeout}s")
@@ -334,7 +334,7 @@ class DASTRunner:
                     finding = self._check_response(r, payload)
                     if finding:
                         findings.append(finding)
-                except Exception:
+                except (OSError, ValueError, TypeError):
                     pass
         return findings
 
@@ -415,6 +415,6 @@ class DASTRunner:
                         blocking=True,
                     )
 
-        except Exception:
+        except (KeyError, ValueError, AttributeError):
             pass
         return None

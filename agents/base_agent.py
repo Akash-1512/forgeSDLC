@@ -139,7 +139,7 @@ class BaseAgent(ABC):
         try:
             workspace_ctx = await self.workspace.get_context()
             workspace_root = workspace_ctx.root_path
-        except Exception:
+        except (OSError, RuntimeError, AttributeError):
             workspace_root = "."
         await self.cfm.write_all(
             project_id=str(state.get("mcp_session_id", "default")),

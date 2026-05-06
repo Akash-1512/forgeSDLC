@@ -5,6 +5,8 @@ from pathlib import Path
 
 import structlog
 
+from subscription.tiers import FREE
+
 try:
     from fastmcp import Context
 except ImportError:  # pragma: no cover
@@ -48,11 +50,7 @@ def _build_initial_arch_state(requirements: str, project_id: str) -> dict[str, o
         "monitoring_config": None,
         "project_context_graph": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": __import__("subscription.tiers", fromlist=["get_tier"])
-        .get_tier("free")
-        .budget_usd_per_session
-        if True
-        else 5.0,
+        "budget_remaining_usd": FREE.budget_usd_per_session,
         "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_delegated_to": None,

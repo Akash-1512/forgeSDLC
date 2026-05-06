@@ -22,9 +22,7 @@ from memory.user_preference_profile import UserPreferenceStore
 logger = structlog.get_logger()
 
 # Module-level singleton stores — created once, shared across all tool handlers.
-# Previously each MemoryContextBuilder() call created 5 new DB engines (PipelineHistoryStore,
-# UserPreferenceStore, PostMortemStore each open their own SQLAlchemy async engine with
-# pool_size=5). With 9 tool files each instantiating their own builder, that was 45 engines.
+# Singleton stores — shared across all MemoryContextBuilder instances.
 # Now all callers share these singletons — total engine count: 3.
 _SHARED_L1: PipelineHistoryStore | None = None
 _SHARED_L2: OrgMemory | None = None

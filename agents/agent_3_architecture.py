@@ -154,8 +154,8 @@ class ArchitectureAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace context unavailable
 
         rfc_path = str(Path(workspace_path) / "docs" / "architecture" / "RFC-001-system-design.md")
         diff = await self.diff_engine.generate_diff(

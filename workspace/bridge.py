@@ -107,7 +107,8 @@ class WorkspaceBridge:
                 for c in repo.iter_commits(max_count=5)
             ]
         except InvalidGitRepositoryError:
-            # M12: non-git workspace — expected in many dev setups, log clearly
+            # Non-git workspace is valid — log clearly so git-dependent features
+            # are visible as unavailable rather than silently skipped
             logger.info(
                 "workspace_bridge.not_a_git_repo",
                 path=str(p),

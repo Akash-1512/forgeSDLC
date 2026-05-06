@@ -1,8 +1,4 @@
-"""LangGraph pipeline graph definition for forgeSDLC.
-
-StateGraph for the orchestrated pipeline mode.
-In v1.1.0 the MCP server uses per-agent run() calls (not the graph) for HITL
-flexibility. The graph is used for batch/automated runs without HITL pauses.
+"""LangGraph pipeline graph for forgeSDLC batch/automated runs.
 
 Usage:
     from orchestrator.graph import build_graph

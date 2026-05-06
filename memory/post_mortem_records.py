@@ -32,7 +32,7 @@ class _PostMortemRow(_Base):
     resolution = Column(String, nullable=False)
     prevention_rule = Column(String, nullable=False)
     stack_context = Column(String, nullable=False)
-    tool_involved = Column(String, nullable=True)  # v4: ToolRouter target that failed
+    tool_involved = Column(String, nullable=True)
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
 
 

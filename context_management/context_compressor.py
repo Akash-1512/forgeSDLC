@@ -4,9 +4,7 @@ import structlog
 
 logger = structlog.get_logger()
 
-# Module-level shared router — created once per process.
-# Previously every compress() call created a new ModelRouter() which instantiates
-# BudgetMonitor, ModelSelector, BudgetOptimizer — lightweight but wasteful.
+# Module-level shared router — created once per process, reused across all compress() calls.
 _SHARED_ROUTER: object | None = None
 
 

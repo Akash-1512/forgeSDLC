@@ -123,8 +123,8 @@ class MonitoringAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace not available — continue without path
 
         import os  # noqa: PLC0415
 

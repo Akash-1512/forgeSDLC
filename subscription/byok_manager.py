@@ -49,7 +49,7 @@ class BYOKManager:
             return None
         try:
             return _keyring.get_password(_SERVICE, provider)
-        except Exception:
+        except (RuntimeError, ValueError, OSError):
             # keyring installed but no backend available (e.g. no D-Bus on headless Linux)
             return None
 
