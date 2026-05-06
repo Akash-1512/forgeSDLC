@@ -40,7 +40,7 @@ class SecurityAgent(BaseAgent):
         state: dict[str, object],
     ) -> InterpretRecord:
         dast_status = (
-            "enabled — uvicorn on port 18080"
+            f"enabled — uvicorn on port {os.getenv('FORGESDLC_DAST_PORT', '18080')}"
             if os.getenv("RUN_DAST", "false").lower() == "true"
             else "disabled — set RUN_DAST=true to enable (not CI-safe)"
         )

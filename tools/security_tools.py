@@ -15,6 +15,9 @@ from orchestrator.constants import HEALTH_CHECK_TIMEOUT_SECONDS
 
 logger = structlog.get_logger()
 
+# DAST runs against the app on this port — override via FORGESDLC_DAST_PORT
+_DAST_PORT: str = os.getenv("FORGESDLC_DAST_PORT", "18080")
+
 
 class SecurityFinding(BaseModel):
     model_config = ConfigDict(strict=True)
@@ -276,13 +279,13 @@ class DASTRunner:
                 "--host",
                 "127.0.0.1",
                 "--port",
-                "18080",
+                _DAST_PORT,
                 "--log-level",
                 "error",
                 cwd=workspace_path,
             )
             await self._wait_for_health(
-                "http://127.0.0.1:18080/health",
+                f"http://127.0.0.1:{_DAST_PORT}/health",
                 timeout=HEALTH_CHECK_TIMEOUT_SECONDS,
             )
             return await self._run_payloads()
@@ -322,7 +325,7 @@ class DASTRunner:
             for payload in self.ATTACK_PAYLOADS:
                 try:
                     method = str(payload.get("method", "GET")).upper()
-                    url = f"http://127.0.0.1:18080{payload['path']}"
+                    url = f"http://127.0.0.1:{_DAST_PORT}{payload['path']}"
                     if method == "POST":
                         body = payload.get("body", {})
                         r = await client.post(url, json=body)

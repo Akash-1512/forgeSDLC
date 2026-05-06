@@ -226,7 +226,10 @@ def configure_otel(service_name: str) -> TracerProvider:
     }})
 
     provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(endpoint="http://otel-collector:4317", insecure=True)
+    exporter = OTLPSpanExporter(
+        endpoint=os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://otel-collector:4317"),
+        insecure=not os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").startswith("https"),
+    )
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
 

@@ -4,7 +4,7 @@ import os
 
 import structlog
 
-from orchestrator.constants import LOCAL_DB_URL, MCP_SERVER_PORT
+from orchestrator.constants import LOCAL_DB_URL, MCP_SERVER_HOST, MCP_SERVER_PORT
 from providers.manifest import ProviderManifest, ProviderSelection
 
 logger = structlog.get_logger()
@@ -344,7 +344,7 @@ class ProviderResolver:
             return ProviderSelection(
                 service="mcp",
                 provider="fastmcp",
-                connection_string=f"http://0.0.0.0:{MCP_SERVER_PORT}/mcp",
+                connection_string=f"http://{MCP_SERVER_HOST}:{MCP_SERVER_PORT}/mcp",
                 healthy=True,
                 reason=f"FastMCP on port {MCP_SERVER_PORT}",
             )
