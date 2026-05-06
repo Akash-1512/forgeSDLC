@@ -44,10 +44,14 @@ class BYOKManager:
         logger.info("byok_key_saved", provider=provider)
 
     def get_key(self, provider: str) -> str | None:
-        """Retrieve API key from OS keychain. Returns None if not set."""
+        """Retrieve API key from OS keychain. Returns None if not set or unavailable."""
         if _keyring is None:
             return None
-        return _keyring.get_password(_SERVICE, provider)
+        try:
+            return _keyring.get_password(_SERVICE, provider)
+        except Exception:
+            # keyring installed but no backend available (e.g. no D-Bus on headless Linux)
+            return None
 
     def delete_key(self, provider: str) -> None:
         """Remove API key from OS keychain."""
