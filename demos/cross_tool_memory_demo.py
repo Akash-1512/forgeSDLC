@@ -12,7 +12,7 @@ Narrative:
 
 Requirements:
   MCP server running on port 8080.
-  Start with: make run-mcp   OR   python -m mcp_server.server --port 8080
+  Start with: make dev        OR   python -m mcp_server.server --port 8080
 
 Usage:
   python demos/cross_tool_memory_demo.py
@@ -47,7 +47,7 @@ async def demo() -> int:
     except (OSError, ConnectionError) as e:
         print(
             f"❌ MCP server not running at {SERVER}\n"
-            "   Start with:  make run-mcp\n"
+            "   Start with:  make dev\n"
             "   Or:          python -m mcp_server.server "
             "--transport streamable-http --port 8080"
         )

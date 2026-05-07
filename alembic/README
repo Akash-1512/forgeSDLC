@@ -1,1 +1,40 @@
-Generic single-database configuration.
+# forgeSDLC — Alembic Migrations
+
+PostgreSQL schema migrations for the forgeSDLC memory layer.
+
+## Running migrations
+
+```bash
+# Apply all pending migrations
+alembic upgrade head
+
+# Roll back one migration
+alembic downgrade -1
+
+# Check current revision
+alembic current
+```
+
+## Environment
+
+`DATABASE_URL` must be set before running any Alembic command:
+
+```bash
+export DATABASE_URL=postgresql+asyncpg://postgres:localdev@localhost:5432/forgesdlc
+alembic upgrade head
+```
+
+Or use the Makefile helper which starts a local Docker PostgreSQL:
+
+```bash
+make db-start      # start PostgreSQL in Docker
+alembic upgrade head
+```
+
+## Creating a new migration
+
+```bash
+alembic revision --autogenerate -m "short description of change"
+```
+
+Review the generated file in `versions/` before applying.

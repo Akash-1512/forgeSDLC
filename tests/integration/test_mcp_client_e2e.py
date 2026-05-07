@@ -46,8 +46,8 @@ def mcp_server():
             if r.status_code == 200:
                 ready = True
                 break
-        except Exception:
-            pass
+        except (OSError, httpx.HTTPError):
+            pass  # server not ready yet
         time.sleep(0.3)
 
     if not ready:
