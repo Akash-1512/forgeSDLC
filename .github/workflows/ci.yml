@@ -13,7 +13,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-              POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}
           POSTGRES_DB: forgesdlc
         ports:
           - 5432:5432
@@ -46,7 +46,7 @@ jobs:
 
       - name: Type check (mypy)
         run: mypy mcp_server/ orchestrator/ agents/ memory/ model_router/ --ignore-missing-imports --no-error-summary
-        continue-on-error: true  # advisory — does not block merge in v1.1.0
+        continue-on-error: true
 
       - name: Security scan (semgrep)
         run: |
@@ -60,9 +60,8 @@ jobs:
       - name: Run tests with coverage
         run: pytest tests/ -m "not slow" --tb=short -q --cov=. --cov-report=xml --cov-fail-under=60
         env:
-              DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}@localhost:5432/forgesdlc
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'ci_test_password' }}@localhost:5432/forgesdlc
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-secret-key-minimum-32-chars-long' }}
-          # API keys optional in CI — tests mock LLM calls
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || '' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || '' }}
 
@@ -79,6 +78,5 @@ jobs:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY || 'ci-placeholder' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'ci-placeholder' }}
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-test-secret-key-minimum-32-chars-long' }}
-          # CI mode: skip hard-fail on missing API keys (secrets may not be configured)
           FORGESDLC_CI: 'true'
-        continue-on-error: true  # advisory in CI — hard-fail only in release
+        continue-on-error: true
