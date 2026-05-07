@@ -21,7 +21,7 @@ _RFC_SYSTEM_PROMPT = """\
 You are a senior software architect. Generate a detailed RFC (Request for Comments)
 for the following project. Structure it as:
 
-# RFC-001: System Design
+# RFC-NNN: System Design
 
 ## Overview
 ## Service Architecture
@@ -35,6 +35,22 @@ for the following project. Structure it as:
 Include a Mermaid diagram embedded as a fenced ```mermaid code block (NOT an image URL).
 The diagram must be version-controllable and renderable in GitHub Markdown.
 Format: Markdown."""
+
+
+def _next_rfc_number(workspace_path: str) -> str:
+    """Return the next RFC number as a zero-padded 3-digit string.
+
+    Counts existing RFC-*.md files in docs/architecture/ and increments.
+    Falls back to '001' if the directory doesn't exist yet.
+    """
+    import re  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    arch_dir = Path(workspace_path) / "docs" / "architecture"
+    if not arch_dir.exists():
+        return "001"
+    existing = [f.name for f in arch_dir.iterdir() if re.match(r"RFC-\d{3}", f.name, re.IGNORECASE)]
+    return f"{len(existing) + 1:03d}"
 
 
 class ArchitectureAgent(BaseAgent):

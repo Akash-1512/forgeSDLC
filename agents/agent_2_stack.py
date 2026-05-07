@@ -18,10 +18,10 @@ _STACK_SYSTEM_PROMPT = """\
 You are a principal engineer. Recommend a production-ready tech stack.
 Structure your response as an Architecture Decision Record (ADR):
 
-# ADR-001: Technology Stack Selection
+# ADR-NNN: Technology Stack Selection
 
 ## Status
-Accepted
+Proposed
 
 ## Context
 [Why this decision was needed]
@@ -117,7 +117,8 @@ class TechStackAgent(BaseAgent):
             f"Architecture: {arch_type}\n"
             f"Services: {services}\n\n"
             f"PRD Summary:\n{prd_summary}\n\n"
-            "Write the complete ADR-001 document following the template."
+            "Write the complete ADR document following the template."
+            " Use ADR-NNN as the placeholder number."
         )
 
         response = await adapter.ainvoke(
@@ -143,11 +144,18 @@ class TechStackAgent(BaseAgent):
         except (OSError, RuntimeError, AttributeError):
             pass  # workspace not available — continue without path
 
-        adr_path = str(Path(workspace_path) / "docs" / "decisions" / "ADR-001-tech-stack.md")
+        _decisions = Path(workspace_path) / "docs" / "decisions"
+        _existing = (
+            sum(1 for f in _decisions.iterdir() if f.name[:4] == "ADR-" and f.name[4:7].isdigit())
+            if _decisions.exists()
+            else 0
+        )
+        adr_num = f"{_existing + 1:03d}"
+        adr_path = str(_decisions / f"ADR-{adr_num}-tech-stack.md")
         diff = await self.diff_engine.generate_diff(
             filepath=adr_path,
             new_content=adr_with_header,
-            reason=f"Agent 2: ADR-001 for {str(state.get('user_prompt', ''))[:50]}",
+            reason=f"Agent 2: ADR-{adr_num} for {str(state.get('user_prompt', ''))[:50]}",
         )
         await self.diff_engine.apply_diff(diff)
 

@@ -191,7 +191,7 @@ async def _startup() -> None:
         logger.error("forgesdlc.startup.db_init_failed", error=str(exc))
         logger.warning(
             "forgesdlc.startup.continuing_without_db",
-            hint="Start PostgreSQL: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",  # noqa: E501
+            hint="Start PostgreSQL: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=localdev postgres:16",  # noqa: E501
         )
 
     # Run provider health checks on startup
@@ -215,7 +215,7 @@ async def _startup() -> None:
         if not pg_ok:
             logger.warning(
                 "forgesdlc.startup.postgresql_unhealthy",
-                hint="Layer 1/4/5 memory will not persist. Start DB: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=changeme postgres:16",  # noqa: E501
+                hint="Layer 1/4/5 memory will not persist. Start DB: docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=localdev postgres:16",  # noqa: E501
             )
         if not chroma_ok:
             logger.warning(
