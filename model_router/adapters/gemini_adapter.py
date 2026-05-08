@@ -29,7 +29,7 @@ class GeminiAdapter:
 
     gemini-1.5-pro: Agent 11 (Integration) + long-context fallback.
     gemini-3-flash-preview: Free tier Gemini option.
-    gemini-3-pro-preview was SHUT DOWN March 9 2026 — do not use.
+    gemini-3-pro-preview has been shut down — use gemini-1.5-pro or gemini-2.0-flash.
     """
 
     def __init__(self, model: str = "gemini-1.5-pro") -> None:

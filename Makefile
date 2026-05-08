@@ -54,3 +54,6 @@ fix:
 # ── Pre-release ───────────────────────────────────────────────────────────────
 check:
 	python scripts/commercial_readiness_check.py
+
+context-stats:
+	python -c "from context_management.agent_context_specs import print_spec_table; print_spec_table()"

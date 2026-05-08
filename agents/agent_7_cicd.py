@@ -13,7 +13,7 @@ logger = structlog.get_logger()
 _MODEL = "gpt-4o-mini"
 
 # Action versions fetched from GitHub Releases API before YAML generation.
-# Defaults used when network unavailable (verified April 2026).
+# Defaults used when the GitHub API is unavailable.
 _ACTIONS_TO_VERIFY = [
     (
         "actions/checkout",

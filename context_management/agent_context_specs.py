@@ -314,7 +314,7 @@ AGENT_CONTEXT_SPECS: dict[str, AgentContextSpec] = {
 def print_spec_table() -> None:
     """Print a summary table of all 14 agent context specs.
 
-    Used by: make context-stats
+    Used as a development diagnostic. Run via: make context-stats
     """
     import structlog as _structlog  # noqa: PLC0415
 
