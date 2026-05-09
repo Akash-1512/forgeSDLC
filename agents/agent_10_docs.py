@@ -54,7 +54,7 @@ class DocsAgent(BaseAgent):
                 f"DOCUMENTATION GENERATION\n"
                 f"Model: {model} {'(BYOK)' if 'claude' in model else ''}\n"
                 f"Files: README.md + CHANGELOG.md\n"
-                f"Known Limitations: from state (MEDIUM security + HITL rounds)\n"
+                f"Known Limitations: from state (MEDIUM security + approval rounds)\n"
                 f"ProjectContextGraph: build + save to Layer 3 memory\n"
                 f"Final memory archive: all 5 layers\n"
                 f"Attribution: Built with forgeSDLC — always present"
