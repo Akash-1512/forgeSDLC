@@ -1,8 +1,8 @@
 """
 MCP prompt templates surfaced to clients as slash-commands.
 
-These were previously defined as plain string constants but never registered.
-MCP prompts surface template instructions to MCP clients (Cursor, Claude Code, VS Code+Copilot).
+Prompts appear as slash-commands in Cursor, Claude Code, and VS Code+Copilot.
+Each function returns a string ready to send to the LLM.
 """
 
 from __future__ import annotations
@@ -30,14 +30,14 @@ def get_architecture_prompt(prd_summary: str = "") -> str:
     """MCP Prompt: generate RFC + ADR from a PRD."""
     return (
         "You are a principal engineer. Given the PRD, produce:\n"
-        "1. Architecture Decision Record (ADR-001): chosen stack with rationale\n"
+        "1. Architecture Decision Record (ADR-NNN): chosen stack with rationale\n"
         "2. RFC (Request for Comments): component diagram, data flow, "
         "technology choices, scaling strategy, anti-patterns to avoid.\n\n"
         f"PRD Summary: {prd_summary}"
         if prd_summary
         else (
             "You are a principal engineer. Given the PRD, produce:\n"
-            "1. Architecture Decision Record (ADR-001): chosen stack with rationale\n"
+            "1. Architecture Decision Record (ADR-NNN): chosen stack with rationale\n"
             "2. RFC (Request for Comments): component diagram, data flow, "
             "technology choices, scaling strategy, anti-patterns to avoid."
         )

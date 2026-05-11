@@ -92,7 +92,7 @@ async def design_architecture(
 
     Returns scored, anti-pattern-checked architecture for human review.
     HIGH anti-pattern or NFR failure → blocked status, no RFC written.
-    On 100% GO (with no blocking issues) → writes RFC-001-system-design.md
+    On 100% GO (with no blocking issues) → writes RFC-NNN-system-design.md
     and optional openapi.yaml.
 
     CALL PATTERN (stateful — two calls minimum):
@@ -203,7 +203,7 @@ async def design_architecture(
         "project_id": project_id,
         "rfc": state.get("rfc", ""),
         "arch_validation": arch_validation,
-        "files_written": ["docs/architecture/RFC-001-system-design.md"],
+        "files_written": ["docs/architecture/RFC-NNN-system-design.md"],
         "context_files_updated": ["AGENTS.md", "CLAUDE.md", ".cursorrules"],
         "interpret_log": state.get("interpret_log", []),
         "interpret_rounds": int(state.get("interpret_round", 0) or 0),

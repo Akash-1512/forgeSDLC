@@ -51,12 +51,12 @@ Proposed
 
 
 class TechStackAgent(BaseAgent):
-    """Agent 2 — recommends tech stack and writes ADR-001.
+    """Agent 2 — recommends tech stack and writes ADR-NNN.
 
     Model: gpt-4o-mini via ModelRouter
     Memory reads: Layer 4 (preferred stack), Layer 2 (past stack choices)
     Output: state["adr"] populated
-            docs/decisions/ADR-001-tech-stack.md written via DiffEngine
+            docs/decisions/ADR-NNN-tech-stack.md written via DiffEngine
             .cursorrules updated with stack-specific coding conventions
     """
 
@@ -82,12 +82,12 @@ class TechStackAgent(BaseAgent):
                 "prd_preview": prd_preview,
             },
             expected_outputs={
-                "adr": "ADR-001 with full stack justification",
-                "file": "docs/decisions/ADR-001-tech-stack.md",
+                "adr": "ADR-NNN with full stack justification",
+                "file": "docs/decisions/ADR-NNN-tech-stack.md",
             },
             external_calls=[_MODEL],
             model_selected=_MODEL,
-            files_write=["docs/decisions/ADR-001-tech-stack.md"],
+            files_write=["docs/decisions/ADR-NNN-tech-stack.md"],
         )
 
     async def _execute(
@@ -96,7 +96,7 @@ class TechStackAgent(BaseAgent):
         packet: object,
         memory_context: object,
     ) -> dict[str, object]:
-        """Generate ADR-001 and write docs/decisions/ADR-001-tech-stack.md."""
+        """Generate ADR document and write it to docs/decisions/."""
         adapter = await self.model_router.route(
             agent="agent_2_stack",
             task_type="generation",

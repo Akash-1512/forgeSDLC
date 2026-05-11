@@ -42,7 +42,7 @@ class KeyValidator:
                 valid = response.status_code == 200
                 logger.info("key_validator.openai", valid=valid)
                 return valid
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             logger.error("key_validator.openai_error", error=str(exc))
             return False
 
@@ -61,7 +61,7 @@ class KeyValidator:
                 valid = response.status_code == 200
                 logger.info("key_validator.anthropic", valid=valid)
                 return valid
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             logger.error("key_validator.anthropic_error", error=str(exc))
             return False
 
@@ -77,7 +77,7 @@ class KeyValidator:
                 valid = response.status_code == 200
                 logger.info("key_validator.groq", valid=valid)
                 return valid
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             logger.error("key_validator.groq_error", error=str(exc))
             return False
 
@@ -92,6 +92,6 @@ class KeyValidator:
                 valid = response.status_code == 200
                 logger.info("key_validator.google", valid=valid)
                 return valid
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             logger.error("key_validator.google_error", error=str(exc))
             return False

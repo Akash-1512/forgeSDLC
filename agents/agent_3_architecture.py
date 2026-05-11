@@ -122,12 +122,12 @@ class ArchitectureAgent(BaseAgent):
                 "high_count": ap_result.high_count,
             },
             expected_outputs={
-                "rfc": "RFC-001-system-design.md",
+                "rfc": "RFC-NNN-system-design.md",
                 "arch_validation": "AntiPatternResult + NFRChecks + ArchScore",
             },
             external_calls=[_MODEL],
             model_selected=_MODEL,
-            files_write=["docs/architecture/RFC-001-system-design.md"],
+            files_write=["docs/architecture/RFC-NNN-system-design.md"],
         )
 
     async def _execute(
@@ -174,7 +174,14 @@ class ArchitectureAgent(BaseAgent):
         except (OSError, RuntimeError, AttributeError):
             pass  # workspace context unavailable
 
-        rfc_path = str(Path(workspace_path) / "docs" / "architecture" / "RFC-001-system-design.md")
+        _arch = Path(workspace_path) / "docs" / "architecture"
+        _erfc = (
+            sum(1 for f in _arch.iterdir() if f.name[:4] == "RFC-" and f.name[4:7].isdigit())
+            if _arch.exists()
+            else 0
+        )
+        rfc_num = f"{_erfc + 1:03d}"
+        rfc_path = str(_arch / f"RFC-{rfc_num}-system-design.md")
         diff = await self.diff_engine.generate_diff(
             filepath=rfc_path,
             new_content=rfc_with_header,

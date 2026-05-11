@@ -195,7 +195,7 @@ async def gather_requirements(
                 "displayed_interpretation": state.get("displayed_interpretation", ""),
                 "instructions": (
                     "Review the stack recommendation. "
-                    "Pass human_confirmation='100% GO' to generate ADR-001."
+                    "Pass human_confirmation='100% GO' to generate the ADR."
                 ),
                 "project_id": project_id,
             }
@@ -211,7 +211,7 @@ async def gather_requirements(
         "service_graph": state.get("service_graph", {}),
         "files_written": [
             "docs/requirements/PRD.md",
-            "docs/decisions/ADR-001-tech-stack.md",
+            "docs/decisions/ADR-NNN-tech-stack.md",
         ],
         "context_files_updated": ["AGENTS.md", "CLAUDE.md", ".cursorrules"],
         "interpret_log": state.get("interpret_log", []),

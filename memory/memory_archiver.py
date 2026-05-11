@@ -81,14 +81,14 @@ class MemoryArchiver:
 
     async def _archive_layer1(self, state: SDLCState) -> None:
         # Extract a short stack label from the ADR header line
-        # ADR typically starts with "# ADR-001: FastAPI + PostgreSQL + Redis"
+        # ADR typically starts with "# ADR-NNN: FastAPI + PostgreSQL + Redis"
         # Extract just the stack part after the colon for the stack_chosen field
         adr_text = str(state.get("adr") or "")
         stack_chosen: str | None = None
         if adr_text:
             first_line = adr_text.strip().splitlines()[0] if adr_text.strip() else ""
             if ":" in first_line:
-                # "# ADR-001: FastAPI + PostgreSQL" → "FastAPI + PostgreSQL"
+                # "# ADR-NNN: FastAPI + PostgreSQL" → "FastAPI + PostgreSQL"
                 stack_chosen = first_line.split(":", 1)[1].strip()[:100]
             elif first_line:
                 stack_chosen = first_line.lstrip("#").strip()[:100]
