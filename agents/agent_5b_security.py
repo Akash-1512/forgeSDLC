@@ -252,6 +252,6 @@ class SecurityAgent(BaseAgent):
                         )
                     )
             return findings
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             logger.warning("detect_secrets.failed", error=str(exc))
             return []

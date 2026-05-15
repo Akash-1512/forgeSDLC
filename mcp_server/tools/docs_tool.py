@@ -125,7 +125,7 @@ async def generate_docs(
             logger.info("generate_docs.state_restored", project_id=project_id)
         else:
             state = _build_docs_state(project_id, human_confirmation, scope)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("generate_docs.checkpointer_failed", error=str(exc))
         state = _build_docs_state(project_id, human_confirmation, scope)
 

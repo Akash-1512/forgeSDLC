@@ -82,7 +82,7 @@ class CursorAdapter:
                     success=True,
                     stderr=None,
                 )
-        except Exception as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             logger.error("cursor_adapter.error", error=str(exc))
             return ToolResult(
                 tool=AvailableTool.CURSOR,

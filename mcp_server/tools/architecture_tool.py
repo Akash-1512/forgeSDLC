@@ -124,7 +124,7 @@ async def design_architecture(
             logger.info("design_architecture.state_restored", project_id=project_id)
         else:
             state = _build_initial_arch_state(requirements, project_id)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("design_architecture.checkpointer_failed", error=str(exc))
         state = _build_initial_arch_state(requirements, project_id)
 

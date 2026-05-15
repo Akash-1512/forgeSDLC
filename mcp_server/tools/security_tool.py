@@ -129,7 +129,7 @@ async def run_security_scan(
             state: dict[str, object] = dict(existing["channel_values"])
         else:
             state = _build_security_state(project_id, target_path, human_confirmation)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("run_security_scan.checkpointer_failed", error=str(exc))
         state = _build_security_state(project_id, target_path, human_confirmation)
 

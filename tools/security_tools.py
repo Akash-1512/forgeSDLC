@@ -83,7 +83,7 @@ class BanditRunner:
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=60)
             return self._parse_bandit_json(stdout.decode(errors="replace"))
-        except Exception as exc:
+        except (TimeoutError, FileNotFoundError, OSError, ValueError) as exc:
             logger.warning("bandit_runner.failed", error=str(exc))
             return []
 
@@ -135,7 +135,7 @@ class SemgrepRunner:
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=120)
             return self._parse_semgrep_json(stdout.decode(errors="replace"))
-        except Exception as exc:
+        except (TimeoutError, FileNotFoundError, OSError, ValueError) as exc:
             logger.warning("semgrep_runner.failed", error=str(exc))
             return []
 
@@ -195,7 +195,7 @@ class PipAuditRunner:
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=120)
             return self._parse_pip_audit_json(stdout.decode(errors="replace"))
-        except Exception as exc:
+        except (TimeoutError, FileNotFoundError, OSError, ValueError) as exc:
             logger.warning("pip_audit_runner.failed", error=str(exc))
             return []
 
@@ -289,7 +289,7 @@ class DASTRunner:
                 timeout=HEALTH_CHECK_TIMEOUT_SECONDS,
             )
             return await self._run_payloads()
-        except Exception as exc:
+        except (FileNotFoundError, OSError, TimeoutError) as exc:
             logger.warning("dast_failed", error=str(exc))
             return []
         finally:
@@ -301,13 +301,13 @@ class DASTRunner:
                     await asyncio.wait_for(app_proc.wait(), timeout=5)
 
     async def _wait_for_health(self, url: str, timeout: int) -> None:
-        import time as _time
+        import time  # noqa: PLC0415
 
         import httpx  # noqa: PLC0415
 
-        deadline = _time.monotonic() + timeout
+        deadline = time.monotonic() + timeout
         async with httpx.AsyncClient() as client:
-            while _time.monotonic() < deadline:
+            while time.monotonic() < deadline:
                 try:
                     r = await client.get(url, timeout=2)
                     if r.status_code == 200:

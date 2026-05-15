@@ -186,7 +186,7 @@ class TechStackAgent(BaseAgent):
                 architecture_summary=adr_content[:300],
                 key_decisions=self._extract_decisions(adr_content),
             )
-        except Exception as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             logger.warning("agent_2.cursorrules_update_failed", error=str(exc))
 
     def _extract_decisions(self, adr_content: str) -> list[str]:

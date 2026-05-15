@@ -187,7 +187,7 @@ async def _startup() -> None:
         await UserPreferenceStore().init_db()
         await PostMortemStore().init_db()
         logger.info("forgesdlc.startup.db_tables_ready")
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.error("forgesdlc.startup.db_init_failed", error=str(exc))
         logger.warning(
             "forgesdlc.startup.continuing_without_db",
@@ -222,7 +222,7 @@ async def _startup() -> None:
                 "forgesdlc.startup.chromadb_unhealthy",
                 hint="Layer 2 (semantic memory) will not persist. Check chroma_db/ directory permissions.",  # noqa: E501
             )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("forgesdlc.startup.health_checks_failed", error=str(exc))
 
     # Log provider resolution table
@@ -230,7 +230,7 @@ async def _startup() -> None:
         from providers.resolver import ProviderResolver  # noqa: PLC0415
 
         ProviderResolver().log_table()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("forgesdlc.startup.provider_resolution_failed", error=str(exc))
 
 

@@ -219,5 +219,5 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
             )
             await store.save_post_mortem(pm)
             logger.info("agent_8.post_mortem_written", error=error[:80])
-        except Exception as pm_exc:
+        except (OSError, RuntimeError) as pm_exc:
             logger.warning("agent_8.post_mortem_failed", error=str(pm_exc))

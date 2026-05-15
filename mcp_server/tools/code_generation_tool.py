@@ -133,7 +133,7 @@ async def route_code_generation(
             state: dict[str, object] = dict(existing["channel_values"])
         else:
             state = _build_codegen_state(task, project_id, workspace_path, human_confirmation)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("route_code_generation.checkpointer_failed", error=str(exc))
         state = _build_codegen_state(task, project_id, workspace_path, human_confirmation)
 

@@ -141,7 +141,7 @@ async def deploy_project(
             state: dict[str, object] = dict(existing["channel_values"])
         else:
             state = _build_deploy_state(project_id, environment, human_confirmation)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("deploy_project.checkpointer_failed", error=str(exc))
         state = _build_deploy_state(project_id, environment, human_confirmation)
 

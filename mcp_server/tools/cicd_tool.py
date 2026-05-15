@@ -142,7 +142,7 @@ async def generate_cicd(
             state: dict[str, object] = dict(existing["channel_values"])
         else:
             state = _build_cicd_state(project_id, stack, human_confirmation)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("generate_cicd.checkpointer_failed", error=str(exc))
         state = _build_cicd_state(project_id, stack, human_confirmation)
 

@@ -116,7 +116,7 @@ async def gather_requirements(
                 logger.info("gather_requirements.state_restored", project_id=project_id)
             else:
                 state = _build_initial_state(prompt, project_id)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("gather_requirements.checkpointer_failed", error=str(exc))
         state = _build_initial_state(prompt, project_id)
 

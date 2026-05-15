@@ -66,7 +66,13 @@ class _TrackingAdapter:
                 output_tokens=output_tokens,
                 cost_usd=cost,
                 latency_ms=latency_ms,
-                api_key_source="byok" if "claude" in self._inner.model_name else "subscription",
+                api_key_source=(
+                    "byok"
+                    if self._byok_manager.has_key(self._inner.model_name.split("/")[0])
+                    else "free_tier"
+                    if "groq" in self._inner.model_name
+                    else "subscription"
+                ),
             )
             # Update running budget total in state
             current = float(self._state.get("budget_used_usd", 0.0) or 0.0)
@@ -220,7 +226,7 @@ class ModelRouter:
                 return _TrackingAdapter(adapter, agent, task_type, state, self._tracker)
 
             # OpenAI models require OPENAI_API_KEY — fall back to Groq if missing
-            openai_models = {"o3-mini", "gpt-4o", "gpt-4o-mini", "gpt-4o-pro"}
+            openai_models = {"o3-mini", "gpt-4o", "gpt-4o-mini"}
             if default_model in openai_models:
                 import os  # noqa: PLC0415
 

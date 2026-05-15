@@ -64,7 +64,7 @@ class MemoryArchiver:
                     reason="database unavailable",
                     error=str(exc),
                 )
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — archival is best-effort, must not block pipeline
                 logger.warning("memory_archiver.layer_failed", layer=label, error=str(exc))
 
         if state.get("failure_type"):
