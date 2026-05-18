@@ -11,17 +11,17 @@ export interface McpStatus {
     pid: number | null;
 }
 
-export interface HitlResult {
+export interface ApprovalResult {
     success?: boolean;
     error?: string;
 }
 
 export interface ElectronAPI {
-    hitlApprove: (projectId: string) => Promise<HitlResult>;
-    hitlCorrect: (projectId: string, correction: string) => Promise<HitlResult>;
+    approveGate: (projectId: string) => Promise<ApprovalResult>;
+    submitCorrection: (projectId: string, correction: string) => Promise<ApprovalResult>;
     getMcpStatus: () => Promise<McpStatus>;
     onStatusChange: (callback: (data: McpStatus) => void) => () => void;
-    onHitlReady: (callback: (data: { stage: string }) => void) => () => void;
+    onApprovalReady: (callback: (data: { stage: string }) => void) => () => void;
     platform: "win32" | "darwin" | "linux";
 }
 
