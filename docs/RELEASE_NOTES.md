@@ -1,4 +1,4 @@
-## forgeSDLC v1.0.0
+## forgeSDLC v1.1.1
 
 The missing SDLC layer for your AI coding tools.
 
@@ -8,8 +8,8 @@ The missing SDLC layer for your AI coding tools.
     pip install forgesdlc-mcp
 
 ### Downloads
-- Windows: forgesdlc-setup-1.0.0.exe
-- macOS: forgesdlc-1.0.0.dmg
-- Linux: forgesdlc-1.0.0.deb
+- Windows: forgesdlc-setup-1.1.1.exe
+- macOS: forgesdlc-1.1.1.dmg
+- Linux: forgesdlc-1.1.1.deb
 
 See CHANGELOG.md for full release notes.
