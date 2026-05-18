@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 
@@ -8,14 +9,19 @@ import structlog
 from context_files.manager import ContextFileManager
 from context_management.context_window_manager import ContextWindowManager
 from interpret.gate import check_gate
+from interpret.loop import interpret_node, interrupt_node
 from interpret.record import InterpretRecord
 from memory.memory_archiver import MemoryArchiver
 from memory.memory_context_builder import MemoryContextBuilder
 from model_router.router import ModelRouter
+from token_tracker.tracker import TokenTracker
 from workspace.bridge import WorkspaceBridge
 from workspace.diff_engine import DiffEngine
 
 logger = structlog.get_logger()
+
+# Shared tracker instance — lightweight, no DB connection
+_SHARED_TOKEN_TRACKER = TokenTracker()
 
 
 class BaseAgent(ABC):
@@ -26,8 +32,15 @@ class BaseAgent(ABC):
     context file writing — is handled here.
 
     Loop: ContextWindowManager → memory read → _interpret (L1) →
-          gate check → _execute → ContextFileManager (L13) → MemoryArchiver
+          gate check → _execute → TokenTracker → ContextFileManager (L13) → MemoryArchiver
+
+    hard_gate: when True the companion panel renders a red border and requires
+               explicit confirmation before execute. Set to True on agents with
+               irreversible side effects (Agent 3 writes ADR, Agent 8 deploys).
+               Declared at base level so build_graph() and the companion panel can inspect it.
     """
+
+    hard_gate: bool = False  # overridden to True in Agent 3 and Agent 8
 
     def __init__(
         self,
@@ -54,6 +67,9 @@ class BaseAgent(ABC):
 
         Returns state with interpret_log updated.
         Does NOT execute unless human_confirmation == '100% GO'.
+
+        Uses interpret_node() and interrupt_node() from interpret/loop.py
+        as the canonical HITL contract — no more inline reimplementation.
         """
         # Step 1: Build ContextPacket — emits L11 InterpretRecord
         packet = await self.cwm.build_packet(self.name, state)
@@ -66,15 +82,24 @@ class BaseAgent(ABC):
 
         # Step 3: Generate interpretation — emits L1 InterpretRecord
         interpretation = await self._interpret(packet, memory_context, state)
+
+        # Build display string via interpret_node() — single canonical formatting path
+        correction = None
+        corrections = list(state.get("human_corrections") or [])
+        if corrections:
+            correction = corrections[-1]
+        display_str = interpret_node(interpretation, correction=correction)
+
         interpret_log = list(state.get("interpret_log", []) or [])
         interpret_log.append(interpretation.model_dump())
         state["interpret_log"] = interpret_log
-        # displayed_interpretation: always the CURRENT one — not a stack
-        state["displayed_interpretation"] = interpretation.action
+        state["displayed_interpretation"] = display_str
         state["interpret_round"] = int(state.get("interpret_round", 0) or 0) + 1
 
         # Step 4: Gate check — execute only on exact "100% GO"
+        # Signal HITL gate — companion panel shows interpretation for approval
         if not check_gate(str(state.get("human_confirmation", ""))):
+            interrupt_node(display_str, hard_gate=getattr(self, "hard_gate", False))  # M29
             logger.info(
                 "base_agent.awaiting_confirmation",
                 agent=self.name,
@@ -84,13 +109,37 @@ class BaseAgent(ABC):
 
         # Step 5: Execute — only reached after gate passes
         logger.info("base_agent.executing", agent=self.name)
+        t_start = time.monotonic()
         state = await self._execute(state, packet, memory_context)
+        latency_ms = int((time.monotonic() - t_start) * 1000)
+
+        # Record token usage after execute completes
+        # We use estimated tokens from interpretation as a proxy until adapters expose usage directly  # noqa: E501
+        model_used = interpretation.model_selected or "unknown"
+        estimated_input = 500  # conservative estimate — improved when adapters expose usage
+        estimated_output = 800
+        cost_usd = 0.0
+        _SHARED_TOKEN_TRACKER.record(
+            state=state,
+            agent=self.name,
+            task=self._phase_name(),
+            model=model_used,
+            provider=model_used.split("/")[0] if "/" in model_used else "openai",
+            input_tokens=estimated_input,
+            output_tokens=estimated_output,
+            cost_usd=cost_usd,
+            latency_ms=latency_ms,
+            api_key_source="free_tier",  # Groq free tier by default
+        )
+        # Accumulate cost in state so BudgetMonitor has real data
+        current_budget_used = float(state.get("budget_used_usd", 0.0) or 0.0)
+        state["budget_used_usd"] = current_budget_used + cost_usd
 
         # Step 6: Write context files — emits L13 InterpretRecord
         try:
             workspace_ctx = await self.workspace.get_context()
             workspace_root = workspace_ctx.root_path
-        except Exception:
+        except (OSError, RuntimeError, AttributeError):
             workspace_root = "."
         await self.cfm.write_all(
             project_id=str(state.get("mcp_session_id", "default")),
@@ -107,7 +156,7 @@ class BaseAgent(ABC):
         state["human_confirmation"] = ""
         state["displayed_interpretation"] = ""
 
-        logger.info("base_agent.complete", agent=self.name)
+        logger.info("base_agent.complete", agent=self.name, latency_ms=latency_ms)
         return state
 
     @abstractmethod

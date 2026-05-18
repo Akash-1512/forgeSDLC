@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
 """Smoke test — connects to forgeSDLC MCP server on localhost:8080,
@@ -26,11 +27,17 @@ TOOL_CALLS = [
         "save_decision",
         {"decision": "use postgres", "rationale": "scale", "project_id": "smoke-test"},
     ),
-    ("route_code_generation", {"project_id": "smoke-test", "task": "write models", "context": ""}),
+    (
+        "route_code_generation",
+        {"project_id": "smoke-test", "task": "write models", "context": ""},
+    ),
     ("run_security_scan", {"project_id": "smoke-test", "target_path": "./src"}),
     ("generate_cicd", {"project_id": "smoke-test", "stack": "fastapi"}),
     ("deploy_project", {"project_id": "smoke-test", "environment": "staging"}),
-    ("setup_monitoring", {"project_id": "smoke-test", "deployment_url": "https://example.com"}),
+    (
+        "setup_monitoring",
+        {"project_id": "smoke-test", "deployment_url": "https://example.com"},
+    ),
     ("generate_docs", {"project_id": "smoke-test", "scope": "full"}),
     ("track_progress", {"project_id": "smoke-test"}),
 ]
@@ -39,7 +46,7 @@ TOOL_CALLS = [
 async def main() -> None:
     print(f"Connecting to forgeSDLC MCP server at {BASE_URL} ...")
 
-    async with streamablehttp_client(BASE_URL) as (read, write, _):
+    async with streamablehttp_client(BASE_URL) as (read, write, _):  # noqa: SIM117
         async with ClientSession(read, write) as session:
             await session.initialize()
 

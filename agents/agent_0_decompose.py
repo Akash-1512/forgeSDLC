@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
@@ -28,14 +29,35 @@ class ServiceDecompositionAgent(BaseAgent):
         memory_context: object,
         state: dict[str, object],
     ) -> InterpretRecord:
-        """Analyse scope and decide architecture type. Emits L1 InterpretRecord."""
+        """Preview scope analysis plan. Emits L1 InterpretRecord.
+
+        No LLM call here — _interpret is a preview only.
+        LLM call moved to _execute so it only fires after gate approval.
+        """
+        return self._emit_l1_record(
+            component="ServiceDecompositionAgent",
+            action=f"Analysing scope: {str(state.get('user_prompt', ''))[:60]}",
+            inputs={"user_prompt": state.get("user_prompt", "")},
+            expected_outputs={"service_graph": "dict with architecture_type and services"},
+            external_calls=[_MODEL],
+            model_selected=_MODEL,
+        )
+
+    async def _execute(
+        self,
+        state: dict[str, object],
+        packet: object,
+        memory_context: object,
+    ) -> dict[str, object]:
+        """Call LLM, parse decomposition result, populate state["service_graph"]."""
+        # LLM call runs here — only after the user has approved the interpretation
         adapter = await self.model_router.route(
             agent="agent_0_decompose",
             task_type="analysis",
             estimated_tokens=500,
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
         prompt = (
             "Analyse this project request and determine if it needs a single "
@@ -54,28 +76,7 @@ class ServiceDecompositionAgent(BaseAgent):
             ]
         )
         raw = str(response.content).strip()
-        # Store raw for execute step
-        state["_agent0_raw"] = raw
-
-        return self._emit_l1_record(
-            component="ServiceDecompositionAgent",
-            action=f"Analysing scope: {str(state.get('user_prompt', ''))[:60]}",
-            inputs={"user_prompt": state.get("user_prompt", "")},
-            expected_outputs={"service_graph": "dict with architecture_type and services"},
-            external_calls=[_MODEL],
-            model_selected=_MODEL,
-        )
-
-    async def _execute(
-        self,
-        state: dict[str, object],
-        packet: object,
-        memory_context: object,
-    ) -> dict[str, object]:
-        """Parse decomposition result and populate state["service_graph"]."""
-        raw = str(state.get("_agent0_raw", ""))
         try:
-            # Strip markdown fences if present
             if "```" in raw:
                 raw = raw.split("```")[1]
                 if raw.startswith("json"):
@@ -86,7 +87,6 @@ class ServiceDecompositionAgent(BaseAgent):
             reasoning = data.get("reasoning", "")
             confidence = data.get("confidence", "MEDIUM")
         except (json.JSONDecodeError, KeyError, IndexError):
-            # Fallback: default to monolith
             architecture_type = "monolith"
             services = []
             reasoning = "Could not parse LLM response — defaulting to monolith."

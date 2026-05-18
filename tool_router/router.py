@@ -36,13 +36,30 @@ class ToolRouter:
 
     Emits InterpretRecord Layer 5 (tool_router) before every delegation.
     Agent 4 uses this class — it NEVER calls an LLM internally.
+
+    Tool availability is cached for _CACHE_TTL_SECONDS (60s) to avoid
+    live network calls to Devin API on every route() invocation.
     """
+
+    _CACHE_TTL_SECONDS: int = 60
 
     def __init__(self, context_file_manager: ContextFileManager) -> None:
         self._cfm = context_file_manager
+        self._cached_tools: list[AvailableTool] | None = None
+        self._cache_ts: float = 0.0
 
     async def detect_available_tools(self) -> list[AvailableTool]:
-        """Probe each tool and return available ones in priority order."""
+        """Probe each tool and return available ones in priority order.
+
+        Cached for 60 seconds — tool availability rarely
+        changes between requests and each probe may make a live network call.
+        """
+        import time  # noqa: PLC0415
+
+        now = time.monotonic()
+        if self._cached_tools is not None and (now - self._cache_ts) < self._CACHE_TTL_SECONDS:
+            return self._cached_tools
+
         tools: list[AvailableTool] = []
         if await self._check_cursor():
             tools.append(AvailableTool.CURSOR)
@@ -51,6 +68,9 @@ class ToolRouter:
         if await self._check_devin():
             tools.append(AvailableTool.DEVIN)
         tools.append(AvailableTool.DIRECT_LLM)  # always last, always present
+
+        self._cached_tools = tools
+        self._cache_ts = now
         return tools
 
     async def route(
@@ -151,7 +171,7 @@ class ToolRouter:
                     headers={"Authorization": f"Bearer {api_key}"},
                 )
                 return response.status_code == 200
-        except Exception:
+        except OSError:
             return False
 
         # ------------------------------------------------------------------ helpers

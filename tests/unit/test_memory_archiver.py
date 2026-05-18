@@ -35,7 +35,7 @@ def _base_state() -> dict:
         "interpret_round": 1,
         "deployment_url": "https://myapp.render.com",
         "tool_delegated_to": "cursor",
-        "workspace_context": {"path": "C:/projects/myapp"},
+        "workspace_context": {"root_path": "C:/projects/myapp"},
     }
 
 
@@ -47,7 +47,7 @@ async def test_archive_calls_all_5_layers() -> None:
 
     archiver.l1.save_run.assert_called_once()
     archiver.l2.upsert.assert_called()
-    archiver.l4.update_tool_preference.assert_called_once_with("default", "cursor")
+    archiver.l4.update_tool_preference.assert_called_once_with("proj-test", "cursor")
     # l3 skipped — no project_graph in workspace_context
     # l5 skipped — no failure_type in state
 

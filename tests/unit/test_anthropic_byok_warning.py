@@ -36,7 +36,7 @@ def test_confirm_returns_false_for_none_input() -> None:
 def test_claude_available_requires_both_key_and_tos_confirmation() -> None:
     warning = _make_warning()
     manager = BYOKManager()
-    with patch("subscription.byok_manager.keyring") as mock_keyring:
+    with patch("subscription.byok_manager._keyring") as mock_keyring:
         mock_keyring.get_password.return_value = "sk-ant-test"
         assert warning.claude_is_available(manager, user_confirmed_tos=True) is True
 
@@ -44,7 +44,7 @@ def test_claude_available_requires_both_key_and_tos_confirmation() -> None:
 def test_claude_not_available_with_key_but_no_tos_confirmation() -> None:
     warning = _make_warning()
     manager = BYOKManager()
-    with patch("subscription.byok_manager.keyring") as mock_keyring:
+    with patch("subscription.byok_manager._keyring") as mock_keyring:
         mock_keyring.get_password.return_value = "sk-ant-test"
         assert warning.claude_is_available(manager, user_confirmed_tos=False) is False
 
@@ -52,6 +52,6 @@ def test_claude_not_available_with_key_but_no_tos_confirmation() -> None:
 def test_claude_not_available_with_tos_but_no_key() -> None:
     warning = _make_warning()
     manager = BYOKManager()
-    with patch("subscription.byok_manager.keyring") as mock_keyring:
+    with patch("subscription.byok_manager._keyring") as mock_keyring:
         mock_keyring.get_password.return_value = None
         assert warning.claude_is_available(manager, user_confirmed_tos=True) is False

@@ -65,3 +65,4 @@ def test_no_llm_calls_in_checker() -> None:
         checker = NFRSatisfiabilityChecker()
         checker.check("99.9% uptime required.", "multi-az replica deployed.")
         mock_route.assert_not_called()
+    assert checker is not None  # instantiation is the test

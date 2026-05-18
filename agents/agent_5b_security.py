@@ -10,6 +10,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 from tools.security_tools import (
     BanditRunner,
     DASTRunner,
@@ -28,7 +29,7 @@ class SecurityAgent(BaseAgent):
     """Agent 5b — SAST + DAST + STRIDE + detect-secrets. Security gate blocks Agent 8.
 
     Model: o3-mini for STRIDE (Responses API via OpenAIReasoningAdapter)
-           gpt-5.4-mini for explanations
+           gpt-4o-mini for explanations
     Gate: HIGH or CRITICAL finding → state["security_gate"]["blocked"] = True
     threat_model.md written via DiffEngine (not Path.write_text directly)
     """
@@ -40,7 +41,7 @@ class SecurityAgent(BaseAgent):
         state: dict[str, object],
     ) -> InterpretRecord:
         dast_status = (
-            "enabled — uvicorn on port 18080"
+            f"enabled — uvicorn on port {os.getenv('FORGESDLC_DAST_PORT', '18080')}"
             if os.getenv("RUN_DAST", "false").lower() == "true"
             else "disabled — set RUN_DAST=true to enable (not CI-safe)"
         )
@@ -77,23 +78,63 @@ class SecurityAgent(BaseAgent):
         packet: object,
         memory_context: object,
     ) -> dict[str, object]:
-        """Run all security tools and compute gate status."""
+        """Run all security tools and compute gate status.
+
+        Scans both the workspace root and any in-memory generated files
+        from state['generated_files']. Generated files are written to a temporary
+        scan directory so bandit/semgrep can analyse newly created code that hasn't
+        been written to the workspace yet.
+        """
+        import tempfile  # noqa: PLC0415
+        from pathlib import Path as _Path  # noqa: PLC0415
+
         workspace_ctx = await self.workspace.get_context()
         code_path = workspace_ctx.root_path
 
-        # SAST tools
-        bandit = BanditRunner()
-        semgrep_runner = SemgrepRunner()
-        pip_audit = PipAuditRunner()
-        dast = DASTRunner()
+        # Write in-memory generated files to a temp dir for scanning
+        generated = list(state.get("generated_files", []) or [])
+        tmp_dir: str | None = None
+        scan_paths: list[str] = [code_path]
 
-        bandit_findings = await bandit.run(code_path)
-        semgrep_findings = await semgrep_runner.run(code_path)
-        pip_findings = await pip_audit.run(code_path)
-        dast_findings = await dast.run(code_path)
+        if generated:
+            tmp = tempfile.mkdtemp(prefix="forgesdlc_scan_")
+            tmp_dir = tmp
+            for file_info in generated:
+                rel = str(file_info.get("filepath", file_info.get("path", "unknown.py")))
+                content = str(file_info.get("content", ""))
+                dest = _Path(tmp) / _Path(rel).name  # flatten to avoid path traversal
+                dest.write_text(content, encoding="utf-8")
+            scan_paths.append(tmp)
+            logger.info(
+                "agent_5b.scanning_generated_files",
+                count=len(generated),
+                tmp_dir=tmp,
+            )
 
-        # detect-secrets
-        secrets_findings = await self._run_detect_secrets(code_path)
+        try:
+            # SAST tools — run against workspace root AND generated files dir
+            bandit = BanditRunner()
+            semgrep_runner = SemgrepRunner()
+            pip_audit = PipAuditRunner()
+            dast = DASTRunner()
+
+            bandit_findings: list[SecurityFinding] = []
+            semgrep_findings: list[SecurityFinding] = []
+            for scan_path in scan_paths:
+                bandit_findings.extend(await bandit.run(scan_path))
+                semgrep_findings.extend(await semgrep_runner.run(scan_path))
+
+            pip_findings = await pip_audit.run(code_path)  # always against workspace deps
+            dast_findings = await dast.run(code_path)
+
+            # detect-secrets — scan workspace + any generated file content
+            secrets_findings = await self._run_detect_secrets(code_path)
+        finally:
+            # Clean up temp dir regardless of outcome
+            if tmp_dir:
+                import shutil  # noqa: PLC0415
+
+                shutil.rmtree(tmp_dir, ignore_errors=True)
 
         # STRIDE via o3-mini (Responses API)
         threat_model_path = await self._run_stride(state)
@@ -148,9 +189,9 @@ class SecurityAgent(BaseAgent):
             agent="agent_5b_security",  # → o3-mini via AGENT_MODELS catalog
             task_type="security_reasoning",
             estimated_tokens=int(len(rfc.split()) * 2),
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         response = await adapter.ainvoke(  # type: ignore[union-attr]
@@ -211,6 +252,6 @@ class SecurityAgent(BaseAgent):
                         )
                     )
             return findings
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             logger.warning("detect_secrets.failed", error=str(exc))
             return []

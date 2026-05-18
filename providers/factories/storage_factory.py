@@ -20,7 +20,7 @@ def get_db_url() -> str:
         raise ValueError(
             f"DATABASE_URL must be a PostgreSQL URL. Got: {url[:40]!r}\n"
             "Run local DB:  "
-            "docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=forgesdlc "
+            "docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=localdev "
             "--name forgesdlc-db postgres:16"
         )
     logger.debug("storage_factory.get_db_url", url=url[:40])

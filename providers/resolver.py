@@ -4,7 +4,7 @@ import os
 
 import structlog
 
-from orchestrator.constants import LOCAL_DB_URL, MCP_SERVER_PORT
+from orchestrator.constants import LOCAL_DB_URL, MCP_SERVER_HOST, MCP_SERVER_PORT
 from providers.manifest import ProviderManifest, ProviderSelection
 
 logger = structlog.get_logger()
@@ -36,15 +36,21 @@ class ProviderResolver:
             cache=self._resolve_cache(),
         )
 
-    def print_table(self) -> None:
-        """Print a summary table of all resolved providers."""
+    def log_table(self) -> None:
+        """Log a structured summary of all resolved providers."""
         manifest = self.resolve_all()
-        print(f"\n{'Service':<22} {'Provider':<28} {'Healthy':<8} {'Reason'}")
-        print("-" * 90)
-        for sel in manifest.all_services():
-            mark = "✓" if sel.healthy else "✗"
-            print(f"{sel.service:<22} {sel.provider:<28} {mark:<8} {sel.reason}")
-        print()
+        logger.info(
+            "provider_resolver.resolved",
+            services=[
+                {
+                    "service": sel.service,
+                    "provider": sel.provider,
+                    "healthy": sel.healthy,
+                    "reason": sel.reason,
+                }
+                for sel in manifest.all_services()
+            ],
+        )
 
     # ------------------------------------------------------------------ resolvers
 
@@ -77,11 +83,11 @@ class ProviderResolver:
             return ProviderSelection(
                 service="llm",
                 provider="ollama_local",
-                connection_string="http://localhost:11434",
+                connection_string=os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
                 healthy=False,
                 reason="No API keys set — Ollama local fallback",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="llm",
                 provider="none",
@@ -107,7 +113,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="Local sentence-transformers (no API key needed)",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="embeddings",
                 provider="huggingface_local",
@@ -133,7 +139,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="ChromaDB local PersistentClient",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="vector_store",
                 provider="chromadb_local",
@@ -154,7 +160,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="PostgreSQL configured",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="database",
                 provider="postgresql_local",
@@ -180,7 +186,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="Local filesystem fallback",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="blob_storage",
                 provider="local_filesystem",
@@ -206,7 +212,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="structlog local output",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="monitoring",
                 provider="structlog_local",
@@ -232,7 +238,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="MLflow local tracking",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="experiment",
                 provider="mlflow_local",
@@ -258,7 +264,7 @@ class ProviderResolver:
                 healthy=False,
                 reason="No deployment provider configured — local Docker",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="deployment",
                 provider="docker_local",
@@ -284,7 +290,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="DuckDuckGo free fallback",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="docs_fetcher",
                 provider="duckduckgo",
@@ -309,7 +315,7 @@ class ProviderResolver:
                 healthy=True,
                 reason=f"Tools available: {tools}",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="connected_tools",
                 provider="direct_llm",
@@ -323,15 +329,17 @@ class ProviderResolver:
             has_secret = bool(os.getenv("SECRET_KEY"))
             return ProviderSelection(
                 service="auth",
-                provider="pyjwt_argon2",
+                provider="pyjwt_hs256",
                 connection_string="",
                 healthy=has_secret,
-                reason="PyJWT + argon2-cffi" if has_secret else "SECRET_KEY not set",
+                reason="PyJWT HS256 session tokens"
+                if has_secret
+                else 'SECRET_KEY not set — generate with: python -c "import secrets; print(secrets.token_hex(32))"',  # noqa: E501
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="auth",
-                provider="pyjwt_argon2",
+                provider="pyjwt_hs256",
                 connection_string="",
                 healthy=False,
                 reason=f"Fallback: {exc}",
@@ -342,11 +350,11 @@ class ProviderResolver:
             return ProviderSelection(
                 service="mcp",
                 provider="fastmcp",
-                connection_string=f"http://0.0.0.0:{MCP_SERVER_PORT}/mcp",
+                connection_string=f"http://{MCP_SERVER_HOST}:{MCP_SERVER_PORT}/mcp",
                 healthy=True,
                 reason=f"FastMCP on port {MCP_SERVER_PORT}",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="mcp",
                 provider="fastmcp",
@@ -372,7 +380,7 @@ class ProviderResolver:
                 healthy=True,
                 reason="In-memory dict fallback (no Redis)",
             )
-        except Exception as exc:
+        except (OSError, ImportError, RuntimeError) as exc:
             return ProviderSelection(
                 service="cache",
                 provider="in_memory_dict",

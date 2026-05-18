@@ -24,13 +24,15 @@ class _PostMortemRow(_Base):
 
     post_mortem_id = Column(String, primary_key=True)
     run_id = Column(String, nullable=False, index=True)
+    # project_id enables per-project filtering
+    project_id = Column(String, nullable=False, index=True, default="default")
     failure_type = Column(String, nullable=False)
     agent_that_failed = Column(String, nullable=False)
     root_cause = Column(String, nullable=False)
     resolution = Column(String, nullable=False)
     prevention_rule = Column(String, nullable=False)
     stack_context = Column(String, nullable=False)
-    tool_involved = Column(String, nullable=True)  # v4: ToolRouter target that failed
+    tool_involved = Column(String, nullable=True)
     timestamp = Column(DateTime(timezone=True), nullable=False, index=True)
 
 
@@ -57,23 +59,27 @@ class PostMortemStore:
     async def save_post_mortem(self, pm: PostMortem) -> None:
         """Insert a post-mortem record. Emits InterpretRecord before write."""
         self._emit("write", "save_post_mortem", pm.post_mortem_id)
-        async with self._session_factory() as session, session.begin():
-            existing = await session.get(_PostMortemRow, pm.post_mortem_id)
-            if existing:
-                await session.delete(existing)
-            row = _PostMortemRow(
-                post_mortem_id=pm.post_mortem_id,
-                run_id=pm.run_id,
-                failure_type=pm.failure_type,
-                agent_that_failed=pm.agent_that_failed,
-                root_cause=pm.root_cause,
-                resolution=pm.resolution,
-                prevention_rule=pm.prevention_rule,
-                stack_context=pm.stack_context,
-                tool_involved=pm.tool_involved,
-                timestamp=pm.timestamp,
-            )
-            session.add(row)
+        try:
+            async with self._session_factory() as session, session.begin():
+                existing = await session.get(_PostMortemRow, pm.post_mortem_id)
+                if existing:
+                    await session.delete(existing)
+                row = _PostMortemRow(
+                    post_mortem_id=pm.post_mortem_id,
+                    run_id=pm.run_id,
+                    failure_type=pm.failure_type,
+                    agent_that_failed=pm.agent_that_failed,
+                    root_cause=pm.root_cause,
+                    resolution=pm.resolution,
+                    prevention_rule=pm.prevention_rule,
+                    stack_context=pm.stack_context,
+                    tool_involved=pm.tool_involved,
+                    timestamp=pm.timestamp,
+                )
+                session.add(row)
+        except OSError as exc:
+            logger.warning("post_mortem_store.db_unavailable", error=str(exc))
+            return
         logger.info(
             "post_mortem_store.saved",
             post_mortem_id=pm.post_mortem_id,
@@ -84,39 +90,39 @@ class PostMortemStore:
     async def get_recent_failures(self, project_id: str, limit: int = 5) -> list[PostMortem]:
         """Fetch recent post-mortems for a project ordered by timestamp desc.
 
-        Emits InterpretRecord before read.
-        Note: post_mortems table uses run_id as the project link —
-        project_id filtering added in Session 09 when agents populate run_id
-        with structured project context. For now returns most recent N records.
+        Filters by project_id to avoid returning failures from other projects.
+        Returns empty list when the database is unavailable.
         """
         self._emit("read", "get_recent_failures", project_id)
-        async with self._session_factory() as session:
-            result = await session.execute(
-                select(_PostMortemRow).order_by(_PostMortemRow.timestamp.desc()).limit(limit)
-            )
-            rows = result.scalars().all()
+        try:
+            async with self._session_factory() as session:
+                result = await session.execute(
+                    select(_PostMortemRow)
+                    .where(_PostMortemRow.project_id == project_id)
+                    .order_by(_PostMortemRow.timestamp.desc())
+                    .limit(limit)
+                )
+                rows = result.scalars().all()
+        except OSError as exc:
+            logger.warning("post_mortem_store.db_unavailable", error=str(exc))
+            return []
 
-        records = [
+        return [
             PostMortem(
                 post_mortem_id=row.post_mortem_id,
                 run_id=row.run_id,
-                failure_type=row.failure_type,  # type: ignore[arg-type]
+                timestamp=row.timestamp,
+                project_id=row.project_id,
+                failure_type=row.failure_type,
                 agent_that_failed=row.agent_that_failed,
                 root_cause=row.root_cause,
                 resolution=row.resolution,
                 prevention_rule=row.prevention_rule,
                 stack_context=row.stack_context,
                 tool_involved=row.tool_involved,
-                timestamp=row.timestamp,
             )
             for row in rows
         ]
-        logger.info(
-            "post_mortem_store.get_recent_failures",
-            project_id=project_id,
-            count=len(records),
-        )
-        return records
 
     def _emit(self, action_type: str, action: str, key: str) -> InterpretRecord:
         record = InterpretRecord(

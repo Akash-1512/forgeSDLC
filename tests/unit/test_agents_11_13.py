@@ -131,7 +131,7 @@ async def test_agent_11_uses_gemini_via_long_context_router() -> None:
 
     IntegrationAgent(name="agent_11_integration", **kwargs)
 
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         adapter = await real_router.route(
             agent="agent_11_integration",
@@ -142,9 +142,9 @@ async def test_agent_11_uses_gemini_via_long_context_router() -> None:
             budget_total=50.0,
         )
 
-    assert isinstance(adapter, GeminiAdapter), (
+    assert isinstance(adapter.inner, GeminiAdapter), (
         f"Expected GeminiAdapter for 150K tokens, got {type(adapter).__name__}. "
-        "Long-context router should select gemini-3.1-pro-preview."
+        "Long-context router should select gemini-1.5-pro."
     )
 
 

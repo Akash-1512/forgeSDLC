@@ -35,7 +35,7 @@ class CursorrulesWriter:
 
         content = f"""# forgeSDLC Cursor Rules
 # Project: {project_id} | Phase: {current_phase}
-# Auto-generated. Do not edit manually.
+# Managed by forgeSDLC ContextFileManager — regenerated on each pipeline run.
 
 You are working on project '{project_id}' managed by forgeSDLC.
 

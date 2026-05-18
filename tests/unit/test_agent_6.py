@@ -150,7 +150,7 @@ async def test_agent_6_proceeds_when_coverage_meets_80() -> None:
 
 
 def test_agent_6_tool_router_context_in_context_spec() -> None:
-    """Verify Session 08 spec: tool_router_context required for Agent 6."""
+    """Verify spec: tool_router_context is required for Agent 6."""
     from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
 
     spec = AGENT_CONTEXT_SPECS["agent_6_test_coord"]

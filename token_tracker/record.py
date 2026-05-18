@@ -34,5 +34,5 @@ class TokenRecord(BaseModel):
     fim_call: bool
     session_id: str
     run_id: str | None
-    # v4: set only for forgeSDLC overhead tracking; NOT for delegated tool costs
+
     tool_delegated_to: str | None

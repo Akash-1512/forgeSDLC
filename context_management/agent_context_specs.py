@@ -117,7 +117,13 @@ AGENT_CONTEXT_SPECS: dict[str, AgentContextSpec] = {
         max_context_tokens=8_000,
         summarise_threshold_tokens=2_000,
         memory_layers=[4],
-        priority_order=["rfc", "prd", "adr", "workspace_context", "tool_router_context"],
+        priority_order=[
+            "rfc",
+            "prd",
+            "adr",
+            "workspace_context",
+            "tool_router_context",
+        ],
     ),
     "agent_5_coord_review": AgentContextSpec(
         agent_name="agent_5_coord_review",
@@ -264,7 +270,7 @@ AGENT_CONTEXT_SPECS: dict[str, AgentContextSpec] = {
             "interpret_log",
             "session_token_records",
         ],
-        max_context_tokens=20_000,  # gemini-3.1-pro-preview 1M context allowance
+        max_context_tokens=20_000,  # gemini-1.5-pro 1M context allowance
         summarise_threshold_tokens=3_000,
         memory_layers=[3],
         priority_order=["service_graph", "rfc", "workspace_context"],
@@ -308,15 +314,18 @@ AGENT_CONTEXT_SPECS: dict[str, AgentContextSpec] = {
 def print_spec_table() -> None:
     """Print a summary table of all 14 agent context specs.
 
-    Used by: make context-stats
+    Used as a development diagnostic. Run via: make context-stats
     """
-    print(f"\n{'Agent':<25} {'MaxTokens':>10} {'Required':>8} {'Optional':>8} {'Excluded':>8}")
-    print("-" * 65)
+    import structlog as _structlog  # noqa: PLC0415
+
+    _log = _structlog.get_logger()
     for name, spec in AGENT_CONTEXT_SPECS.items():
-        print(
-            f"{name:<25} {spec.max_context_tokens:>10,} "
-            f"{len(spec.required_fields):>8} "
-            f"{len(spec.optional_fields):>8} "
-            f"{len(spec.excluded_fields):>8}"
+        _log.debug(
+            "agent_context_spec",
+            agent=name,
+            max_tokens=spec.max_context_tokens,
+            required=len(spec.required_fields),
+            optional=len(spec.optional_fields),
+            excluded=len(spec.excluded_fields),
         )
-    print(f"\nTotal specs: {len(AGENT_CONTEXT_SPECS)}\n")
+    _log.info("agent_context_specs.loaded", count=len(AGENT_CONTEXT_SPECS))

@@ -4,7 +4,15 @@ import sqlite3
 from pathlib import Path
 
 import structlog
-from fastmcp import Context
+
+from subscription.tiers import FREE
+
+try:
+    from fastmcp import Context
+except ImportError:  # pragma: no cover
+    Context = object  # type: ignore[assignment,misc]
+
+from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
 
@@ -40,8 +48,8 @@ def _build_cicd_state(project_id: str, stack: str, human_confirmation: str) -> d
         "project_context_graph": None,
         "tool_delegated_to": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 999.0,
-        "subscription_tier": "free",
+        "budget_remaining_usd": FREE.budget_usd_per_session,
+        "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,
         "model_router_context": None,
@@ -56,80 +64,21 @@ def _build_cicd_state(project_id: str, stack: str, human_confirmation: str) -> d
     }
 
 
-def _build_cicd_infrastructure() -> tuple:
-    from context_files.manager import ContextFileManager
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
-    from context_management.context_compressor import ContextCompressor
-    from context_management.context_window_manager import ContextWindowManager
-    from context_management.token_estimator import TokenEstimator
-    from memory.memory_archiver import MemoryArchiver
-    from memory.memory_context_builder import MemoryContextBuilder
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.project_context_graph import ProjectContextGraphStore
-    from memory.user_preference_profile import UserPreferenceStore
-    from model_router.router import ModelRouter
-    from tool_router.router import ToolRouter
-    from workspace.bridge import WorkspaceBridge
-    from workspace.diff_engine import DiffEngine
+def _build_infrastructure_shared() -> object:
+    """Instantiate the shared components needed by the CI/CD pipeline."""
+    from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
-    model_router = ModelRouter()
-    tool_router = ToolRouter()
-    estimator = TokenEstimator()
-    compressor = ContextCompressor()
-    cwm = ContextWindowManager(
-        estimator=estimator,
-        compressor=compressor,
-        specs=AGENT_CONTEXT_SPECS,
-    )
-    l1 = PipelineHistoryStore()
-    l2 = OrgMemory()
-    l3 = ProjectContextGraphStore()
-    l4 = UserPreferenceStore()
-    l5 = PostMortemStore()
-    memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
-    memory_ctx_builder = MemoryContextBuilder()
-    cfm = ContextFileManager()
-    workspace_bridge = WorkspaceBridge()
-    diff_engine = DiffEngine()
-
-    return (
-        model_router,
-        tool_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    )
+    return build_infrastructure()
 
 
-def _build_cicd_agents(infra: tuple) -> tuple:
+def _build_cicd_agents(infra: object) -> tuple:
     from agents.agent_6_test_coordinator import TestCoordinatorAgent
     from agents.agent_7_cicd import CICDAgent
+    from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
+    from tool_router.router import ToolRouter  # noqa: PLC0415
 
-    (
-        model_router,
-        tool_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    ) = infra
-
-    base_kwargs = {
-        "context_window_manager": cwm,
-        "model_router": model_router,
-        "memory_archiver": memory_archiver,
-        "memory_context_builder": memory_ctx_builder,
-        "context_file_manager": cfm,
-        "workspace_bridge": workspace_bridge,
-        "diff_engine": diff_engine,
-    }
+    tool_router = ToolRouter(context_file_manager=infra.context_file_manager)
+    base_kwargs = build_agent_kwargs(infra)
 
     agent_6 = TestCoordinatorAgent(
         name="agent_6_test_coord",
@@ -176,7 +125,7 @@ async def generate_cicd(
     logger.info(
         "generate_cicd.called",
         project_id=project_id,
-        stack=stack,
+        tech_stack=stack,
         has_confirmation=bool(human_confirmation),
     )
 
@@ -193,14 +142,14 @@ async def generate_cicd(
             state: dict[str, object] = dict(existing["channel_values"])
         else:
             state = _build_cicd_state(project_id, stack, human_confirmation)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("generate_cicd.checkpointer_failed", error=str(exc))
         state = _build_cicd_state(project_id, stack, human_confirmation)
 
     state["human_confirmation"] = human_confirmation
 
     # Build infrastructure and agents
-    infra = _build_cicd_infrastructure()
+    infra = _build_infrastructure_shared()
     agent_6, agent_7 = _build_cicd_agents(infra)
 
     # ── Agent 6: Test generation + coverage gate ─────────────────────────────
@@ -228,7 +177,7 @@ async def generate_cicd(
                 "project_id": project_id,
                 "reason": state.get("hitl_reason", ""),
                 "coverage": state.get("test_coverage", 0.0),
-                "instructions": "Test coverage below 80% after 3 retries. Manual intervention required.",
+                "instructions": "Test coverage below 80% after 3 retries. Manual intervention required.",  # noqa: E501
             }
 
     # ── Agent 7: CI/CD YAML generation ──────────────────────────────────────

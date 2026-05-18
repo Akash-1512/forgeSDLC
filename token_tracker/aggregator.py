@@ -29,7 +29,12 @@ class TokenAggregator:
         """Group totals by agent name."""
         records = self._to_records(raw)
         groups: dict[str, dict[str, float]] = defaultdict(
-            lambda: {"input_tokens": 0.0, "output_tokens": 0.0, "cost_usd": 0.0, "calls": 0.0}
+            lambda: {
+                "input_tokens": 0.0,
+                "output_tokens": 0.0,
+                "cost_usd": 0.0,
+                "calls": 0.0,
+            }
         )
         for rec in records:
             g = groups[rec.agent]
@@ -43,7 +48,12 @@ class TokenAggregator:
         """Group totals by model string."""
         records = self._to_records(raw)
         groups: dict[str, dict[str, float]] = defaultdict(
-            lambda: {"input_tokens": 0.0, "output_tokens": 0.0, "cost_usd": 0.0, "calls": 0.0}
+            lambda: {
+                "input_tokens": 0.0,
+                "output_tokens": 0.0,
+                "cost_usd": 0.0,
+                "calls": 0.0,
+            }
         )
         for rec in records:
             g = groups[rec.model]
@@ -59,7 +69,12 @@ class TokenAggregator:
         """Group totals by provider."""
         records = self._to_records(raw)
         groups: dict[str, dict[str, float]] = defaultdict(
-            lambda: {"input_tokens": 0.0, "output_tokens": 0.0, "cost_usd": 0.0, "calls": 0.0}
+            lambda: {
+                "input_tokens": 0.0,
+                "output_tokens": 0.0,
+                "cost_usd": 0.0,
+                "calls": 0.0,
+            }
         )
         for rec in records:
             g = groups[rec.provider]

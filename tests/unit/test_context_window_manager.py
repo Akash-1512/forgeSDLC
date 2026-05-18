@@ -131,7 +131,7 @@ async def test_build_packet_raises_for_unknown_agent_name() -> None:
 @pytest.mark.asyncio
 async def test_compression_uses_groq_via_model_router() -> None:
     """ContextCompressor must route through ModelRouter — no direct groq import."""
-    with patch("subscription.byok_manager.keyring") as mk:
+    with patch("subscription.byok_manager._keyring") as mk:
         mk.get_password.return_value = None
         from model_router.router import ModelRouter
 
@@ -145,7 +145,7 @@ async def test_compression_uses_groq_via_model_router() -> None:
                     )
                 )()
             ),
-        ):
+        ) as _mock_route:
             compressor = ContextCompressor()
             result = await compressor.compress("some long content here", "memory_context")
     assert isinstance(result, str)

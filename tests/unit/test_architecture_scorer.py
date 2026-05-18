@@ -58,3 +58,4 @@ def test_no_llm_calls_in_scorer() -> None:
         scorer = ArchitectureScorer()
         scorer.score("some rfc with load balancer and replica and logging")
         mock_route.assert_not_called()
+    assert scorer is not None  # instantiation is the test

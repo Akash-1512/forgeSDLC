@@ -137,3 +137,4 @@ def test_no_llm_calls_in_any_rule() -> None:
         svc = _make_svc("api", responsibility="auth payment user order", database="db1")
         detector.detect("some rfc text with circuit breaker", {"services": [svc]})
         mock_route.assert_not_called()
+    assert detector is not None  # instantiation is the test

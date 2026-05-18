@@ -7,16 +7,16 @@ import { ToolRouterStatus } from "./components/ToolRouterStatus";
 import { TokenHistory } from "./components/TokenHistory";
 import { getElectronAPISafe } from "./electron_bridge";
 
-const DEMO_STAGES = [
-    { name: "gather_requirements", status: "complete" as const },
-    { name: "design_architecture", status: "complete" as const },
-    { name: "route_code_generation", status: "running" as const },
-    { name: "run_security_scan", status: "pending" as const },
-    { name: "generate_cicd", status: "pending" as const },
-    { name: "deploy_project", status: "pending" as const },
-    { name: "setup_monitoring", status: "pending" as const },
-    { name: "generate_docs", status: "pending" as const },
-];
+const INITIAL_STAGES = [
+    "gather_requirements",
+    "design_architecture",
+    "route_code_generation",
+    "run_security_scan",
+    "generate_cicd",
+    "deploy_project",
+    "setup_monitoring",
+    "generate_docs",
+].map(name => ({ name, status: "pending" as const }));
 
 export default function App() {
     const [mcpStatus, setMcpStatus] = useState<string>("checking...");
@@ -60,7 +60,7 @@ export default function App() {
 
             {/* 4-zone layout */}
             <div style={{ flex: 1, overflowY: "auto" }}>
-                {/* Zone 1: HITL Panel */}
+                {/* Zone 1: Approval Panel */}
                 <div style={{ borderBottom: "1px solid #1e293b" }}>
                     <HitlPanel
                         interpretation="Waiting for agent interpretation..."
@@ -75,7 +75,7 @@ export default function App() {
                 {/* Zone 2: Pipeline Status */}
                 <div style={{ borderBottom: "1px solid #1e293b" }}>
                     <PipelineStatus
-                        stages={DEMO_STAGES}
+                        stages={INITIAL_STAGES}
                         currentStage="route_code_generation"
                     />
                 </div>

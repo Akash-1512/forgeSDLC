@@ -2,7 +2,7 @@
 """
 forgeSDLC Commercial Readiness Check
 =====================================
-Exit 0: all hard checks passed — ready to tag v1.0.0.
+Exit 0: all hard checks passed — ready for release.
 Exit 1: one or more hard failures — prints actionable fix instructions.
 
 Usage:
@@ -56,6 +56,9 @@ def main() -> int:
         ),
     )
 
+    # In CI, missing API keys are advisory — secrets may not be configured yet
+    # Set FORGESDLC_CI=true to downgrade API key checks
+    _ci_mode = os.getenv("FORGESDLC_CI", "").lower() == "true"
     check(
         "GROQ_API_KEY is set",
         bool(os.getenv("GROQ_API_KEY")),
@@ -64,13 +67,14 @@ def main() -> int:
             "free tier fails at ~100 concurrent users)\n"
             "     Get key: https://console.groq.com/keys"
         ),
+        hard=not _ci_mode,  # advisory in CI, hard-fail in production
     )
 
     check(
         "OPENAI_API_KEY is set",
         bool(os.getenv("OPENAI_API_KEY")),
         (
-            "Set OPENAI_API_KEY for gpt-5.4/gpt-5.4-mini (Pro + Enterprise tiers)\n"
+            "Set OPENAI_API_KEY for gpt-4o/gpt-4o-mini (Pro + Enterprise tiers)\n"
             "     Get key: https://platform.openai.com/api-keys"
         ),
     )
@@ -92,7 +96,7 @@ def main() -> int:
         check(
             f"{lf} exists",
             Path(lf).exists(),
-            f"Run Session 19 script to create {lf}",
+            f"Run scripts/create_legal_files.py to create {lf}",
         )
 
     check(
@@ -133,7 +137,7 @@ def main() -> int:
         "GEMINI_API_KEY set (Enterprise tier advisory)",
         bool(os.getenv("GEMINI_API_KEY")),
         (
-            "Set GEMINI_API_KEY for gemini-3.1-pro-preview (Agent 11 long-context routing)\n"
+            "Set GEMINI_API_KEY for gemini-1.5-pro (Agent 11 long-context routing)\n"
             "     Required for Enterprise tier and multi-service projects"
         ),
         hard=False,
@@ -152,15 +156,15 @@ def main() -> int:
         print()
 
     if hard_failures:
-        print(f"❌ {len(hard_failures)} hard failure(s). Resolve before tagging v1.0.0.\n")
+        print(f"❌ {len(hard_failures)} hard failure(s). Resolve before tagging this version.\n")
         return 1
 
     if FAILURES:
         # Only advisories
         print("✅ All hard checks passed (advisory warnings above).")
-        print("   Ready for v1.0.0 — address advisories before GA launch.\n")
+        print("   Address advisories before GA launch.\n")
     else:
-        print("\n✅ All checks passed. Ready to tag v1.0.0.\n")
+        print("\n✅ All checks passed. Ready to release.\n")
 
     return 0
 

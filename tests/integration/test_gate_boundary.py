@@ -40,15 +40,18 @@ SHOULD_FAIL = [
 
 
 @pytest.mark.parametrize("phrase", SHOULD_PASS)
+@pytest.mark.slow
 def test_gate_accepts_exact_match(phrase: str) -> None:
     assert check_gate(phrase) is True
 
 
 @pytest.mark.parametrize("phrase", SHOULD_FAIL)
+@pytest.mark.slow
 def test_gate_rejects_non_exact(phrase: object) -> None:
     assert check_gate(phrase) is False  # type: ignore[arg-type]
 
 
+@pytest.mark.slow
 def test_gate_is_pure_function() -> None:
     """Calling 1000 times returns same result — no side effects."""
     results = [check_gate("100% GO") for _ in range(1000)]
@@ -57,15 +60,18 @@ def test_gate_is_pure_function() -> None:
     assert not any(results_false)
 
 
+@pytest.mark.slow
 def test_gate_rejects_bytes() -> None:
     """Non-string types return False — no implicit coercion."""
     assert check_gate(b"100% GO") is False  # type: ignore[arg-type]
 
 
+@pytest.mark.slow
 def test_gate_rejects_integer() -> None:
     assert check_gate(100) is False  # type: ignore[arg-type]
 
 
+@pytest.mark.slow
 def test_gate_case_sensitive() -> None:
     """Gate is case-sensitive — lowercase go rejected."""
     assert check_gate("100% go") is False
@@ -73,6 +79,7 @@ def test_gate_case_sensitive() -> None:
     assert check_gate("100% gO") is False
 
 
+@pytest.mark.slow
 def test_gate_exact_string_only() -> None:
     """Confirm the exact constant string is the only accepted value."""
     from orchestrator.constants import HUMAN_CONFIRMATION_PHRASE

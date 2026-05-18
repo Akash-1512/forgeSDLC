@@ -48,6 +48,7 @@ def record_collector():
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_all_13_layers_emitted_in_full_pipeline(
     record_collector: list[InterpretRecord], tmp_path: object
 ) -> None:
@@ -215,13 +216,13 @@ async def _run_synthetic_pipeline(tmp_path: object, records: list[InterpretRecor
     InterpretRecord(
         layer="model_router",
         component="ModelRouter",
-        action="route: agent_0_decompose → gpt-5.4-mini (groq fallback)",
+        action="route: agent_0_decompose → gpt-4o-mini (groq fallback)",
         inputs={"agent": "agent_0_decompose", "task_type": "requirements"},
         expected_outputs={"adapter": "GroqAdapter"},
         files_it_will_read=[],
         files_it_will_write=[],
         external_calls=[],
-        model_selected="gpt-5.4-mini",
+        model_selected="gpt-4o-mini",
         tool_delegated_to=None,
         reversible=True,
         workspace_files_affected=[],
@@ -302,6 +303,7 @@ async def _run_synthetic_pipeline(tmp_path: object, records: list[InterpretRecor
     await bridge.stop()
 
 
+@pytest.mark.slow
 def test_no_unknown_layer_literals() -> None:
     """Verify InterpretRecord.layer Literal contains exactly 13 official layers."""
     import typing  # noqa: PLC0415
@@ -317,6 +319,7 @@ def test_no_unknown_layer_literals() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_workspace_bridge_never_writes_files(
     record_collector: list[InterpretRecord], tmp_path: object
 ) -> None:

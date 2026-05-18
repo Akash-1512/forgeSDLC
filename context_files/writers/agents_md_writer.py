@@ -13,8 +13,8 @@ FILENAME = "AGENTS.md"
 class AgentsMdWriter:
     """Writes AGENTS.md — universal context readable by any AI coding tool.
 
-    Linux Foundation standard for multi-agent projects.
-    Auto-updated after every SDLC action. Do not edit manually.
+    Read by any MCP-connected AI coding tool to understand the project architecture.
+    Updated after every SDLC action — do not edit manually.
     """
 
     filename: str = FILENAME
@@ -35,7 +35,7 @@ class AgentsMdWriter:
         security_bullets = "\n".join(f"- {r}" for r in rules) if rules else "- None yet"
 
         content = f"""# forgeSDLC Project Context
-# Auto-updated after every SDLC action. Do not edit manually.
+# Managed by forgeSDLC ContextFileManager — changes are overwritten on each pipeline run.
 
 ## Project: {project_id}
 ## Current Phase: {current_phase}

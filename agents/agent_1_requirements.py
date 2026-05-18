@@ -8,13 +8,14 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
 _MODEL = "groq/llama-3.3-70b-versatile"
 
 _PRD_SYSTEM_PROMPT = """\
-You are a senior product manager. Generate a comprehensive PRD.
+You are a senior product manager. Generate a structured PRD.
 Always include ALL of these sections in this exact order:
 1. Executive Summary
 2. User Stories
@@ -73,9 +74,9 @@ class RequirementsAgent(BaseAgent):
             agent="agent_1_requirements",
             task_type="generation",
             estimated_tokens=2_000,
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         service_graph = state.get("service_graph") or {}
@@ -117,8 +118,8 @@ class RequirementsAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace not available — continue without path
 
         prd_path = str(Path(workspace_path) / "docs" / "requirements" / "PRD.md")
         diff = await self.diff_engine.generate_diff(

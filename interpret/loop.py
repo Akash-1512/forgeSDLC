@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import collections.abc
+
 import structlog
 
 from interpret.gate import check_gate
@@ -37,14 +39,18 @@ def interpret_node(
     return base
 
 
-def interrupt_node(displayed_interpretation: str) -> None:
+def interrupt_node(displayed_interpretation: str, hard_gate: bool = False) -> None:
     """Pause execution and surface the interpretation to the companion panel.
 
-    In Session 17 this wires to the WebSocket / panel UI.
-    For now it logs — the [✅ Approve] button will call check_gate() with
-    HUMAN_CONFIRMATION_PHRASE before execute_node is allowed to fire.
+    When hard_gate=True, the companion panel renders a red border requiring explicit approval.
+    Wires to the WebSocket / companion panel UI when desktop app is running.
     """
-    logger.info("interrupt_node — awaiting gate", interpretation=displayed_interpretation)
+    logger.info(
+        "interrupt_node — awaiting gate",
+        interpretation=displayed_interpretation,
+        hard_gate=hard_gate,
+        ui_hint="red_border" if hard_gate else "standard",
+    )
 
 
 def execute_node(confirmation: str, fn: object, *args: object) -> object:
@@ -58,8 +64,6 @@ def execute_node(confirmation: str, fn: object, *args: object) -> object:
             f"execute_node blocked — gate phrase not matched. Received: {confirmation!r}"
         )
     logger.info("execute_node — gate passed, executing")
-    # TODO: replace cast with proper callable protocol in Session 09
-    import collections.abc  # noqa: PLC0415
-
-    assert isinstance(fn, collections.abc.Callable)  # noqa: S101
+    if not isinstance(fn, collections.abc.Callable):
+        raise TypeError(f"execute_node: fn must be callable, got {type(fn).__name__!r}")
     return fn(*args)

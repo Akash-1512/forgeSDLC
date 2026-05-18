@@ -76,15 +76,25 @@ class DiffEngine:
             new_content=new_content,
         )
 
-    async def apply_diff(self, diff: UnifiedDiff) -> None:
+    async def apply_diff(self, diff: UnifiedDiff, workspace_root: str | None = None) -> None:
         """Apply diff to disk. Backup original BEFORE writing.
 
         Emits L3 InterpretRecord before any write.
         Backup extension: .forgesdlc.bak (exact — not .bak, not .backup).
         New files: backup skipped (nothing to back up — no empty .bak created).
+        Raises ValueError if the target path is outside workspace_root.
         """
-        p = Path(diff.filepath)
-        bak = Path(f"{diff.filepath}{_BAK_EXTENSION}")
+        p = Path(diff.filepath).resolve()
+        bak = Path(f"{diff.filepath}{_BAK_EXTENSION}").resolve()
+
+        # Reject writes outside the workspace root — prevents path traversal
+        if workspace_root is not None:
+            root = Path(workspace_root).resolve()
+            if not str(p).startswith(str(root)):
+                raise ValueError(
+                    f"DiffEngine path traversal rejected: {p} is outside workspace root {root}. "
+                    "This may indicate a prompt injection attempt."
+                )
 
         InterpretRecord(
             layer="diff",

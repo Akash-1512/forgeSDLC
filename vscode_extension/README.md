@@ -6,11 +6,11 @@ for AI coding tools. Works in VS Code, Cursor, and Windsurf.
 ## Installation
 
 ```bash
-# Option 1: VS Code Marketplace (Session 20)
+# Option 1: VS Code Marketplace
 ext install Akash-1512.forgesdlc
 
 # Option 2: Local .vsix install
-code --install-extension forgesdlc-0.1.0.vsix
+code --install-extension forgesdlc-1.1.0.vsix
 ```
 
 ## Quick Start
@@ -24,7 +24,7 @@ code --install-extension forgesdlc-0.1.0.vsix
 ## What It Does
 
 - Writes `.vscode/mcp.json` (workspace-level, not global)
-- Opens companion panel for HITL review (`forgeSDLC: Open Companion Panel`)
+- Opens companion panel for approval review (`forgeSDLC: Open Companion Panel`)
 - Provides activity bar view for project status
 
 ## Commands
@@ -32,7 +32,7 @@ code --install-extension forgesdlc-0.1.0.vsix
 | Command | Description |
 |---------|-------------|
 | `forgeSDLC: Add to MCP Config` | Adds forgeSDLC to `.vscode/mcp.json` (idempotent) |
-| `forgeSDLC: Open Companion Panel` | Opens HITL panel alongside editor |
+| `forgeSDLC: Open Companion Panel` | Opens approval panel alongside editor |
 
 ## Architecture
 

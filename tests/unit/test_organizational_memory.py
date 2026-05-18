@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
@@ -23,8 +24,8 @@ def _make_entry(project_id: str = "proj-1") -> OrgMemoryEntry:
 def _make_org_memory(chroma_path: str = "./test_chroma") -> object:
     """Return OrgMemory with mocked chromadb and embeddings."""
     with (
-        patch("memory.organisational_memory.chromadb") as mock_chroma,
-        patch("memory.organisational_memory.HuggingFaceEmbeddings") as mock_emb,
+        patch("memory.organizational_memory.chromadb") as mock_chroma,
+        patch("memory.organizational_memory.HuggingFaceEmbeddings") as mock_emb,
     ):
         mock_collection = MagicMock()
         mock_collection.name = "forgesdlc_org_memory"
@@ -34,7 +35,7 @@ def _make_org_memory(chroma_path: str = "./test_chroma") -> object:
         )
         mock_emb.return_value = MagicMock()
 
-        from memory.organisational_memory import OrgMemory
+        from memory.organizational_memory import OrgMemory
 
         org = OrgMemory(chroma_path=chroma_path)
         return org
@@ -43,18 +44,18 @@ def _make_org_memory(chroma_path: str = "./test_chroma") -> object:
 def test_chromadb_uses_persistent_client_not_in_memory() -> None:
     """Verify PersistentClient is called, not EphemeralClient or Client."""
     with (
-        patch("memory.organisational_memory.chromadb") as mock_chroma,
-        patch("memory.organisational_memory.HuggingFaceEmbeddings"),
+        patch("memory.organizational_memory.chromadb") as mock_chroma,
+        patch("memory.organizational_memory.HuggingFaceEmbeddings"),
     ):
         mock_collection = MagicMock()
         mock_collection.name = "forgesdlc_org_memory"
         mock_chroma.PersistentClient.return_value.get_or_create_collection.return_value = (
             mock_collection
         )
-        from memory.organisational_memory import OrgMemory
+        from memory.organizational_memory import OrgMemory
 
         OrgMemory(chroma_path="./test_chroma")
-        mock_chroma.PersistentClient.assert_called_once_with(path="./test_chroma")
+        mock_chroma.PersistentClient.assert_called_once_with(path=os.path.abspath("./test_chroma"))
         mock_chroma.Client.assert_not_called() if hasattr(mock_chroma, "Client") else None
         mock_chroma.EphemeralClient.assert_not_called() if hasattr(
             mock_chroma, "EphemeralClient"
@@ -64,8 +65,8 @@ def test_chromadb_uses_persistent_client_not_in_memory() -> None:
 @pytest.mark.asyncio
 async def test_upsert_emits_interpret_record_before_write() -> None:
     with (
-        patch("memory.organisational_memory.chromadb") as mock_chroma,
-        patch("memory.organisational_memory.HuggingFaceEmbeddings") as mock_emb,
+        patch("memory.organizational_memory.chromadb") as mock_chroma,
+        patch("memory.organizational_memory.HuggingFaceEmbeddings") as mock_emb,
     ):
         mock_collection = MagicMock()
         mock_collection.name = "forgesdlc_org_memory"
@@ -74,7 +75,7 @@ async def test_upsert_emits_interpret_record_before_write() -> None:
         )
         mock_emb.return_value.embed_documents.return_value = [[0.1] * 384]
 
-        from memory.organisational_memory import OrgMemory
+        from memory.organizational_memory import OrgMemory
 
         org = OrgMemory(chroma_path="./test_chroma")
 
@@ -97,8 +98,8 @@ async def test_upsert_emits_interpret_record_before_write() -> None:
 @pytest.mark.asyncio
 async def test_upsert_stores_entry_in_chromadb() -> None:
     with (
-        patch("memory.organisational_memory.chromadb") as mock_chroma,
-        patch("memory.organisational_memory.HuggingFaceEmbeddings") as mock_emb,
+        patch("memory.organizational_memory.chromadb") as mock_chroma,
+        patch("memory.organizational_memory.HuggingFaceEmbeddings") as mock_emb,
     ):
         mock_collection = MagicMock()
         mock_collection.name = "forgesdlc_org_memory"
@@ -107,7 +108,7 @@ async def test_upsert_stores_entry_in_chromadb() -> None:
         )
         mock_emb.return_value.embed_documents.return_value = [[0.1] * 384]
 
-        from memory.organisational_memory import OrgMemory
+        from memory.organizational_memory import OrgMemory
 
         org = OrgMemory(chroma_path="./test_chroma")
         entry = _make_entry()
@@ -120,8 +121,8 @@ async def test_upsert_stores_entry_in_chromadb() -> None:
 @pytest.mark.asyncio
 async def test_search_returns_empty_list_for_new_project() -> None:
     with (
-        patch("memory.organisational_memory.chromadb") as mock_chroma,
-        patch("memory.organisational_memory.HuggingFaceEmbeddings"),
+        patch("memory.organizational_memory.chromadb") as mock_chroma,
+        patch("memory.organizational_memory.HuggingFaceEmbeddings"),
     ):
         mock_collection = MagicMock()
         mock_collection.name = "forgesdlc_org_memory"
@@ -130,7 +131,7 @@ async def test_search_returns_empty_list_for_new_project() -> None:
             mock_collection
         )
 
-        from memory.organisational_memory import OrgMemory
+        from memory.organizational_memory import OrgMemory
 
         org = OrgMemory(chroma_path="./test_chroma")
         result = await org.search("tech stack", project_id="new-proj")
@@ -140,8 +141,8 @@ async def test_search_returns_empty_list_for_new_project() -> None:
 @pytest.mark.asyncio
 async def test_search_emits_interpret_record_before_read() -> None:
     with (
-        patch("memory.organisational_memory.chromadb") as mock_chroma,
-        patch("memory.organisational_memory.HuggingFaceEmbeddings"),
+        patch("memory.organizational_memory.chromadb") as mock_chroma,
+        patch("memory.organizational_memory.HuggingFaceEmbeddings"),
     ):
         mock_collection = MagicMock()
         mock_collection.name = "forgesdlc_org_memory"
@@ -150,7 +151,7 @@ async def test_search_emits_interpret_record_before_read() -> None:
             mock_collection
         )
 
-        from memory.organisational_memory import OrgMemory
+        from memory.organizational_memory import OrgMemory
 
         org = OrgMemory(chroma_path="./test_chroma")
 
@@ -170,8 +171,8 @@ async def test_search_emits_interpret_record_before_read() -> None:
 @pytest.mark.asyncio
 async def test_search_returns_relevant_entries_by_semantic_similarity() -> None:
     with (
-        patch("memory.organisational_memory.chromadb") as mock_chroma,
-        patch("memory.organisational_memory.HuggingFaceEmbeddings") as mock_emb,
+        patch("memory.organizational_memory.chromadb") as mock_chroma,
+        patch("memory.organizational_memory.HuggingFaceEmbeddings") as mock_emb,
     ):
         mock_collection = MagicMock()
         mock_collection.name = "forgesdlc_org_memory"
@@ -196,7 +197,7 @@ async def test_search_returns_relevant_entries_by_semantic_similarity() -> None:
         )
         mock_emb.return_value.embed_query.return_value = [0.1] * 384
 
-        from memory.organisational_memory import OrgMemory
+        from memory.organizational_memory import OrgMemory
 
         org = OrgMemory(chroma_path="./test_chroma")
         results = await org.search("database driver", project_id="proj-1")

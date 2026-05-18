@@ -3,7 +3,7 @@
  *
  * Non-blocking: checkForUpdates() errors are swallowed in main.js.
  * The app MUST start even if the update check fails (no network, etc).
- * Actual publish to GitHub Releases happens in Session 20 with GH_TOKEN.
+ * Publishing to GitHub Releases requires GH_TOKEN set in CI/CD.
  */
 
 let autoUpdater;
@@ -32,7 +32,7 @@ async function checkForUpdates() {
 
     autoUpdater.on('update-available', (info) => {
         console.log(`[Updater] Update available: ${info.version}`);
-        // In Session 20: notify renderer via IPC to show update banner
+        // TODO: notify renderer via IPC to show update banner
     });
 
     autoUpdater.on('error', (err) => {

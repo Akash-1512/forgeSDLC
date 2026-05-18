@@ -22,7 +22,7 @@ class AzureOpenAIAdapter:
     def __init__(self, deployment: str | None = None) -> None:
         self._endpoint = os.getenv("AZURE_OPENAI_ENDPOINT", "")
         self._api_key = os.getenv("AZURE_OPENAI_API_KEY", "")
-        self._deployment = deployment or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-5.4-mini")
+        self._deployment = deployment or os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4o-mini")
         self._api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-12-01-preview")
 
     async def ainvoke(

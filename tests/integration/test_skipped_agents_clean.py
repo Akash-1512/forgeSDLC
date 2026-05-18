@@ -36,7 +36,7 @@ def _make_monolith_state() -> dict[str, object]:
     }
 
 
-def _build_agent(AgentClass: type) -> object:
+def _build_agent(agent_class: type) -> object:
     """Build agent with all dependencies mocked."""
     from model_router.router import ModelRouter
 
@@ -60,7 +60,7 @@ def _build_agent(AgentClass: type) -> object:
     mock_model_router.route = AsyncMock(return_value=mock_adapter)
 
     kwargs = {
-        "name": AgentClass.__name__,
+        "name": agent_class.__name__,
         "context_window_manager": mock_cwm,
         "model_router": mock_model_router,
         "memory_archiver": mock_archiver,
@@ -70,11 +70,11 @@ def _build_agent(AgentClass: type) -> object:
         "diff_engine": mock_diff,
     }
 
-    return AgentClass(**kwargs)
+    return agent_class(**kwargs)
 
 
 @pytest.mark.parametrize(
-    "AgentClass,skip_key",
+    "agent_class,skip_key",
     [
         (IntegrationAgent, "agent_11_integration_skipped"),
         (ContractAgent, "agent_12_contracts_skipped"),
@@ -82,16 +82,17 @@ def _build_agent(AgentClass: type) -> object:
     ],
 )
 @pytest.mark.asyncio
-async def test_agent_skips_silently_on_monolith(AgentClass: type, skip_key: str) -> None:
+@pytest.mark.slow
+async def test_agent_skips_silently_on_monolith(agent_class: type, skip_key: str) -> None:
     """Agent skips, adds NO interpret_log entry, sets skipped marker."""
-    agent = _build_agent(AgentClass)
+    agent = _build_agent(agent_class)
     state = _make_monolith_state()
     initial_log_length = len(state["interpret_log"])
 
     result = await agent.run(state)  # type: ignore[union-attr]
 
     assert len(result["interpret_log"]) == initial_log_length, (
-        f"{AgentClass.__name__} added {len(result['interpret_log']) - initial_log_length} "
+        f"{agent_class.__name__} added {len(result['interpret_log']) - initial_log_length} "
         f"interpret_log entry/entries on monolith. "
         f"Silent skip must not call super().run()."
     )
@@ -101,7 +102,7 @@ async def test_agent_skips_silently_on_monolith(AgentClass: type, skip_key: str)
 
 
 @pytest.mark.parametrize(
-    "AgentClass,skip_key",
+    "agent_class,skip_key",
     [
         (IntegrationAgent, "agent_11_integration_skipped"),
         (ContractAgent, "agent_12_contracts_skipped"),
@@ -109,9 +110,10 @@ async def test_agent_skips_silently_on_monolith(AgentClass: type, skip_key: str)
     ],
 )
 @pytest.mark.asyncio
-async def test_agent_does_not_modify_state_on_skip(AgentClass: type, skip_key: str) -> None:
+@pytest.mark.slow
+async def test_agent_does_not_modify_state_on_skip(agent_class: type, skip_key: str) -> None:
     """Skipped agents must not mutate state beyond setting the skip marker."""
-    agent = _build_agent(AgentClass)
+    agent = _build_agent(agent_class)
     state = _make_monolith_state()
     state["prd"] = "original PRD"
     state["rfc"] = "original RFC"
@@ -124,6 +126,7 @@ async def test_agent_does_not_modify_state_on_skip(AgentClass: type, skip_key: s
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_agent_12_also_skips_when_multi_service_but_no_openapi() -> None:
     """Agent 12 skips when multi_service but has_openapi is False."""
     agent = _build_agent(ContractAgent)

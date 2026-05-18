@@ -1,8 +1,8 @@
 # Privacy Policy — forgeSDLC
 
-**Effective date:** April 2026
+**Effective date:** May 2026
 **Contact:** ag.chaudhari.1512@gmail.com
-**Last updated:** April 2026
+**Last updated:** May 2026
 
 ---
 

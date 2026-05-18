@@ -48,7 +48,11 @@ def test_tool_router_context_required_for_agent_6() -> None:
 
 def test_tool_router_context_not_required_for_other_agents() -> None:
     """Only Agent 4 and Agent 6 delegate via ToolRouter — others must not require it."""
-    delegation_agents = {"agent_4_tool_router", "agent_6_test_coord", "agent_5_coord_review"}
+    delegation_agents = {
+        "agent_4_tool_router",
+        "agent_6_test_coord",
+        "agent_5_coord_review",
+    }
     for agent_name, spec in AGENT_CONTEXT_SPECS.items():
         if agent_name not in delegation_agents:
             assert "tool_router_context" not in spec.required_fields, (
@@ -72,7 +76,7 @@ def test_excluded_cannot_overlap_required_raises_validation_error() -> None:
 
 
 def test_agent_11_max_tokens_is_20000() -> None:
-    """Agent 11 uses gemini-3.1-pro-preview (1M context) — 20K budget."""
+    """Agent 11 uses gemini-1.5-pro (1M context) — 20K budget."""
     spec = AGENT_CONTEXT_SPECS["agent_11_integration"]
     assert spec.max_context_tokens == 20_000
 

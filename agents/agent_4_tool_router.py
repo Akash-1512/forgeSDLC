@@ -197,7 +197,7 @@ class ToolRouterAgent(BaseAgent):
                                 "message": (f"Function '{node.name}' missing type hints."),
                             }
                         )
-                if isinstance(node, ast_module.ExceptHandler):
+                if isinstance(node, ast_module.ExceptHandler):  # noqa: SIM102
                     if node.type is None:
                         violations.append(
                             {

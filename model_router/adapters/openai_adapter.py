@@ -9,12 +9,12 @@ from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
 logger = structlog.get_logger()
 
 _MODEL_METADATA: dict[str, dict[str, object]] = {
-    "gpt-5.4": {
+    "gpt-4o": {
         "context_window": 128_000,
         "cost_per_1k_input": 0.005,
         "cost_per_1k_output": 0.015,
     },
-    "gpt-5.4-mini": {
+    "gpt-4o-mini": {
         "context_window": 128_000,
         "cost_per_1k_input": 0.00015,
         "cost_per_1k_output": 0.0006,
@@ -23,16 +23,16 @@ _MODEL_METADATA: dict[str, dict[str, object]] = {
 
 
 class OpenAIAdapter:
-    """OpenAI Chat Completions API — gpt-5.4, gpt-5.4-mini.
+    """OpenAI Chat Completions API — gpt-4o, gpt-4o-mini.
 
     Uses client.chat.completions.create — NOT the Responses API.
-    For o3-mini and gpt-5.4-pro use OpenAIReasoningAdapter instead.
+    For o3-mini and gpt-4o use OpenAIReasoningAdapter instead.
     """
 
-    def __init__(self, model: str = "gpt-5.4-mini") -> None:
+    def __init__(self, model: str = "gpt-4o-mini") -> None:
         self._model = model
         self._api_key = os.getenv("OPENAI_API_KEY", "")
-        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["gpt-5.4-mini"])
+        meta = _MODEL_METADATA.get(model, _MODEL_METADATA["gpt-4o-mini"])
         self._context_window = int(meta["context_window"])
         self._cost_input = float(meta["cost_per_1k_input"])
         self._cost_output = float(meta["cost_per_1k_output"])

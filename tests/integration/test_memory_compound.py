@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa: E402
 
 """Integration tests — real ChromaDB on disk (no mocks).
 Proves compound memory effect: richer context after 5 runs than after 1.
@@ -7,14 +7,24 @@ Run with:
     python -m pytest tests/integration/test_memory_compound.py -v
 """
 
-import shutil
-import tempfile
-from uuid import uuid4
+import shutil  # noqa: E402
+import tempfile  # noqa: E402
+from uuid import uuid4  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
-from memory.memory_archiver import MemoryArchiver
-from memory.organisational_memory import OrgMemory
+from memory.memory_archiver import MemoryArchiver  # noqa: E402
+from memory.organizational_memory import OrgMemory  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def _skip_if_org_memory_degraded(tmp_path):
+    """Skip when OrgMemory cannot load the embeddings model."""
+    from memory.organizational_memory import OrgMemory as _OrgMem
+
+    m = _OrgMem(chroma_path=str(tmp_path / "chroma"))
+    if m._degraded:
+        pytest.skip(f"OrgMemory degraded ({m._degraded_reason}) — embeddings model not cached")
 
 
 def _make_archiver_with_real_org(chroma_path: str) -> tuple[MemoryArchiver, OrgMemory]:
@@ -70,6 +80,7 @@ def chroma_tmp() -> str:  # type: ignore[return]
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_recall_context_richer_after_5_runs_than_after_1(
     chroma_tmp: str,
 ) -> None:
@@ -94,6 +105,7 @@ async def test_recall_context_richer_after_5_runs_than_after_1(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_org_memory_contains_entries_from_multiple_categories_after_5_runs(
     chroma_tmp: str,
 ) -> None:

@@ -63,11 +63,11 @@ def _base_state(human_confirmation: str = "100% GO") -> dict:
 
 
 def test_agent_9_uses_groq_not_gpt_mini() -> None:
-    """REGRESSION GUARD: Agent 9 must use groq, never gpt-5.4-mini."""
+    """REGRESSION GUARD: Agent 9 must use groq, never gpt-4o-mini."""
     # Assertion 1: catalog check
     assert AGENT_MODELS["agent_9_monitor"] == "groq/llama-3.3-70b-versatile", (
         "AGENT_MODELS['agent_9_monitor'] must be 'groq/llama-3.3-70b-versatile' — "
-        "NOT gpt-5.4-mini. This is the most commonly confused assignment."
+        "NOT gpt-4o-mini. This is the most commonly confused assignment."
     )
     # Assertion 2: agent passes correct name to ModelRouter
     _make_agent_9()
@@ -84,7 +84,7 @@ def test_agent_9_model_selected_in_interpret_is_groq() -> None:
 
     agent = _make_agent_9()
     state = _base_state(human_confirmation="")
-    result = asyncio.run(agent.run(state))
+    result = asyncio.get_event_loop().run_until_complete(agent.run(state))
     record = result["interpret_log"][0]
     assert record["model_selected"] == _MODEL
     assert "groq" in record["model_selected"]

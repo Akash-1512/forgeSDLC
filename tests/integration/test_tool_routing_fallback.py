@@ -1,15 +1,15 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa: E402
 
 """Integration tests — real ContextFileManager + mocked adapters.
 Tests ordering guarantee and fallback chain without external tool dependencies.
 """
 
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from pathlib import Path  # noqa: E402
+from unittest.mock import AsyncMock, MagicMock, patch  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
-from tool_router.context import AvailableTool, ToolResult
+from tool_router.context import AvailableTool, ToolResult  # noqa: E402
 
 
 def _stub_result(tool: AvailableTool = AvailableTool.DIRECT_LLM) -> ToolResult:
@@ -23,6 +23,7 @@ def _stub_result(tool: AvailableTool = AvailableTool.DIRECT_LLM) -> ToolResult:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_full_route_delegates_to_direct_llm_when_no_tools_configured(
     tmp_path: Path,
 ) -> None:
@@ -53,6 +54,7 @@ async def test_full_route_delegates_to_direct_llm_when_no_tools_configured(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_context_files_written_before_delegation(tmp_path: Path) -> None:
     """Ordering guarantee: context files must be written before adapter.generate()."""
     from context_files.manager import ContextFileManager
@@ -101,6 +103,7 @@ async def test_context_files_written_before_delegation(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_fallback_chain_cursor_unavailable_then_claude_code(
     tmp_path: Path,
 ) -> None:
@@ -131,6 +134,7 @@ async def test_fallback_chain_cursor_unavailable_then_claude_code(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_route_code_generation_mcp_tool_returns_valid_response(
     tmp_path: Path,
 ) -> None:
@@ -174,7 +178,7 @@ async def test_route_code_generation_mcp_tool_returns_valid_response(
 
     with (
         patch(
-            "mcp_server.tools.code_generation_tool._build_codegen_infrastructure",
+            "mcp_server.tools.code_generation_tool._build_infrastructure_shared",
             return_value=infra_tuple,
         ),
         patch(

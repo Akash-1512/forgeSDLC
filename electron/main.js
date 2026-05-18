@@ -119,7 +119,7 @@ ipcMain.handle('hitl:correct', async (_, { projectId, correction }) => {
     }
 });
 
-// Main process notifies tray when agent reaches HITL gate
+// Main process notifies tray when agent reaches approval gate
 // Called from MCP server webhook or polling in future sessions
 ipcMain.handle('hitl:notify', (_, { stage }) => {
     if (tray && tray.notifyHitl) {

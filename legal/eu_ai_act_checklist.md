@@ -2,7 +2,7 @@
 
 **Regulation:** EU AI Act (Regulation 2024/1689)
 **Effective date:** August 2, 2026 (GPAI obligations)
-**Last updated:** April 2026
+**Last updated:** May 2026
 **Owner:** Akash Chaudhari
 
 ---

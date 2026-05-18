@@ -62,7 +62,7 @@ class DevinAdapter:
                     success=True,
                     stderr=None,
                 )
-        except Exception as exc:
+        except (httpx.HTTPError, httpx.TimeoutException, OSError) as exc:
             logger.error("devin_adapter.error", error=str(exc))
             return ToolResult(
                 tool=AvailableTool.DEVIN,

@@ -10,8 +10,18 @@ from uuid import uuid4
 
 import pytest
 
-from memory.organisational_memory import OrgMemory
+from memory.organizational_memory import OrgMemory
 from memory.schemas import OrgMemoryEntry
+
+
+@pytest.fixture(autouse=True)
+def _skip_if_org_memory_degraded(tmp_path):
+    """Skip when OrgMemory cannot load the embeddings model."""
+    from memory.organizational_memory import OrgMemory as _OrgMem
+
+    m = _OrgMem(chroma_path=str(tmp_path / "chroma"))
+    if m._degraded:
+        pytest.skip(f"OrgMemory degraded ({m._degraded_reason}) — embeddings model not cached")
 
 
 def _postgres_available() -> bool:
@@ -26,11 +36,12 @@ def _postgres_available() -> bool:
 
 _SKIP_POSTGRES = pytest.mark.skipif(
     not _postgres_available(),
-    reason="PostgreSQL not running — start with: docker run -p 5432:5432 -e POSTGRES_PASSWORD=forgesdlc postgres:16",
+    reason="PostgreSQL not running — start with: docker run -p 5432:5432 -e POSTGRES_PASSWORD=forgesdlc postgres:16",  # noqa: E501
 )
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_decision_survives_orgmemory_reinstantiation() -> None:
     """
     Save a decision to OrgMemory. Create a NEW OrgMemory instance.
@@ -70,6 +81,7 @@ async def test_decision_survives_orgmemory_reinstantiation() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_architecture_decision_retrievable_by_different_query() -> None:
     """Semantic search — different wording should still find the decision."""
     project_id = f"test-semantic-{uuid4().hex[:8]}"
@@ -98,6 +110,7 @@ async def test_architecture_decision_retrievable_by_different_query() -> None:
 
 @pytest.mark.asyncio
 @_SKIP_POSTGRES
+@pytest.mark.slow
 async def test_pipeline_history_survives_store_reinstantiation(
     tmp_path: object,
 ) -> None:
@@ -135,6 +148,7 @@ async def test_pipeline_history_survives_store_reinstantiation(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_project_context_graph_survives_reinstantiation(
     tmp_path: object,
 ) -> None:

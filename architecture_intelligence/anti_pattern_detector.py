@@ -176,7 +176,7 @@ class AntiPatternDetector:
             "high throughput",
         ]
         _cache_signals = ["redis", "memcached", "cdn", "cache", "caching"]
-        if any(s in rfc_lower for s in _read_heavy_signals):
+        if any(s in rfc_lower for s in _read_heavy_signals):  # noqa: SIM102
             if not any(s in rfc_lower for s in _cache_signals):
                 findings.append(
                     AntiPatternFinding(
@@ -200,7 +200,7 @@ class AntiPatternDetector:
             "high availability",
         ]
         data_owners = [s for s in services if s.get("owns_data", False)]
-        if len(data_owners) == 1:
+        if len(data_owners) == 1:  # noqa: SIM102
             if not any(sig in rfc_lower for sig in _replica_signals):
                 findings.append(
                     AntiPatternFinding(

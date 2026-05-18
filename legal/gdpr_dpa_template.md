@@ -58,9 +58,9 @@ the Controller configures forgeSDLC to use them:
 
 | Sub-Processor | Purpose | Location |
 |---------------|---------|----------|
-| OpenAI, Inc. | LLM inference (gpt-5.4, gpt-5.4-mini) | USA |
+| OpenAI, Inc. | LLM inference (gpt-4o, gpt-4o-mini) | USA |
 | Groq, Inc. | LLM inference (llama-3.x) | USA |
-| Google LLC | LLM inference (gemini-3.1) | USA |
+| Google LLC | LLM inference (gemini-1.5) | USA |
 | Anthropic, PBC | LLM inference (claude-sonnet) | USA |
 
 Controller must review each sub-processor's DPA before enabling the

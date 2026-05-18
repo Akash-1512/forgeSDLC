@@ -3,10 +3,31 @@ from __future__ import annotations
 import os
 from collections.abc import AsyncIterator
 
+import httpx
 import structlog
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
+from tenacity import (
+    retry,
+    retry_if_exception,
+    stop_after_attempt,
+    wait_exponential,
+)
+
+from orchestrator.constants import (
+    EXPONENTIAL_BACKOFF_BASE,
+    EXPONENTIAL_BACKOFF_MAX_SECONDS,
+)
 
 logger = structlog.get_logger()
+
+
+def _is_rate_limit(exc: BaseException) -> bool:
+    """Return True for 429 rate limit and 503 service unavailable responses."""
+    return isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (
+        429,
+        503,
+    )
+
 
 _GROQ_BASE_URL = "https://api.groq.com/openai/v1"
 
@@ -39,6 +60,14 @@ class GroqAdapter:
         self._cost_input = float(meta["cost_per_1k_input"])
         self._cost_output = float(meta["cost_per_1k_output"])
 
+    @retry(
+        retry=retry_if_exception(_is_rate_limit),
+        wait=wait_exponential(
+            multiplier=EXPONENTIAL_BACKOFF_BASE, max=EXPONENTIAL_BACKOFF_MAX_SECONDS
+        ),
+        stop=stop_after_attempt(4),
+        reraise=True,
+    )
     async def ainvoke(
         self,
         messages: list[BaseMessage],
@@ -47,7 +76,6 @@ class GroqAdapter:
         temperature: float = 0.0,
         stop: list[str] | None = None,
     ) -> AIMessage:
-        import httpx  # noqa: PLC0415
 
         payload: dict[str, object] = {
             "model": self._model.replace("groq/", ""),
@@ -72,7 +100,18 @@ class GroqAdapter:
             response.raise_for_status()
             data = response.json()
             content = data["choices"][0]["message"]["content"] or ""
-            logger.info("groq_adapter.ainvoke", model=self._model, chars=len(content))
+            usage = data.get("usage", {})
+            input_tokens = usage.get("prompt_tokens", 0)
+            output_tokens = usage.get("completion_tokens", 0)
+            cost = (input_tokens * self._cost_input + output_tokens * self._cost_output) / 1000
+            logger.info(
+                "groq_adapter.ainvoke",
+                model=self._model,
+                chars=len(content),
+                input_tokens=input_tokens,
+                output_tokens=output_tokens,
+                cost_usd=round(cost, 6),
+            )
             return AIMessage(content=content)
 
     async def astream(
@@ -82,13 +121,49 @@ class GroqAdapter:
         max_tokens: int = 2048,
         temperature: float = 0.0,
     ) -> AsyncIterator[AIMessageChunk]:
-        # Stub — full streaming wired in Session 17 (companion panel)
-        response = await self.ainvoke(messages, max_tokens=max_tokens, temperature=temperature)
+        """Real token-by-token streaming via Groq SSE endpoint."""
+        payload = {
+            "model": self._model.replace("groq/", ""),
+            "messages": [
+                {"role": self._map_role(m.type), "content": str(m.content)} for m in messages
+            ],
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "stream": True,
+        }
 
-        async def _gen() -> AsyncIterator[AIMessageChunk]:
-            yield AIMessageChunk(content=str(response.content))
+        async def _stream_gen() -> AsyncIterator[AIMessageChunk]:
+            import json as _json  # noqa: PLC0415
 
-        return _gen()
+            async with (
+                httpx.AsyncClient(timeout=60) as client,
+                client.stream(
+                    "POST",
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    headers={
+                        "Authorization": f"Bearer {self._api_key}",
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                ) as response,
+            ):
+                response.raise_for_status()
+                async for line in response.aiter_lines():
+                    if not line.startswith("data: "):
+                        continue
+                    data_str = line[6:]
+                    if data_str.strip() == "[DONE]":
+                        break
+                    try:
+                        chunk = _json.loads(data_str)
+                        delta = chunk["choices"][0]["delta"]
+                        token = delta.get("content", "")
+                        if token:
+                            yield AIMessageChunk(content=token)
+                    except (KeyError, _json.JSONDecodeError):
+                        continue
+
+        return _stream_gen()
 
     async def afim(self, prefix: str, suffix: str, *, max_tokens: int = 512) -> str:
         raise NotImplementedError("Groq does not support FIM. Use CodestralAdapter for FIM tasks.")

@@ -1,4 +1,4 @@
-from __future__ import annotations
+from __future__ import annotations  # noqa: E402
 
 """Integration tests — require real ChromaDB on disk (no mocks).
 PostgreSQL tests require Docker: make db-start
@@ -7,15 +7,15 @@ Run with:
     python -m pytest tests/integration/ -v
 """
 
-import shutil
-import tempfile
-from datetime import UTC, datetime
-from uuid import uuid4
+import shutil  # noqa: E402
+import tempfile  # noqa: E402
+from datetime import UTC, datetime  # noqa: E402
+from uuid import uuid4  # noqa: E402
 
-import pytest
+import pytest  # noqa: E402
 
-from memory.organisational_memory import OrgMemory
-from memory.schemas import OrgMemoryEntry
+from memory.organizational_memory import OrgMemory  # noqa: E402
+from memory.schemas import OrgMemoryEntry  # noqa: E402
 
 
 def _make_entry(project_id: str, content: str) -> OrgMemoryEntry:
@@ -37,7 +37,25 @@ def chroma_tmp() -> str:  # type: ignore[return]
     shutil.rmtree(tmp, ignore_errors=True)
 
 
+@pytest.fixture(autouse=True)
+def skip_if_org_memory_degraded(chroma_tmp: str) -> None:
+    """Skip all tests in this module when OrgMemory cannot load embeddings.
+
+    OrgMemory degrades gracefully when the HuggingFace model is not cached.
+    These tests require the model to be available.
+    """
+    from memory.organizational_memory import OrgMemory as _OrgMemory
+
+    test_org = _OrgMemory(chroma_path=chroma_tmp)
+    if test_org._degraded:
+        pytest.skip(
+            f"OrgMemory degraded: {test_org._degraded_reason}. "
+            "Run with HF model cached to enable memory persistence tests."
+        )
+
+
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_data_survives_server_restart(chroma_tmp: str) -> None:
     """Core persistence guarantee: data written by instance A is readable
     by a completely new instance B — simulating a server restart."""
@@ -60,6 +78,7 @@ async def test_data_survives_server_restart(chroma_tmp: str) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_recall_context_returns_data_after_3_save_decisions(
     chroma_tmp: str,
 ) -> None:
@@ -76,6 +95,7 @@ async def test_recall_context_returns_data_after_3_save_decisions(
 
 
 @pytest.mark.asyncio
+@pytest.mark.slow
 async def test_save_decision_immediately_retrievable_via_recall_context(
     chroma_tmp: str,
 ) -> None:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 
 import structlog
 
@@ -20,7 +21,7 @@ async def check_postgresql(url: str) -> bool:
         )
         await conn.close()
         return True
-    except Exception as exc:
+    except OSError as exc:
         logger.debug("health_check.postgresql_failed", error=str(exc))
         return False
 
@@ -32,7 +33,7 @@ async def check_chromadb(path: str) -> bool:
 
         chromadb.PersistentClient(path=path)
         return True
-    except Exception as exc:
+    except (OSError, RuntimeError) as exc:
         logger.debug("health_check.chromadb_failed", error=str(exc))
         return False
 
@@ -43,7 +44,9 @@ async def check_ollama() -> bool:
         import httpx  # noqa: PLC0415
 
         async with httpx.AsyncClient(timeout=HEALTH_CHECK_TIMEOUT_SECONDS) as client:
-            r = await client.get("http://localhost:11434/api/tags")
+            r = await client.get(
+                os.getenv("OLLAMA_BASE_URL", "http://localhost:11434") + "/api/tags"
+            )
             return r.status_code == 200
-    except Exception:
+    except OSError:
         return False

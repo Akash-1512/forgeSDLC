@@ -7,10 +7,11 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
-# CRITICAL: groq/llama-3.3-70b-versatile — NOT gpt-5.4-mini.
+# CRITICAL: groq/llama-3.3-70b-versatile — NOT gpt-4o-mini.
 # This is the most commonly confused agent-model assignment in the catalog.
 # AGENT_MODELS["agent_9_monitor"] = "groq/llama-3.3-70b-versatile"
 # test_agent_9_uses_groq_not_gpt_mini enforces this with two assertions.
@@ -20,7 +21,7 @@ _MODEL = "groq/llama-3.3-70b-versatile"
 class MonitoringAgent(BaseAgent):
     """Agent 9 — SLO definitions, runbook, on-call playbook, OTel config.
 
-    Model: groq/llama-3.3-70b-versatile (NOT gpt-5.4-mini — regression guard test).
+    Model: groq/llama-3.3-70b-versatile (NOT gpt-4o-mini — regression guard test).
     SLOs extracted from PRD NFR section via keyword matching (zero LLM).
     Runbook generated via groq and written via DiffEngine.
     """
@@ -53,7 +54,7 @@ class MonitoringAgent(BaseAgent):
             files_it_will_read=[],
             files_it_will_write=["docs/ops/runbook.md", "docs/ops/oncall.md"],
             external_calls=[_MODEL],
-            model_selected=_MODEL,  # groq — NOT gpt-5.4-mini
+            model_selected=_MODEL,  # groq — NOT gpt-4o-mini
             tool_delegated_to=None,
             reversible=True,
             workspace_files_affected=["docs/ops/runbook.md", "docs/ops/oncall.md"],
@@ -86,9 +87,9 @@ class MonitoringAgent(BaseAgent):
             agent="agent_9_monitor",  # → groq/llama-3.3-70b-versatile
             task_type="documentation",
             estimated_tokens=int(len(rfc.split()) * 2),
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         slo_summary = "\n".join(f"- {s['name']}: {s['target']}% / {s['metric']}" for s in slos)
@@ -123,8 +124,8 @@ class MonitoringAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace not available — continue without path
 
         import os  # noqa: PLC0415
 

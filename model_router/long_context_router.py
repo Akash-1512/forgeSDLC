@@ -6,13 +6,13 @@ from model_router.adapters.base_adapter import BaseLLMAdapter
 
 logger = structlog.get_logger()
 
-_LONG_CONTEXT_MODEL = "gemini-3.1-pro-preview"  # 1M token context window
+_LONG_CONTEXT_MODEL = "gemini-1.5-pro"  # 1M token context window
 
 
 class LongContextRouter:
-    """Routes requests with >100K estimated tokens to gemini-3.1-pro-preview.
+    """Routes requests with >100K estimated tokens to gemini-1.5-pro.
 
-    gemini-3-pro-preview was SHUT DOWN March 9 2026 — always use 3.1.
+    gemini-1.5-pro provides a 1M token context window needed for large codebases.
     Triggered by ModelRouter when estimated_tokens > LONG_CONTEXT_ROUTE_THRESHOLD_TOKENS.
     """
 

@@ -4,11 +4,15 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 import structlog
-from fastmcp import Context
+
+try:
+    from fastmcp import Context
+except ImportError:  # pragma: no cover
+    Context = object  # type: ignore[assignment,misc]
 
 from interpret.record import InterpretRecord
 from memory.memory_context_builder import MemoryContextBuilder
-from memory.organisational_memory import OrgMemory
+from memory.organizational_memory import OrgMemory
 from memory.schemas import OrgMemoryEntry
 
 logger = structlog.get_logger()
@@ -56,8 +60,13 @@ async def recall_context(
     return {
         "status": "ok",
         "project_id": project_id,
+        # MemoryContext is a Pydantic model — use attribute access, not subscript
         "org_memory": [e.model_dump() for e in context.relevant_patterns],
         "similar_runs": [r.model_dump() for r in context.similar_runs],
+        "past_failures": [f.model_dump() for f in context.past_failures],
+        "user_preferences": context.user_preferences.model_dump()
+        if context.user_preferences
+        else None,
         "layers_queried": context.layers_queried,
         "assembled_at": context.assembled_at,
         "interpret_record": record.model_dump(),

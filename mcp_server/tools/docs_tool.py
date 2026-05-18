@@ -4,7 +4,15 @@ import sqlite3
 from pathlib import Path
 
 import structlog
-from fastmcp import Context
+
+from subscription.tiers import FREE
+
+try:
+    from fastmcp import Context
+except ImportError:  # pragma: no cover
+    Context = object  # type: ignore[assignment,misc]
+
+from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
 
@@ -36,8 +44,8 @@ def _build_docs_state(project_id: str, human_confirmation: str, scope: str) -> d
         "ci_pipeline_url": "",
         "tool_delegated_to": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 999.0,
-        "subscription_tier": "free",
+        "budget_remaining_usd": FREE.budget_usd_per_session,
+        "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,
         "model_router_context": None,
@@ -51,74 +59,25 @@ def _build_docs_state(project_id: str, human_confirmation: str, scope: str) -> d
     }
 
 
-def _build_docs_infrastructure() -> tuple:
-    from context_files.manager import ContextFileManager
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
-    from context_management.context_compressor import ContextCompressor
-    from context_management.context_window_manager import ContextWindowManager
-    from context_management.token_estimator import TokenEstimator
-    from memory.memory_archiver import MemoryArchiver
-    from memory.memory_context_builder import MemoryContextBuilder
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.project_context_graph import ProjectContextGraphStore
-    from memory.user_preference_profile import UserPreferenceStore
-    from model_router.router import ModelRouter
-    from workspace.bridge import WorkspaceBridge
-    from workspace.diff_engine import DiffEngine
+def _build_infrastructure_shared() -> object:
+    """Instantiate the shared components needed by the documentation pipeline."""
+    from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
-    model_router = ModelRouter()
-    estimator = TokenEstimator()
-    compressor = ContextCompressor()
-    cwm = ContextWindowManager(
-        estimator=estimator,
-        compressor=compressor,
-        specs=AGENT_CONTEXT_SPECS,
-    )
-    l1 = PipelineHistoryStore()
-    l2 = OrgMemory()
-    l3 = ProjectContextGraphStore()
-    l4 = UserPreferenceStore()
-    l5 = PostMortemStore()
-    memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
-    memory_ctx_builder = MemoryContextBuilder()
-    cfm = ContextFileManager()
-    workspace_bridge = WorkspaceBridge()
-    diff_engine = DiffEngine()
-
-    return (
-        model_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    )
+    return build_infrastructure()
 
 
-def _build_docs_agent(infra: tuple) -> object:
+def _build_docs_agent(infra: object) -> object:
     from agents.agent_10_docs import DocsAgent
 
-    (
-        model_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    ) = infra
     return DocsAgent(
         name="agent_10_docs",
-        context_window_manager=cwm,
-        model_router=model_router,
-        memory_archiver=memory_archiver,
-        memory_context_builder=memory_ctx_builder,
-        context_file_manager=cfm,
-        workspace_bridge=workspace_bridge,
-        diff_engine=diff_engine,
+        context_window_manager=infra.context_window_manager,
+        model_router=infra.model_router,
+        memory_archiver=infra.memory_archiver,
+        memory_context_builder=infra.memory_context_builder,
+        context_file_manager=infra.context_file_manager,
+        workspace_bridge=infra.workspace_bridge,
+        diff_engine=infra.diff_engine,
     )
 
 
@@ -130,12 +89,12 @@ async def generate_docs(
 ) -> dict[str, object]:
     """Generate README, CHANGELOG, and build ProjectContextGraph.
 
-    Performs comprehensive 5-layer memory archive.
+    Archives results across all 5 memory layers.
     Sets pipeline_complete=True — marks single-service SDLC as done.
     ProjectContextGraph saved to Layer 3 — recall_context() now returns
     rich structured context for this project on all future calls.
 
-    Model: claude-sonnet-4-6 (BYOK) | gpt-5.4-mini (default) → groq
+    Model: claude-sonnet-4-6 (BYOK) | gpt-4o-mini (default) → groq
     Attribution "Built with forgeSDLC" always present in README.
 
     CALL PATTERN:
@@ -166,14 +125,14 @@ async def generate_docs(
             logger.info("generate_docs.state_restored", project_id=project_id)
         else:
             state = _build_docs_state(project_id, human_confirmation, scope)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("generate_docs.checkpointer_failed", error=str(exc))
         state = _build_docs_state(project_id, human_confirmation, scope)
 
     state["human_confirmation"] = human_confirmation
 
     # Build infrastructure and agent
-    infra = _build_docs_infrastructure()
+    infra = _build_infrastructure_shared()
     agent_10 = _build_docs_agent(infra)
 
     # Run Agent 10

@@ -10,10 +10,10 @@ logger = structlog.get_logger()
 
 
 class DirectLLMAdapter:
-    """Always-available fallback — zero external tool dependency.
+    """Always-available fallback when no external tool is configured.
 
-    Session 06: replaced direct openai/groq imports with ModelRouter.route().
-    Now respects subscription tier, budget constraints, and BYOK configuration.
+    Routes through ModelRouter so the call respects subscription tier,
+    budget constraints, and BYOK configuration.
     All calls appear in TokenRecords via ModelRouter's tracking.
     """
 
@@ -33,7 +33,7 @@ class DirectLLMAdapter:
                 estimated_tokens=int(len(task.split()) * 1.33) + 200,
                 subscription_tier=os.getenv("FORGESDLC_TIER", "free"),
                 budget_used=0.0,
-                budget_total=999.0,  # no budget constraint for fallback path
+                budget_total=0.0,  # free tier — no budget cap
             )
             response = await adapter.ainvoke(
                 [
@@ -52,7 +52,7 @@ class DirectLLMAdapter:
                 success=True,
                 stderr=None,
             )
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — fallback adapter must never raise
             logger.error("direct_llm_adapter.model_router_error", error=str(exc))
             return ToolResult(
                 tool=AvailableTool.DIRECT_LLM,

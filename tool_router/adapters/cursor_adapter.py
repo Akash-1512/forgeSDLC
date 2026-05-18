@@ -42,8 +42,13 @@ class CursorAdapter:
                 ),
             )
 
-        # ToS-cleared path — implement when legal review complete
-        # TODO legal/cursor_api_review.md: implement after ToS approval
+        # LEGAL NOTICE: The Cursor Background Agent API endpoint
+        # (https://api.cursor.sh/v1/background-agent/generate) is UNOFFICIAL.
+        # Cursor has not published this endpoint. Using it may violate Cursor's
+        # Terms of Service. Review legal/cursor_api_review.md before enabling.
+        #
+        # CURSOR_API_VERIFIED=true means YOU accept the legal risk.
+        # This flag is checked above — reaching here means it is set.
         import httpx  # noqa: PLC0415
 
         headers = {
@@ -77,7 +82,7 @@ class CursorAdapter:
                     success=True,
                     stderr=None,
                 )
-        except Exception as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             logger.error("cursor_adapter.error", error=str(exc))
             return ToolResult(
                 tool=AvailableTool.CURSOR,

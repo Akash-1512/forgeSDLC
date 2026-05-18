@@ -1,6 +1,6 @@
-# MCP Registry Submission — forgeSDLC v1.0.0
+# MCP Registry Submission — forgeSDLC v1.1.0
 
-Complete these steps AFTER v1.0.0 is live on npm and pip.
+Complete these steps after the release tag is live on npm and pip.
 Each registry is manual — no automated submission API exists.
 
 ---
@@ -18,7 +18,7 @@ Each registry is manual — no automated submission API exists.
 | Install command | `npx @forgesdlc/agent` |
 | Alternative install | `pip install forgesdlc-mcp` |
 | Category | Developer Tools |
-| GitHub URL | https://github.com/Akash-1512/forgesdlc |
+| GitHub URL | https://github.com/Akash-1512/forgeSDLC |
 | MCP endpoint | http://localhost:8080/mcp |
 | Transport | streamable-http |
 | License | MIT |
@@ -43,7 +43,7 @@ Each registry is manual — no automated submission API exists.
 **URL:** https://smithery.ai/new
 
 **Steps:**
-1. Ensure `smithery.yaml` exists in repo root (committed in Session 20)
+1. Ensure `smithery.yaml` exists in repo root (already committed)
 2. Submit via https://smithery.ai/new
 3. Smithery reads `smithery.yaml` to auto-populate the listing
 4. Review and publish
@@ -65,7 +65,7 @@ Each registry is manual — no automated submission API exists.
   "id": "forgesdlc",
   "name": "forgeSDLC",
   "description": "The missing SDLC layer for AI coding tools",
-  "url": "https://github.com/Akash-1512/forgesdlc",
+  "url": "https://github.com/Akash-1512/forgeSDLC",
   "install": {
     "npm": "@forgesdlc/agent",
     "pip": "forgesdlc-mcp"

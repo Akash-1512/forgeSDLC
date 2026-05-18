@@ -3,6 +3,10 @@ from __future__ import annotations
 import fnmatch
 from dataclasses import dataclass
 
+import structlog
+
+_log = structlog.get_logger()
+
 
 @dataclass(frozen=True)
 class SubscriptionTier:
@@ -34,9 +38,9 @@ PRO = SubscriptionTier(
     name="pro",
     monthly_usd=20.0,
     models_allowed=[
-        "gpt-5.4",
-        "gpt-5.4*",
-        "gpt-5.4-mini*",
+        "gpt-4o",
+        "gpt-4o*",
+        "gpt-4o-mini*",
         "o3-mini",
         "gemini-*",
         "codestral-*",
@@ -72,9 +76,20 @@ _TIERS: dict[str, SubscriptionTier] = {
 
 
 def get_tier(name: str) -> SubscriptionTier:
-    """Return tier by name. Raises KeyError for unknown tiers."""
+    """Return tier by name. Falls back to FREE for unknown values.
+
+    Unknown tier strings (e.g. from a corrupted checkpoint or schema migration)
+    produce a structured warning log and return FREE rather than raising,
+    so a bad tier value never crashes a live pipeline.
+    """
     if name not in _TIERS:
-        raise KeyError(f"Unknown subscription tier: {name!r}. Valid tiers: {list(_TIERS.keys())}")
+        _log.warning(
+            "subscription.unknown_tier_fallback",
+            received=name,
+            fallback="free",
+            valid=list(_TIERS.keys()),
+        )
+        return FREE
     return _TIERS[name]
 
 
@@ -83,7 +98,7 @@ def model_allowed_for_tier(model: str, tier: SubscriptionTier) -> bool:
 
     Uses fnmatch for glob-style pattern matching:
       "groq/*"    matches "groq/llama-3.3-70b-versatile"
-      "gpt-5.4*"  matches "gpt-5.4" and "gpt-5.4-mini"
+      "gpt-4o*"  matches "gpt-4o" and "gpt-4o-mini"
       "*"         matches everything (Enterprise)
     """
     return any(fnmatch.fnmatch(model, pattern) for pattern in tier.models_allowed)

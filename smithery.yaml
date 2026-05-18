@@ -1,11 +1,11 @@
 name: forgesdlc
 description: The missing SDLC layer for your AI coding tools — requirements, architecture, 5-layer memory, security, CI/CD, deploy, monitor
-version: 1.0.0
+version: 1.1.0
 author: Akash Chaudhari
 email: ag.chaudhari.1512@gmail.com
 license: MIT
-homepage: https://github.com/Akash-1512/forgesdlc
-repository: https://github.com/Akash-1512/forgesdlc
+homepage: https://github.com/Akash-1512/forgeSDLC
+repository: https://github.com/Akash-1512/forgeSDLC
 
 install:
   npm: "@forgesdlc/agent"
@@ -18,7 +18,7 @@ mcp:
 
 tools:
   - name: gather_requirements
-    description: Generate PRD and NFRs from a prompt with HITL approval gate
+    description: Generate PRD and NFRs from a prompt with human approval gate
     tier: pro
   - name: design_architecture
     description: RFC + ADR + service decomposition with anti-pattern detection
@@ -49,22 +49,25 @@ tools:
     tier: pro
   - name: track_progress
     description: Pipeline status across all 14 agents
-    tier: pro
+    tier: free
 
 pricing:
   free:
     tools: [recall_context, save_decision]
-    models: [groq]
+    models: [groq/llama-3.3-70b-versatile]
     price: "$0"
+    note: "Groq free tier — no credit card required"
   pro:
     tools: all
-    models: [groq, gpt-5.4-mini, gemini]
+    models: [groq/llama-3.3-70b-versatile, gpt-4o, gpt-4o-mini, gemini-1.5-pro]
     price: "$20/month"
+    note: "Bring your own API keys (BYOK) for OpenAI and Google"
   enterprise:
     tools: all
     models: all
-    extras: [devin, sla]
+    extras: [devin_api, azure_openai, sla]
     price: "$80/seat/month"
+    note: "Volume pricing available — contact ag.chaudhari.1512@gmail.com"
 
 tags:
   - sdlc

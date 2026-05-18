@@ -13,13 +13,13 @@ from tools.render_tool import RenderTool
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 
 class DeployAgent(BaseAgent):
     """Agent 8 — deployment to Render or local Docker.
 
-    hard_gate = True — companion panel shows red border (Session 17).
+    hard_gate = True — companion panel shows red border.
     Security gate pre-check runs BEFORE interpret_node.
     Overrides BaseAgent.run() to add the pre-check.
     Cold start warning ALWAYS appears in interpret — content varies by tier.
@@ -27,7 +27,7 @@ class DeployAgent(BaseAgent):
     Dockerfile: multi-stage, non-root UID 1000, HEALTHCHECK on /health.
     """
 
-    hard_gate: bool = True  # Session 17 Desktop reads this for red border UI
+    hard_gate: bool = True  # companion panel renders red border when True
 
     async def run(self, state: dict[str, object]) -> dict[str, object]:
         """Override: security gate pre-check before calling super().run().
@@ -126,8 +126,8 @@ class DeployAgent(BaseAgent):
             try:
                 wctx = await self.workspace.get_context()
                 workspace_path = wctx.root_path
-            except Exception:
-                pass
+            except (OSError, RuntimeError, AttributeError):
+                pass  # workspace context unavailable
 
             import os as _os  # noqa: PLC0415
 
@@ -193,7 +193,7 @@ COPY . .
 RUN chown -R appuser:appuser /app
 USER appuser
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \\
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
+    CMD python3 -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 EXPOSE 8000
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
 """
@@ -219,5 +219,5 @@ CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
             )
             await store.save_post_mortem(pm)
             logger.info("agent_8.post_mortem_written", error=error[:80])
-        except Exception as pm_exc:
+        except (OSError, RuntimeError) as pm_exc:
             logger.warning("agent_8.post_mortem_failed", error=str(pm_exc))

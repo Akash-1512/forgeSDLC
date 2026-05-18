@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os as _os
+
 # ---------------------------------------------------------------------------
 # Gate — internal only, sent by [✅ Approve] button, never shown to users
 # ---------------------------------------------------------------------------
@@ -39,11 +41,17 @@ FIM_TASK_TYPE: str = "fim"
 # MCP server
 # ---------------------------------------------------------------------------
 MCP_SERVER_PORT: int = 8080
-MCP_SERVER_HOST: str = "0.0.0.0"
+# Bind localhost by default — set MCP_SERVER_HOST=0.0.0.0 for LAN access
+# Set MCP_SERVER_HOST=0.0.0.0 only if you need LAN/Docker access AND have auth configured.
+MCP_SERVER_HOST: str = _os.getenv("MCP_SERVER_HOST", "127.0.0.1")
 MCP_TOOL_TIMEOUT_SECONDS: int = 300
 
 # ---------------------------------------------------------------------------
 # Database — PostgreSQL everywhere (local Docker postgres:16)
 # SQLite is used only by LangGraph HITL checkpointing internally
 # ---------------------------------------------------------------------------
-LOCAL_DB_URL: str = "postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc"
+# Read DB URL from environment — never hardcode credentials
+LOCAL_DB_URL: str = _os.getenv(
+    "DATABASE_URL",
+    "postgresql+asyncpg://postgres:localdev@localhost:5432/forgesdlc",
+)

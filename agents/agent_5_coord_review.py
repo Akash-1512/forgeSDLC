@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast as ast_module
+import asyncio
 import json
 import re
 from datetime import UTC, datetime
@@ -10,10 +11,11 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 
 class CoordinatedReview(BaseAgent):
@@ -85,25 +87,33 @@ class CoordinatedReview(BaseAgent):
 
         for file_info in generated:
             code = str(file_info.get("content", ""))
+            # Extract filepath for language detection in Pass 4
+            filepath = str(file_info.get("filepath") or file_info.get("path") or "")
 
-            # Pass 1: Correctness (LLM)
-            findings_p1 = await self._pass_correctness(code, state)
+            # Run all LLM passes concurrently — ~8s sequential becomes ~2s parallel.
+            # Pass 4 (MAANG Standards) is deterministic/synchronous — run separately.
+            # Sequential: ~8s per file (4 × 2s LLM latency).
+            # Parallel:   ~2s per file (all 4 overlap).
+            (
+                findings_p1,
+                findings_p2,
+                findings_p3,
+                findings_p5,
+            ) = await asyncio.gather(
+                self._pass_correctness(code, state),  # Pass 1: Correctness
+                self._pass_security(code, state),  # Pass 2: OWASP Security
+                self._pass_performance(code, state),  # Pass 3: Performance
+                self._pass_error_handling(code, state),  # Pass 5: Error Handling
+            )
+
+            # Pass 4: MAANG Standards — deterministic AST (no await needed)
+
+            findings_p4 = self._pass_maang_standards(code, filepath=filepath)
+
             all_findings.extend(findings_p1)
-
-            # Pass 2: Security — OWASP Top 10 (LLM)
-            findings_p2 = await self._pass_security(code, state)
             all_findings.extend(findings_p2)
-
-            # Pass 3: Performance (LLM)
-            findings_p3 = await self._pass_performance(code, state)
             all_findings.extend(findings_p3)
-
-            # Pass 4: MAANG Standards — DETERMINISTIC, zero LLM
-            findings_p4 = self._pass_maang_standards(code)
             all_findings.extend(findings_p4)
-
-            # Pass 5: Error Handling (LLM)
-            findings_p5 = await self._pass_error_handling(code, state)
             all_findings.extend(findings_p5)
 
         blocking = [f for f in all_findings if f.get("severity") == "BLOCKING"]
@@ -142,14 +152,39 @@ class CoordinatedReview(BaseAgent):
 
     # ── Pass 4: DETERMINISTIC — zero LLM ────────────────────────────────────
 
-    def _pass_maang_standards(self, code: str) -> list[dict[str, object]]:
+    def _pass_maang_standards(self, code: str, filepath: str = "") -> list[dict[str, object]]:
         """Pass 4: Deterministic AST-based MAANG standards check. Zero LLM.
 
-        Rules:
+        Rules (Python only):
         - Function > 50 lines → BLOCKING
         - Missing return type hint → ADVISORY
         - Bare except → BLOCKING
+
+        Non-Python files return an ADVISORY — AST rules only apply to Python.
         """
+        findings: list[dict[str, object]] = []
+        if not code or not code.strip():
+            return findings
+
+        # Detect language from file extension — AST rules only apply to Python
+        is_python = filepath.endswith(".py") or not filepath  # default to Python if no path
+        if not is_python:
+            ext = filepath.rsplit(".", 1)[-1] if "." in filepath else "unknown"
+            findings.append(
+                {
+                    "pass": 4,
+                    "severity": "ADVISORY",
+                    "message": (
+                        f"Pass 4 (MAANG Standards): AST check skipped for .{ext} file. "
+                        "AST-based rules only apply to Python. "
+                        "Manual review recommended for function length and bare catch blocks."
+                    ),
+                    "file": filepath,
+                    "line": None,
+                }
+            )
+            return findings
+
         findings: list[dict[str, object]] = []
         if not code or not code.strip():
             return findings
@@ -180,7 +215,7 @@ class CoordinatedReview(BaseAgent):
                                 "message": (f"Function '{node.name}' missing return type hint."),
                             }
                         )
-                if isinstance(node, ast_module.ExceptHandler):
+                if isinstance(node, ast_module.ExceptHandler):  # noqa: SIM102
                     if node.type is None:
                         findings.append(
                             {
@@ -202,9 +237,9 @@ class CoordinatedReview(BaseAgent):
             agent="agent_5_coord_review",
             task_type="review",
             estimated_tokens=2_000,
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
     def _parse_findings(self, raw: str, pass_num: int) -> list[dict[str, object]]:
@@ -215,7 +250,7 @@ class CoordinatedReview(BaseAgent):
                 return []
             findings = json.loads(match.group())
             return [{"pass": pass_num, **f} for f in findings if isinstance(f, dict)]
-        except Exception:
+        except (ValueError, AttributeError):
             return []
 
     async def _pass_correctness(

@@ -86,18 +86,20 @@ class RenderTool:
             return True  # Local Docker — no public URL, no health check needed
 
         logger.info("render_health_polling", url=url, timeout=timeout_seconds)
-        deadline = asyncio.get_event_loop().time() + timeout_seconds
+        import time as _time
+
+        deadline = _time.monotonic() + timeout_seconds
 
         import httpx  # noqa: PLC0415
 
         async with httpx.AsyncClient() as client:
-            while asyncio.get_event_loop().time() < deadline:
+            while _time.monotonic() < deadline:
                 try:
                     r = await client.get(f"{url}/health", timeout=5)
                     if r.status_code == 200:
                         logger.info("render_health_ok", url=url)
                         return True
-                except Exception:
+                except (OSError, ValueError):
                     pass
                 await asyncio.sleep(10)
 

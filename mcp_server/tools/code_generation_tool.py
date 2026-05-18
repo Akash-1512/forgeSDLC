@@ -4,7 +4,15 @@ import sqlite3
 from pathlib import Path
 
 import structlog
-from fastmcp import Context
+
+from subscription.tiers import FREE
+
+try:
+    from fastmcp import Context
+except ImportError:  # pragma: no cover
+    Context = object  # type: ignore[assignment,misc]
+
+from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
 
@@ -39,8 +47,8 @@ def _build_codegen_state(
         "hitl_reason": "",
         "workspace_path": workspace_path,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 999.0,
-        "subscription_tier": "free",
+        "budget_remaining_usd": FREE.budget_usd_per_session,
+        "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_router_context": None,
         "model_router_context": None,
@@ -57,80 +65,21 @@ def _build_codegen_state(
     }
 
 
-def _build_codegen_infrastructure() -> tuple:
-    from context_files.manager import ContextFileManager
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
-    from context_management.context_compressor import ContextCompressor
-    from context_management.context_window_manager import ContextWindowManager
-    from context_management.token_estimator import TokenEstimator
-    from memory.memory_archiver import MemoryArchiver
-    from memory.memory_context_builder import MemoryContextBuilder
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.project_context_graph import ProjectContextGraphStore
-    from memory.user_preference_profile import UserPreferenceStore
-    from model_router.router import ModelRouter
-    from tool_router.router import ToolRouter
-    from workspace.bridge import WorkspaceBridge
-    from workspace.diff_engine import DiffEngine
+def _build_infrastructure_shared() -> object:
+    """Instantiate the shared components needed by the code generation pipeline."""
+    from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
-    model_router = ModelRouter()
-    tool_router = ToolRouter()
-    estimator = TokenEstimator()
-    compressor = ContextCompressor()
-    cwm = ContextWindowManager(
-        estimator=estimator,
-        compressor=compressor,
-        specs=AGENT_CONTEXT_SPECS,
-    )
-    l1 = PipelineHistoryStore()
-    l2 = OrgMemory()
-    l3 = ProjectContextGraphStore()
-    l4 = UserPreferenceStore()
-    l5 = PostMortemStore()
-    memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
-    memory_ctx_builder = MemoryContextBuilder()
-    cfm = ContextFileManager()
-    workspace_bridge = WorkspaceBridge()
-    diff_engine = DiffEngine()
-
-    return (
-        model_router,
-        tool_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    )
+    return build_infrastructure()
 
 
-def _build_codegen_agents(infra: tuple) -> tuple:
+def _build_codegen_agents(infra: object) -> tuple:
     from agents.agent_4_tool_router import ToolRouterAgent
     from agents.agent_5_coord_review import CoordinatedReview
+    from mcp_server.shared_infrastructure import build_agent_kwargs  # noqa: PLC0415
+    from tool_router.router import ToolRouter  # noqa: PLC0415
 
-    (
-        model_router,
-        tool_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    ) = infra
-
-    base_kwargs = {
-        "context_window_manager": cwm,
-        "model_router": model_router,
-        "memory_archiver": memory_archiver,
-        "memory_context_builder": memory_ctx_builder,
-        "context_file_manager": cfm,
-        "workspace_bridge": workspace_bridge,
-        "diff_engine": diff_engine,
-    }
+    tool_router = ToolRouter(context_file_manager=infra.context_file_manager)
+    base_kwargs = build_agent_kwargs(infra)
 
     agent_4 = ToolRouterAgent(
         name="agent_4_tool_router",
@@ -184,14 +133,14 @@ async def route_code_generation(
             state: dict[str, object] = dict(existing["channel_values"])
         else:
             state = _build_codegen_state(task, project_id, workspace_path, human_confirmation)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("route_code_generation.checkpointer_failed", error=str(exc))
         state = _build_codegen_state(task, project_id, workspace_path, human_confirmation)
 
     state["human_confirmation"] = human_confirmation
 
     # Build infrastructure and agents
-    infra = _build_codegen_infrastructure()
+    infra = _build_infrastructure_shared()
     agent_4, agent_5 = _build_codegen_agents(infra)
 
     # ── Retry loop: Agent 4 re-delegation driven by Agent 5 findings ────────

@@ -23,7 +23,7 @@ class TestCoordinatorAgent(BaseAgent):
 
     Coverage measured via pytest subprocess using sys.executable (not "python").
     3 auto-retries with uncovered lines before HITL escalation.
-    tool_router_context REQUIRED in AgentContextSpec (Session 08 — verified in tests).
+    tool_router_context REQUIRED in AgentContextSpec — verified in tests/unit/test_agent_6.py.
     """
 
     def __init__(self, tool_router: ToolRouter, **kwargs: object) -> None:

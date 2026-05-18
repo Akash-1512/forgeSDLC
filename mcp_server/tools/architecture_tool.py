@@ -4,7 +4,15 @@ import sqlite3
 from pathlib import Path
 
 import structlog
-from fastmcp import Context
+
+from subscription.tiers import FREE
+
+try:
+    from fastmcp import Context
+except ImportError:  # pragma: no cover
+    Context = object  # type: ignore[assignment,misc]
+
+from mcp_server.tier_resolver import resolve_tier as _resolve_tier
 
 logger = structlog.get_logger()
 
@@ -42,85 +50,34 @@ def _build_initial_arch_state(requirements: str, project_id: str) -> dict[str, o
         "monitoring_config": None,
         "project_context_graph": None,
         "budget_used_usd": 0.0,
-        "budget_remaining_usd": 999.0,
-        "subscription_tier": "free",
+        "budget_remaining_usd": FREE.budget_usd_per_session,
+        "subscription_tier": _resolve_tier(),
         "session_token_records": [],
         "tool_delegated_to": None,
         "_agent0_raw": "",
     }
 
 
-def _build_arch_infrastructure() -> tuple:
-    """Instantiate all infrastructure components for architecture pipeline."""
-    from context_files.manager import ContextFileManager
-    from context_management.agent_context_specs import AGENT_CONTEXT_SPECS
-    from context_management.context_compressor import ContextCompressor
-    from context_management.context_window_manager import ContextWindowManager
-    from context_management.token_estimator import TokenEstimator
-    from memory.memory_archiver import MemoryArchiver
-    from memory.memory_context_builder import MemoryContextBuilder
-    from memory.organisational_memory import OrgMemory
-    from memory.pipeline_history_store import PipelineHistoryStore
-    from memory.post_mortem_records import PostMortemStore
-    from memory.project_context_graph import ProjectContextGraphStore
-    from memory.user_preference_profile import UserPreferenceStore
-    from model_router.router import ModelRouter
-    from workspace.bridge import WorkspaceBridge
-    from workspace.diff_engine import DiffEngine
+def _build_infrastructure_shared() -> object:
+    """Instantiate the shared components needed by the architecture agent."""
+    from mcp_server.shared_infrastructure import build_infrastructure  # noqa: PLC0415
 
-    model_router = ModelRouter()
-    estimator = TokenEstimator()
-    compressor = ContextCompressor()
-    cwm = ContextWindowManager(
-        estimator=estimator,
-        compressor=compressor,
-        specs=AGENT_CONTEXT_SPECS,
-    )
-    l1 = PipelineHistoryStore()
-    l2 = OrgMemory()
-    l3 = ProjectContextGraphStore()
-    l4 = UserPreferenceStore()
-    l5 = PostMortemStore()
-    memory_archiver = MemoryArchiver(l1, l2, l3, l4, l5)
-    memory_ctx_builder = MemoryContextBuilder()
-    cfm = ContextFileManager()
-    workspace_bridge = WorkspaceBridge()
-    diff_engine = DiffEngine()
-
-    return (
-        model_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    )
+    return build_infrastructure()
 
 
-def _build_arch_agent(infra: tuple) -> object:
+def _build_arch_agent(infra: object) -> object:
     """Instantiate Agent 3."""
     from agents.agent_3_architecture import ArchitectureAgent
 
-    (
-        model_router,
-        cwm,
-        memory_archiver,
-        memory_ctx_builder,
-        cfm,
-        workspace_bridge,
-        diff_engine,
-    ) = infra
-
     return ArchitectureAgent(
         name="agent_3_architecture",
-        context_window_manager=cwm,
-        model_router=model_router,
-        memory_archiver=memory_archiver,
-        memory_context_builder=memory_ctx_builder,
-        context_file_manager=cfm,
-        workspace_bridge=workspace_bridge,
-        diff_engine=diff_engine,
+        context_window_manager=infra.context_window_manager,
+        model_router=infra.model_router,
+        memory_archiver=infra.memory_archiver,
+        memory_context_builder=infra.memory_context_builder,
+        context_file_manager=infra.context_file_manager,
+        workspace_bridge=infra.workspace_bridge,
+        diff_engine=infra.diff_engine,
     )
 
 
@@ -135,7 +92,7 @@ async def design_architecture(
 
     Returns scored, anti-pattern-checked architecture for human review.
     HIGH anti-pattern or NFR failure → blocked status, no RFC written.
-    On 100% GO (with no blocking issues) → writes RFC-001-system-design.md
+    On 100% GO (with no blocking issues) → writes RFC-NNN-system-design.md
     and optional openapi.yaml.
 
     CALL PATTERN (stateful — two calls minimum):
@@ -167,7 +124,7 @@ async def design_architecture(
             logger.info("design_architecture.state_restored", project_id=project_id)
         else:
             state = _build_initial_arch_state(requirements, project_id)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 — MCP tools must never crash the server
         logger.warning("design_architecture.checkpointer_failed", error=str(exc))
         state = _build_initial_arch_state(requirements, project_id)
 
@@ -182,7 +139,7 @@ async def design_architecture(
         state["human_corrections"] = corrections
 
     # Build infrastructure and Agent 3
-    infra = _build_arch_infrastructure()
+    infra = _build_infrastructure_shared()
     agent_3 = _build_arch_agent(infra)
 
     # ── Run Agent 3 ────────────────────────────────────────────────────────
@@ -246,7 +203,7 @@ async def design_architecture(
         "project_id": project_id,
         "rfc": state.get("rfc", ""),
         "arch_validation": arch_validation,
-        "files_written": ["docs/architecture/RFC-001-system-design.md"],
+        "files_written": ["docs/architecture/RFC-NNN-system-design.md"],
         "context_files_updated": ["AGENTS.md", "CLAUDE.md", ".cursorrules"],
         "interpret_log": state.get("interpret_log", []),
         "interpret_rounds": int(state.get("interpret_round", 0) or 0),

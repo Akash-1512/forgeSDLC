@@ -8,6 +8,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
 from subscription.byok_manager import BYOKManager
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
@@ -29,7 +30,7 @@ _ATTRIBUTION = "\n\n---\nBuilt with forgeSDLC — https://github.com/Akash-1512/
 class DocsAgent(BaseAgent):
     """Agent 10 — final single-service agent. Generates documentation and completes pipeline.
 
-    Model: claude-sonnet-4-6 (BYOK) | gpt-5.4-mini (default) → groq
+    Model: claude-sonnet-4-6 (BYOK) | gpt-4o-mini (default) → groq
     Generates: README.md + CHANGELOG.md
     Saves ProjectContextGraph to Layer 3 (emits L6 InterpretRecord)
     Final ContextFileManager update with complete project state
@@ -45,7 +46,7 @@ class DocsAgent(BaseAgent):
     ) -> InterpretRecord:
         """Preview docs generation. Emits L1 InterpretRecord."""
         byok = BYOKManager()
-        model = "claude-sonnet-4-6" if byok.has_key("anthropic") else "gpt-5.4-mini"
+        model = "claude-sonnet-4-6" if byok.has_key("anthropic") else "gpt-4o-mini"
 
         return self._emit_l1_record(
             component="DocsAgent",
@@ -53,7 +54,7 @@ class DocsAgent(BaseAgent):
                 f"DOCUMENTATION GENERATION\n"
                 f"Model: {model} {'(BYOK)' if 'claude' in model else ''}\n"
                 f"Files: README.md + CHANGELOG.md\n"
-                f"Known Limitations: from state (MEDIUM security + HITL rounds)\n"
+                f"Known Limitations: from state (MEDIUM security + approval rounds)\n"
                 f"ProjectContextGraph: build + save to Layer 3 memory\n"
                 f"Final memory archive: all 5 layers\n"
                 f"Attribution: Built with forgeSDLC — always present"
@@ -87,9 +88,9 @@ class DocsAgent(BaseAgent):
             agent=agent_key,
             task_type="documentation",
             estimated_tokens=int(len(str(state.get("prd", "")).split()) * 3),
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         # Step 1: Generate README
@@ -98,7 +99,7 @@ class DocsAgent(BaseAgent):
             [
                 SystemMessage(
                     content=(
-                        "Generate a comprehensive README.md for this project. "
+                        "Generate a README.md for this project. "
                         "Include sections in order: project name + 2-line description, "
                         "Quick Start, Installation, Usage, Architecture, API Reference, "
                         "Known Limitations, Development, Contributing, License. "
@@ -127,8 +128,8 @@ class DocsAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace context unavailable
 
         import os  # noqa: PLC0415
 

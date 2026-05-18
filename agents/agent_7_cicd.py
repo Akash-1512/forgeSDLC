@@ -10,10 +10,10 @@ from tools.docs_fetcher import DocsFetcher
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 # Action versions fetched from GitHub Releases API before YAML generation.
-# Defaults used when network unavailable (verified April 2026).
+# Defaults used when the GitHub API is unavailable.
 _ACTIONS_TO_VERIFY = [
     (
         "actions/checkout",
@@ -30,9 +30,16 @@ _ACTIONS_TO_VERIFY = [
 ]
 
 _ACTION_DEFAULTS = {
-    "actions/checkout": "v6",
-    "actions/setup-python": "v6",
-    "codecov/codecov-action": "v5",
+    # Pinned to latest stable versions — update when new major versions release
+    "actions/checkout": "v4",
+    "actions/setup-python": "v5",
+    "actions/setup-node": "v4",
+    "actions/cache": "v4",
+    "actions/upload-artifact": "v4",
+    "actions/download-artifact": "v4",
+    "codecov/codecov-action": "v4",
+    "docker/login-action": "v3",
+    "docker/build-push-action": "v5",
 }
 
 # YAML template rules enforced here and tested:
@@ -56,7 +63,7 @@ jobs:
       postgres:
         image: postgres:16
         env:
-          POSTGRES_PASSWORD: forgesdlc
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD || 'localdev' }}
         ports:
           - 5432:5432
         options: >-
@@ -83,7 +90,7 @@ jobs:
       - name: Run tests with coverage
         run: pytest tests/ --cov=. --cov-report=xml -q
         env:
-          DATABASE_URL: postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc
+          DATABASE_URL: postgresql+asyncpg://postgres:${{ secrets.POSTGRES_PASSWORD || 'localdev' }}@localhost:5432/forgesdlc  # noqa: E501
 
       - uses: codecov/codecov-action@{codecov_version}
         with:
@@ -94,7 +101,7 @@ jobs:
 class CICDAgent(BaseAgent):
     """Agent 7 — generates a GitHub Actions CI/CD workflow.
 
-    Model: gpt-5.4-mini via ModelRouter
+    Model: gpt-4o-mini via ModelRouter
     DocsFetcher: fetches action versions BEFORE generating any YAML (L7 per fetch)
     Rules: ruff (not black/isort), semgrep p/python + p/security (not auto),
            Node.js 24, Python 3.12, PostgreSQL 16 service container.
@@ -168,8 +175,8 @@ class CICDAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace not available — continue without path
 
         import os  # noqa: PLC0415
 
@@ -193,6 +200,6 @@ class CICDAgent(BaseAgent):
             if tag.startswith("v"):
                 major = tag.split(".")[0]  # "v6.0.2" → "v6"
                 return major
-        except Exception:
+        except (OSError, ValueError, KeyError):
             pass
-        return _ACTION_DEFAULTS.get(action_name, "v6")
+        return _ACTION_DEFAULTS.get(action_name, "v4")

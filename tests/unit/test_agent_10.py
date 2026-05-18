@@ -146,7 +146,10 @@ def test_known_limitations_from_medium_security_findings() -> None:
     state = {
         "security_findings": {
             "bandit_findings": [
-                {"severity": "MEDIUM", "description": "use of assert in production code"},
+                {
+                    "severity": "MEDIUM",
+                    "description": "use of assert in production code",
+                },
             ],
             "semgrep_findings": [],
             "pip_audit_findings": [],

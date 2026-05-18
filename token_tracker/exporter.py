@@ -40,7 +40,10 @@ class TokenExporter:
         writer = csv.DictWriter(output, fieldnames=_FIELDS, extrasaction="ignore")
         writer.writeheader()
         for item in raw:
-            row = item.model_dump() if isinstance(item, TokenRecord) else dict(item)
+            if isinstance(item, TokenRecord):  # noqa: SIM108
+                row = item.model_dump()
+            else:
+                row = dict(item)
             writer.writerow(row)
         return output.getvalue()
 

@@ -154,18 +154,26 @@ async def test_save_run_persists_to_postgresql() -> None:
     store = _make_store()
     record = _make_record()
 
+    from contextlib import asynccontextmanager  # noqa: PLC0415
+
     mock_session = AsyncMock()
-    mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-    mock_session.__aexit__ = AsyncMock(return_value=False)
-    mock_session.begin = MagicMock(return_value=mock_session)
-    mock_session.get = AsyncMock(return_value=None)
-    added: list[object] = []
-    mock_session.add = MagicMock(side_effect=lambda row: added.append(row))
-    store._session_factory = MagicMock(return_value=mock_session)
+    mock_session.execute = AsyncMock()
+
+    @asynccontextmanager
+    async def _fake_begin():
+        yield mock_session
+
+    mock_session.begin = _fake_begin
+
+    @asynccontextmanager
+    async def _fake_session():
+        yield mock_session
+
+    store._session_factory = _fake_session
 
     await store.save_run(record)
-    assert len(added) == 1
-    assert added[0].run_id == record.run_id  # type: ignore[attr-defined]
+    # save_run uses INSERT ... ON CONFLICT (session.execute), not session.add
+    mock_session.execute.assert_called_once()
 
 
 @pytest.mark.asyncio

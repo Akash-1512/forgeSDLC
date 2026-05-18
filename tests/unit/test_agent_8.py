@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import os
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -87,7 +86,7 @@ async def test_agent_8_security_pre_check_does_not_call_super_when_blocked() -> 
     state = _base_state(gate_blocked=True)
 
     super_called = []
-    DeployAgent.__bases__[0].run  # BaseAgent.run
+    DeployAgent.__bases__[0].run  # BaseAgent.run  # noqa: B018
 
     async def spy_super(*args: object, **kwargs: object) -> object:
         super_called.append(True)
@@ -193,7 +192,9 @@ async def test_agent_8_writes_post_mortem_on_deployment_failure() -> None:
         mock_render_cls.return_value = mock_render
 
         state = _base_state(human_confirmation="100% GO")
-        with contextlib.suppress(Exception):
+        try:  # noqa: SIM105
             await agent.run(state)
+        except Exception:
+            pass
 
         mock_save.assert_called_once()

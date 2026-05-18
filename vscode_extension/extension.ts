@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -34,9 +35,14 @@ export function activate(context: vscode.ExtensionContext): void {
             'forgesdlc',
             'forgeSDLC',
             vscode.ViewColumn.Beside,
-            { enableScripts: true }
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true,
+                // Allow the webview to reach the local MCP server
+                localResourceRoots: [],
+            }
         );
-        panel.webview.html = getWebviewContent();
+        panel.webview.html = getWebviewContent(panel.webview);
     });
 
     context.subscriptions.push(addToMCP, openPanel);
@@ -122,18 +128,24 @@ export function writeMCPConfig(): boolean {
     return true;
 }
 
-function getWebviewContent(): string {
+function getWebviewContent(webview: vscode.Webview): string {
+    const serverUrl = 'http://localhost:8080';
+    const nonce = crypto.randomUUID().replace(/-/g, '');
     return `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><title>forgeSDLC</title></head>
-<body style="margin:0;padding:0;background:#0d1117;">
-<iframe
-  src="http://localhost:8080"
-  width="100%"
-  height="100%"
-  style="border:none;min-height:100vh;"
-  title="forgeSDLC companion panel">
-</iframe>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'none'; frame-src http://localhost:8080; style-src 'nonce-${nonce}';">
+  <title>forgeSDLC</title>
+  <style nonce="${nonce}">
+    body { margin: 0; padding: 0; background: #0d1117; height: 100vh; overflow: hidden; }
+    iframe { width: 100%; height: 100vh; border: none; display: block; }
+  </style>
+</head>
+<body>
+  <iframe src="${serverUrl}" title="forgeSDLC companion panel" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 </body>
 </html>`;
 }

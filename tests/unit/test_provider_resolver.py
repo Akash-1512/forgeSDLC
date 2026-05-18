@@ -85,7 +85,7 @@ def test_print_table_outputs_all_13_services(
     for var in _ALL_ENV_VARS:
         monkeypatch.delenv(var, raising=False)
     resolver = ProviderResolver()
-    resolver.print_table()
+    resolver.log_table()
     captured = capsys.readouterr()
     services = [
         "llm",

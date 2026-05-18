@@ -130,11 +130,11 @@ def test_aggregator_groups_by_model_correctly() -> None:
     agg = TokenAggregator()
     records = [
         _make_record(model="groq/llama-3.3-70b-versatile", cost_usd=0.001),
-        _make_record(model="gpt-5.4-mini", cost_usd=0.01),
-        _make_record(model="gpt-5.4-mini", cost_usd=0.01),
+        _make_record(model="gpt-4o-mini", cost_usd=0.01),
+        _make_record(model="gpt-4o-mini", cost_usd=0.01),
     ]
     result = agg.by_model(records)
-    assert result["gpt-5.4-mini"]["calls"] == 2
+    assert result["gpt-4o-mini"]["calls"] == 2
     assert result["groq/llama-3.3-70b-versatile"]["calls"] == 1
 
 

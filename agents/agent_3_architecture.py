@@ -11,16 +11,17 @@ from architecture_intelligence.anti_pattern_detector import AntiPatternDetector
 from architecture_intelligence.architecture_scorer import ArchitectureScorer
 from architecture_intelligence.nfr_satisfiability import NFRSatisfiabilityChecker
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4"
+_MODEL = "gpt-4o"
 
 _RFC_SYSTEM_PROMPT = """\
 You are a senior software architect. Generate a detailed RFC (Request for Comments)
 for the following project. Structure it as:
 
-# RFC-001: System Design
+# RFC-NNN: System Design
 
 ## Overview
 ## Service Architecture
@@ -36,16 +37,32 @@ The diagram must be version-controllable and renderable in GitHub Markdown.
 Format: Markdown."""
 
 
+def _next_rfc_number(workspace_path: str) -> str:
+    """Return the next RFC number as a zero-padded 3-digit string.
+
+    Counts existing RFC-*.md files in docs/architecture/ and increments.
+    Falls back to '001' if the directory doesn't exist yet.
+    """
+    import re  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    arch_dir = Path(workspace_path) / "docs" / "architecture"
+    if not arch_dir.exists():
+        return "001"
+    existing = [f.name for f in arch_dir.iterdir() if re.match(r"RFC-\d{3}", f.name, re.IGNORECASE)]
+    return f"{len(existing) + 1:03d}"
+
+
 class ArchitectureAgent(BaseAgent):
     """Agent 3 — generates and validates system architecture.
 
-    Model: gpt-5.4 (quality matters for architecture decisions)
-    HardGate: hard_gate = True — companion panel shows red left border (Session 17)
+    Model: gpt-4o (quality matters for architecture decisions)
+    HardGate: hard_gate = True — companion panel shows red left border
     Validation: AntiPatternDetector + NFRSatisfiabilityChecker run BEFORE LLM
     Blocking: HIGH anti-pattern OR NFR failure → gate_blocked → execute cannot fire
     """
 
-    hard_gate: bool = True  # Session 17 Desktop reads this for red border UI
+    hard_gate: bool = True  # companion panel renders red border when True
 
     async def _interpret(
         self,
@@ -105,12 +122,12 @@ class ArchitectureAgent(BaseAgent):
                 "high_count": ap_result.high_count,
             },
             expected_outputs={
-                "rfc": "RFC-001-system-design.md",
+                "rfc": "RFC-NNN-system-design.md",
                 "arch_validation": "AntiPatternResult + NFRChecks + ArchScore",
             },
             external_calls=[_MODEL],
             model_selected=_MODEL,
-            files_write=["docs/architecture/RFC-001-system-design.md"],
+            files_write=["docs/architecture/RFC-NNN-system-design.md"],
         )
 
     async def _execute(
@@ -119,14 +136,14 @@ class ArchitectureAgent(BaseAgent):
         packet: object,
         memory_context: object,
     ) -> dict[str, object]:
-        """Generate RFC via gpt-5.4 and write via DiffEngine. Only after gate passes."""
+        """Generate RFC via gpt-4o and write via DiffEngine. Only after gate passes."""
         adapter = await self.model_router.route(
             agent="agent_3_architecture",
             task_type="architecture",
             estimated_tokens=int(len(str(state.get("prd", "")).split()) * 3),
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         response = await adapter.ainvoke(
@@ -154,10 +171,17 @@ class ArchitectureAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace context unavailable
 
-        rfc_path = str(Path(workspace_path) / "docs" / "architecture" / "RFC-001-system-design.md")
+        _arch = Path(workspace_path) / "docs" / "architecture"
+        _erfc = (
+            sum(1 for f in _arch.iterdir() if f.name[:4] == "RFC-" and f.name[4:7].isdigit())
+            if _arch.exists()
+            else 0
+        )
+        rfc_num = f"{_erfc + 1:03d}"
+        rfc_path = str(_arch / f"RFC-{rfc_num}-system-design.md")
         diff = await self.diff_engine.generate_diff(
             filepath=rfc_path,
             new_content=rfc_with_header,
@@ -190,12 +214,14 @@ class ArchitectureAgent(BaseAgent):
         score: object,
         blocked: bool,
     ) -> str:
-        from architecture_intelligence.nfr_satisfiability import (
-            NFRCheck,  # noqa: PLC0415
+        from architecture_intelligence.anti_pattern_detector import (
+            AntiPatternResult,  # noqa: PLC0415
         )
+        from architecture_intelligence.architecture_scorer import ArchitectureScore  # noqa: PLC0415
+        from architecture_intelligence.nfr_satisfiability import NFRCheck  # noqa: PLC0415
 
-        ap = ap_result  # type: ignore[assignment]
-        sc = score  # type: ignore[assignment]
+        ap: AntiPatternResult = ap_result  # type: ignore[assignment]
+        sc: ArchitectureScore = score  # type: ignore[assignment]
         checks: list[NFRCheck] = nfr_checks  # type: ignore[assignment]
 
         lines = [

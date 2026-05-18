@@ -8,19 +8,20 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from agents.base_agent import BaseAgent
 from interpret.record import InterpretRecord
+from subscription.tiers import FREE
 
 logger = structlog.get_logger()
 
-_MODEL = "gpt-5.4-mini"
+_MODEL = "gpt-4o-mini"
 
 _STACK_SYSTEM_PROMPT = """\
 You are a principal engineer. Recommend a production-ready tech stack.
 Structure your response as an Architecture Decision Record (ADR):
 
-# ADR-001: Technology Stack Selection
+# ADR-NNN: Technology Stack Selection
 
 ## Status
-Accepted
+Proposed
 
 ## Context
 [Why this decision was needed]
@@ -50,12 +51,12 @@ Accepted
 
 
 class TechStackAgent(BaseAgent):
-    """Agent 2 — recommends tech stack and writes ADR-001.
+    """Agent 2 — recommends tech stack and writes ADR-NNN.
 
-    Model: gpt-5.4-mini via ModelRouter
+    Model: gpt-4o-mini via ModelRouter
     Memory reads: Layer 4 (preferred stack), Layer 2 (past stack choices)
     Output: state["adr"] populated
-            docs/decisions/ADR-001-tech-stack.md written via DiffEngine
+            docs/decisions/ADR-NNN-tech-stack.md written via DiffEngine
             .cursorrules updated with stack-specific coding conventions
     """
 
@@ -81,12 +82,12 @@ class TechStackAgent(BaseAgent):
                 "prd_preview": prd_preview,
             },
             expected_outputs={
-                "adr": "ADR-001 with full stack justification",
-                "file": "docs/decisions/ADR-001-tech-stack.md",
+                "adr": "ADR-NNN with full stack justification",
+                "file": "docs/decisions/ADR-NNN-tech-stack.md",
             },
             external_calls=[_MODEL],
             model_selected=_MODEL,
-            files_write=["docs/decisions/ADR-001-tech-stack.md"],
+            files_write=["docs/decisions/ADR-NNN-tech-stack.md"],
         )
 
     async def _execute(
@@ -95,14 +96,14 @@ class TechStackAgent(BaseAgent):
         packet: object,
         memory_context: object,
     ) -> dict[str, object]:
-        """Generate ADR-001 and write docs/decisions/ADR-001-tech-stack.md."""
+        """Generate ADR document and write it to docs/decisions/."""
         adapter = await self.model_router.route(
             agent="agent_2_stack",
             task_type="generation",
             estimated_tokens=1_500,
-            subscription_tier=str(state.get("subscription_tier", "free")),
-            budget_used=float(state.get("budget_used_usd", 0.0) or 0.0),
-            budget_total=float(state.get("budget_remaining_usd", 999.0) or 999.0),
+            subscription_tier=str(state.get("subscription_tier") or FREE.name),
+            budget_used=float(state.get("budget_used_usd") or 0.0),
+            budget_total=float(state.get("budget_remaining_usd") or 0.0),
         )
 
         service_graph = state.get("service_graph") or {}
@@ -116,7 +117,8 @@ class TechStackAgent(BaseAgent):
             f"Architecture: {arch_type}\n"
             f"Services: {services}\n\n"
             f"PRD Summary:\n{prd_summary}\n\n"
-            "Write the complete ADR-001 document following the template."
+            "Write the complete ADR document following the template."
+            " Use ADR-NNN as the placeholder number."
         )
 
         response = await adapter.ainvoke(
@@ -139,14 +141,21 @@ class TechStackAgent(BaseAgent):
         try:
             wctx = await self.workspace.get_context()
             workspace_path = wctx.root_path
-        except Exception:
-            pass
+        except (OSError, RuntimeError, AttributeError):
+            pass  # workspace not available — continue without path
 
-        adr_path = str(Path(workspace_path) / "docs" / "decisions" / "ADR-001-tech-stack.md")
+        _decisions = Path(workspace_path) / "docs" / "decisions"
+        _existing = (
+            sum(1 for f in _decisions.iterdir() if f.name[:4] == "ADR-" and f.name[4:7].isdigit())
+            if _decisions.exists()
+            else 0
+        )
+        adr_num = f"{_existing + 1:03d}"
+        adr_path = str(_decisions / f"ADR-{adr_num}-tech-stack.md")
         diff = await self.diff_engine.generate_diff(
             filepath=adr_path,
             new_content=adr_with_header,
-            reason=f"Agent 2: ADR-001 for {str(state.get('user_prompt', ''))[:50]}",
+            reason=f"Agent 2: ADR-{adr_num} for {str(state.get('user_prompt', ''))[:50]}",
         )
         await self.diff_engine.apply_diff(diff)
 
@@ -177,7 +186,7 @@ class TechStackAgent(BaseAgent):
                 architecture_summary=adr_content[:300],
                 key_decisions=self._extract_decisions(adr_content),
             )
-        except Exception as exc:
+        except (OSError, RuntimeError, ValueError) as exc:
             logger.warning("agent_2.cursorrules_update_failed", error=str(exc))
 
     def _extract_decisions(self, adr_content: str) -> list[str]:

@@ -51,3 +51,27 @@ class SDLCState(TypedDict):
     session_token_records: list[dict[str, object]]
     # ------------------------------------------------------------------ tool delegation
     tool_delegated_to: str | None
+    # ------------------------------------------------------------------ agent internals
+    # All state keys must be declared here — TypedDict enforces schema at development time
+    # checkpointer serialises them correctly and mypy can verify access.
+    arch_validation: dict[str, object] | None  # Agent 3 anti-pattern + NFR results
+    anti_pattern_result: dict[str, object] | None  # Agent 3 AntiPatternDetector output
+    deploy_blocked: bool  # Agent 8 security gate block flag
+    deploy_blocked_reason: str  # Agent 8 block reason string
+    hitl_required: bool  # deploy_tool HITL escalation flag
+    hitl_reason: str  # deploy_tool HITL reason string
+    review_corrections: list[str]  # Agent 5 blocking findings for Agent 4 retry
+    review_delegation_count: int  # Agent 5 delegation counter (max 2)
+    trigger_agent_4_retry: bool  # Agent 5 → Agent 4 retry signal
+    test_retry_count: int  # Agent 6 coverage retry counter
+    test_retry_needed: bool  # Agent 6 coverage gate flag
+    test_uncovered_lines: list[str]  # Agent 6 uncovered line list for retry
+    tool_retry_count: int  # ToolRouter retry counter
+    # ------------------------------------------------------------------ failure tracking
+    failure_type: str | None  # Layer 5 post-mortem failure type
+    failed_agent: str | None  # Layer 5 post-mortem agent identity
+    failure_root_cause: str | None  # Layer 5 post-mortem root cause
+    failure_resolution: str | None  # Layer 5 post-mortem resolution
+    failure_prevention: str | None  # Layer 5 post-mortem prevention rule
+    # ------------------------------------------------------------------ monitoring
+    slo_definitions: list[dict[str, object]]  # Agent 9 SLO definitions

@@ -10,7 +10,7 @@ from subscription.byok_manager import BYOKManager
 
 logger = structlog.get_logger()
 
-# Models retired as of April 2026 — raise immediately if selected
+# Retired Claude models — raise immediately if selected by the catalog
 RETIRED_MODELS: frozenset[str] = frozenset(
     {
         "claude-3-5-sonnet-20241022",

@@ -85,7 +85,7 @@ class ModelSelector:
 
             return AzureOpenAIAdapter(deployment=model)
 
-        # Default: OpenAI Chat Completions (gpt-5.4, gpt-5.4-mini)
+        # Default: OpenAI Chat Completions (gpt-4o, gpt-4o-mini)
         from model_router.adapters.openai_adapter import OpenAIAdapter  # noqa: PLC0415
 
         return OpenAIAdapter(model=model)

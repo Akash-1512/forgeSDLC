@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 from datetime import UTC, datetime
 from pathlib import Path
 
 import structlog
-from git import InvalidGitRepositoryError, Repo
-from watchdog.events import FileSystemEventHandler
-from watchdog.observers import Observer
+
+try:
+    from git import InvalidGitRepositoryError, Repo
+except ImportError:  # pragma: no cover
+    InvalidGitRepositoryError = Exception  # type: ignore[misc,assignment]
+    Repo = None  # type: ignore[assignment]
+
+try:
+    from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
+except ImportError:  # pragma: no cover
+    FileSystemEventHandler = object  # type: ignore[misc,assignment]
+    Observer = None  # type: ignore[assignment]
 
 from interpret.record import InterpretRecord
 from workspace.context import GitCommit, WorkspaceContext
@@ -67,7 +76,11 @@ class WorkspaceBridge:
         )
         if self._context is None:
             await self._refresh()
-        assert self._context is not None
+        if self._context is None:
+            raise RuntimeError(
+                "WorkspaceBridge._refresh() failed to populate context. "
+                "Check that the workspace path exists and is readable."
+            )
         return self._context
 
     async def _refresh(self) -> None:
@@ -91,10 +104,16 @@ class WorkspaceBridge:
                     author=str(c.author),
                     timestamp=datetime.fromtimestamp(c.committed_date, tz=UTC),
                 )
-                for c in list(repo.iter_commits())[:5]
+                for c in repo.iter_commits(max_count=5)
             ]
         except InvalidGitRepositoryError:
-            pass  # not a git repo — all git fields stay at zero values
+            # Non-git workspace is valid — log clearly so git-dependent features
+            # are visible as unavailable rather than silently skipped
+            logger.info(
+                "workspace_bridge.not_a_git_repo",
+                path=str(p),
+                hint="git fields will be empty — initialise a repo with 'git init' to enable version history context",  # noqa: E501
+            )
         except Exception as exc:
             logger.warning("workspace_bridge.git_error", error=str(exc))
 
@@ -193,11 +212,21 @@ class _RefreshHandler(FileSystemEventHandler):
     def __init__(self, bridge: WorkspaceBridge) -> None:
         self._bridge = bridge
         self._loop: asyncio.AbstractEventLoop | None = None
+        # Fix: use get_running_loop() — safe in Python 3.12, raises RuntimeError if no loop running
+        import contextlib  # noqa: PLC0415
+
         with contextlib.suppress(RuntimeError):
-            self._loop = asyncio.get_event_loop()
+            # If no loop running, _loop stays None — set lazily on first event
+            self._loop = asyncio.get_running_loop()
 
     def on_any_event(self, event: object) -> None:
         if hasattr(event, "is_directory") and event.is_directory:  # type: ignore[union-attr]
             return
+        # Lazy loop acquisition — in case __init__ was called before event loop started
+        if self._loop is None:
+            try:
+                self._loop = asyncio.get_running_loop()
+            except RuntimeError:
+                return  # no event loop — skip
         if self._loop and self._loop.is_running():
             asyncio.run_coroutine_threadsafe(self._bridge._refresh(), self._loop)
