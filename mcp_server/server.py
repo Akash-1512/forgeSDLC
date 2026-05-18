@@ -172,6 +172,77 @@ async def create_token(request: Request) -> JSONResponse:
         return JSONResponse({"error": str(exc), "hint": "Set SECRET_KEY environment variable"})
 
 
+@mcp.custom_route("/approval/submit", methods=["POST"])
+async def submit_approval(request: Request) -> JSONResponse:
+    """Submit a human approval for the active gate.
+
+    The Electron companion panel calls this when the user clicks [✅ Approve].
+    The confirmation phrase is forwarded as human_confirmation in the next
+    MCP tool call by the client — this endpoint writes it to shared state
+    so the Electron app can coordinate with the MCP tool handlers.
+    """
+    try:
+        body = await request.json()
+        project_id = str(body.get("project_id", ""))
+        if not project_id:
+            return JSONResponse({"error": "project_id required"}, status_code=400)
+        # Store pending approval keyed by project_id
+        _pending_approvals[project_id] = "100% GO"
+        logger.info("approval.submitted", project_id=project_id)
+        return JSONResponse({"status": "ok", "project_id": project_id})
+    except Exception as exc:  # noqa: BLE001 — endpoint must never crash server
+        logger.error("approval.submit_error", error=str(exc))
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+@mcp.custom_route("/approval/correction", methods=["POST"])
+async def submit_correction(request: Request) -> JSONResponse:
+    """Submit a correction to the active agent's interpretation.
+
+    The Electron companion panel calls this when the user types a correction
+    in the [🔄 Correct] panel. The correction is stored and forwarded as
+    human_corrections[-1] in the next MCP tool call.
+    """
+    try:
+        body = await request.json()
+        project_id = str(body.get("project_id", ""))
+        correction = str(body.get("correction", ""))
+        if not project_id or not correction:
+            return JSONResponse({"error": "project_id and correction required"}, status_code=400)
+        _pending_corrections[project_id] = correction
+        logger.info("approval.correction_queued", project_id=project_id)
+        return JSONResponse({"status": "ok", "project_id": project_id})
+    except Exception as exc:  # noqa: BLE001 — endpoint must never crash server
+        logger.error("approval.correction_error", error=str(exc))
+        return JSONResponse({"error": str(exc)}, status_code=500)
+
+
+@mcp.custom_route("/approval/pending", methods=["GET"])
+async def get_pending_approval(request: Request) -> JSONResponse:
+    """Poll for pending approval or correction (used by Electron app).
+
+    Returns the pending approval/correction for a project_id and clears it.
+    """
+    project_id = request.query_params.get("project_id", "")
+    if not project_id:
+        return JSONResponse({"error": "project_id required"}, status_code=400)
+    approval = _pending_approvals.pop(project_id, None)
+    correction = _pending_corrections.pop(project_id, None)
+    return JSONResponse(
+        {
+            "project_id": project_id,
+            "approval": approval,
+            "correction": correction,
+        }
+    )
+
+
+# In-process stores for pending approvals (keyed by project_id)
+# These are cleared after poll — single-consumer pattern
+_pending_approvals: dict[str, str] = {}
+_pending_corrections: dict[str, str] = {}
+
+
 async def _startup() -> None:
     """Initialise database tables, run health checks, log provider status.
 
