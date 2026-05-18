@@ -104,26 +104,19 @@ class ServerManager {
     }
 
     async sendApproval(projectId) {
-        const r = await fetch(`http://localhost:${this.port}/hitl/approve`, {
+        const r = await fetch(`http://localhost:${this.port}/approval/submit`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                project_id: projectId,
-                confirmation: '100% GO',  // internal constant — never in UI text
-            }),
+            body: JSON.stringify({ project_id: projectId }),
         });
         return r.json();
     }
 
     async sendCorrection(projectId, correction) {
-        const r = await fetch(`http://localhost:${this.port}/hitl/correct`, {
+        const r = await fetch(`http://localhost:${this.port}/approval/correction`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                project_id: projectId,
-                correction,
-                // Server overwrites state["human_corrections"][-1], does not append
-            }),
+            body: JSON.stringify({ project_id: projectId, correction }),
         });
         return r.json();
     }

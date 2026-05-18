@@ -45,10 +45,22 @@ async function runFirstLaunch() {
  * Future: Claude Desktop, Windsurf global config.
  */
 async function detectAndConfigureEditors() {
+    // Cursor — global MCP config at ~/.cursor/mcp.json
     const cursorConfigDir = path.join(os.homedir(), '.cursor');
     if (await fileExists(cursorConfigDir)) {
         const mcpPath = path.join(cursorConfigDir, 'mcp.json');
         await mergeJsonFile(mcpPath, { mcpServers: MCP_ENTRY });
+    }
+
+    // Claude Desktop — global MCP config varies by OS
+    const claudeDesktopConfig = process.platform === 'win32'
+        ? path.join(process.env.APPDATA || '', 'Claude', 'claude_desktop_config.json')
+        : process.platform === 'darwin'
+            ? path.join(os.homedir(), 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json')
+            : path.join(os.homedir(), '.config', 'Claude', 'claude_desktop_config.json');
+
+    if (await fileExists(path.dirname(claudeDesktopConfig))) {
+        await mergeJsonFile(claudeDesktopConfig, { mcpServers: MCP_ENTRY });
     }
 }
 

@@ -1,7 +1,7 @@
 # Cursor API Review — forgeSDLC
 
 **Status:** DOCUMENTED STANCE — not yet approved for commercial use.
-**Last updated:** April 2026
+**Last updated:** May 2026
 **Owner:** Akash Chaudhari (ag.chaudhari.1512@gmail.com)
 
 ---
