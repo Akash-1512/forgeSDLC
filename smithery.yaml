@@ -1,6 +1,6 @@
 name: forgesdlc
 description: The missing SDLC layer for your AI coding tools — requirements, architecture, 5-layer memory, security, CI/CD, deploy, monitor
-version: 1.1.0
+version: 1.1.1
 author: Akash Chaudhari
 email: ag.chaudhari.1512@gmail.com
 license: MIT

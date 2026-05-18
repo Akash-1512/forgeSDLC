@@ -50,7 +50,7 @@ if FastMCP is None:
 
 mcp = FastMCP(
     name="forgesdlc",
-    version="1.1.0",
+    version="1.1.1",
     instructions=(
         "I am the SDLC intelligence layer for your AI coding tools. "
         "Use gather_requirements() to start any project. "
@@ -115,7 +115,7 @@ async def resource_memory(project_id: str) -> str:
 @mcp.custom_route("/health", methods=["GET"])
 async def health(_request: Request) -> JSONResponse:
     """Health check endpoint. Returns 200 when server is ready."""
-    return JSONResponse({"status": "ok", "version": "1.1.0", "transport": TRANSPORT})
+    return JSONResponse({"status": "ok", "version": "1.1.1", "transport": TRANSPORT})
 
 
 @mcp.custom_route("/auth/token", methods=["POST"])

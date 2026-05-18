@@ -51,8 +51,8 @@ def main() -> int:
         "sqlite" not in db_url.lower(),
         (
             "Replace sqlite:// with postgresql://\n"
-            "     Local default: postgresql+asyncpg://postgres:forgesdlc@localhost:5432/forgesdlc\n"
-            "     Start DB: docker run -p 5432:5432 -e POSTGRES_PASSWORD=forgesdlc postgres:16"
+            "     Local default: postgresql+asyncpg://postgres:localdev@localhost:5432/forgesdlc\n"
+            "     Start DB: docker run -p 5432:5432 -e POSTGRES_PASSWORD=localdev postgres:16 (or: make db-start)"
         ),
     )
 
@@ -77,6 +77,7 @@ def main() -> int:
             "Set OPENAI_API_KEY for gpt-4o/gpt-4o-mini (Pro + Enterprise tiers)\n"
             "     Get key: https://platform.openai.com/api-keys"
         ),
+        hard=not _ci_mode,
     )
 
     secret = os.getenv("SECRET_KEY", "")
@@ -84,6 +85,7 @@ def main() -> int:
         "SECRET_KEY >= 32 chars",
         len(secret) >= 32,
         ('Generate a secure key:\n     python -c "import secrets; print(secrets.token_hex(32))"'),
+        hard=not _ci_mode,
     )
 
     legal_files = [

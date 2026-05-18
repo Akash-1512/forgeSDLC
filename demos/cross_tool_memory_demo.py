@@ -44,7 +44,7 @@ async def demo() -> int:
             print(f"❌ MCP server returned {r.status_code}. Expected 200.")
             return 1
         print(f"   Server healthy at {SERVER}")
-    except (OSError, ConnectionError) as e:
+    except (OSError, ConnectionError):
         print(
             f"❌ MCP server not running at {SERVER}\n"
             "   Start with:  make dev\n"
