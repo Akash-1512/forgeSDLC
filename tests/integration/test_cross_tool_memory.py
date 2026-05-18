@@ -14,6 +14,16 @@ from memory.organizational_memory import OrgMemory
 from memory.schemas import OrgMemoryEntry
 
 
+@pytest.fixture(autouse=True)
+def _skip_if_org_memory_degraded(tmp_path):
+    """Skip when OrgMemory cannot load the embeddings model."""
+    from memory.organizational_memory import OrgMemory as _OrgMem
+
+    m = _OrgMem(chroma_path=str(tmp_path / "chroma"))
+    if m._degraded:
+        pytest.skip(f"OrgMemory degraded ({m._degraded_reason}) — embeddings model not cached")
+
+
 def _postgres_available() -> bool:
     import socket
 

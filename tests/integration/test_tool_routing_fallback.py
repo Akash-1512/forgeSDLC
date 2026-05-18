@@ -178,7 +178,7 @@ async def test_route_code_generation_mcp_tool_returns_valid_response(
 
     with (
         patch(
-            "mcp_server.tools.code_generation_tool._build_codegen_infrastructure",
+            "mcp_server.tools.code_generation_tool._build_infrastructure_shared",
             return_value=infra_tuple,
         ),
         patch(

@@ -42,7 +42,7 @@ async def test_run_security_scan_returns_gate_blocked_false_for_clean_code(
 
     with (
         patch(
-            "mcp_server.tools.security_tool._build_security_infrastructure",
+            "mcp_server.tools.security_tool._build_infrastructure_shared",
             return_value=infra_tuple,
         ),
         patch(
@@ -118,7 +118,7 @@ async def test_run_security_scan_gate_blocked_stored_in_state(
 
     with (
         patch(
-            "mcp_server.tools.security_tool._build_security_infrastructure",
+            "mcp_server.tools.security_tool._build_infrastructure_shared",
             return_value=infra_tuple,
         ),
         patch(

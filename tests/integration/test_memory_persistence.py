@@ -37,6 +37,23 @@ def chroma_tmp() -> str:  # type: ignore[return]
     shutil.rmtree(tmp, ignore_errors=True)
 
 
+@pytest.fixture(autouse=True)
+def skip_if_org_memory_degraded(chroma_tmp: str) -> None:
+    """Skip all tests in this module when OrgMemory cannot load embeddings.
+
+    OrgMemory degrades gracefully when the HuggingFace model is not cached.
+    These tests require the model to be available.
+    """
+    from memory.organizational_memory import OrgMemory as _OrgMemory
+
+    test_org = _OrgMemory(chroma_path=chroma_tmp)
+    if test_org._degraded:
+        pytest.skip(
+            f"OrgMemory degraded: {test_org._degraded_reason}. "
+            "Run with HF model cached to enable memory persistence tests."
+        )
+
+
 @pytest.mark.asyncio
 @pytest.mark.slow
 async def test_data_survives_server_restart(chroma_tmp: str) -> None:

@@ -125,7 +125,7 @@ async def generate_cicd(
     logger.info(
         "generate_cicd.called",
         project_id=project_id,
-        stack=stack,
+        tech_stack=stack,
         has_confirmation=bool(human_confirmation),
     )
 

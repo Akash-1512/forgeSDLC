@@ -211,4 +211,6 @@ def test_state_persists_between_mcp_calls_via_checkpointer() -> None:
     from mcp_server.state_factory import build_initial_state
 
     state = build_initial_state(project_id="pipeline-test", user_prompt="stub")
-    assert state["project_id"] == "pipeline-test"
+    # project_id is stored as mcp_session_id in SDLCState
+    assert state["mcp_session_id"] == "pipeline-test"
+    assert state["user_prompt"] == "stub"
