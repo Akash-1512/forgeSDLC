@@ -37,7 +37,7 @@ def test_server_instantiates_without_error() -> None:
     from mcp_server.server import mcp
 
     assert mcp.name == "forgesdlc"
-    assert mcp.version == "1.1.0"
+    assert mcp.version == "1.1.1"
 
 
 # ── gather_requirements ────────────────────────────────────────────────────────

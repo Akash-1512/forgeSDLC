@@ -1,7 +1,7 @@
 {
   "name": "@forgesdlc/agent",
-  "version": "1.1.0",
-  "description": "forgeSDLC Desktop — SDLC intelligence layer for your AI coding tools",
+  "version": "1.1.1",
+  "description": "forgeSDLC Desktop \u2014 SDLC intelligence layer for your AI coding tools",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

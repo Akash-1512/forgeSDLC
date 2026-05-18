@@ -7,6 +7,44 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+---
+
+## [1.1.1] — 2026-05-18
+### Changed (code quality audit — 40+ sessions)
+- Replaced all `except Exception: pass` bare catch-alls with specific exception types
+  across 25 production files (agents, adapters, memory stores, tool router)
+- All `ADR-001` / `RFC-001` hardcoded references → `ADR-NNN` / `RFC-NNN` throughout;
+  agents now count existing ADR/RFC files before writing to pick the next number
+- `_TrackingAdapter.api_key_source` now correctly identifies `byok`, `subscription`,
+  and `free_tier` based on actual key provenance (was always `subscription` for non-Claude)
+- Removed `gpt-4o-pro` from OpenAI model set — this model does not exist
+- All timestamp-bound comments removed (`was SHUT DOWN March 9 2026`, `verified April 2026`)
+- All `Session N` references removed from source files, CI/CD, and documentation (20+)
+- `structlog logger.info("...", stack=value)` → `tech_stack=value` — `stack` is a
+  reserved key in Python logging and caused the value to print on its own line
+- Dynamic ADR/RFC numbering: `_execute()` scans workspace before writing
+
+### Fixed (infrastructure)
+- Both GitHub Actions workflows (`ci.yml`, `release.yml`) had YAML indentation errors
+  that caused every CI run to fail with a parse error before executing any step
+- `commercial_readiness_check.py`: `OPENAI_API_KEY` and `SECRET_KEY` checks are now
+  advisory in CI mode (`FORGESDLC_CI=true`), consistent with `GROQ_API_KEY`
+- `cicd_tool.py` logger call with `stack=stack` printed the stack value to stdout as a
+  bare line because `stack` is intercepted by structlog's Python logging bridge
+
+### Added
+- `TESTING.md` — evaluation guide for tech managers: setup, unit/integration/E2E,
+  coverage, architecture walkthrough, manual curl commands
+- `scripts/demo_runner.py` — colour-coded interactive demo: runs all 11 MCP tools,
+  supports `--mode e2e` (no keys), `--mode full` (GROQ_API_KEY), `--mode tests`
+- `SECURITY.md`, `CONTRIBUTING.md`, `AGENTS.md`, `LICENSE` (MIT) — all were absent
+- GitHub issue templates (bug/feature), `PULL_REQUEST_TEMPLATE.md`
+- `frontend/package.json` (Vite/React) — frontend was not buildable
+- `[tool.coverage]` section in `pyproject.toml` — coverage now scoped to production source
+- `context-stats` Makefile target
+- `memory/organizational_memory.py` — renamed from `organisational_memory.py` (British
+  spelling inconsistent with rest of codebase); compatibility shim with DeprecationWarning
+
 ### Fixed
 - Server startup no longer downloads the HuggingFace embedding model eagerly.
   `OrgMemory` now initializes lazily and runs in degraded mode when the model
@@ -36,7 +74,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ---
 
-## [1.1.0] — 2026-05-05
+## [1.1.0] — 2026-05-05  *(original release — superseded by 1.1.1)*
 
 ### Added
 - `GET /health` endpoint for smithery.yaml and Electron health polling

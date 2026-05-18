@@ -1,15 +1,27 @@
 {
   "name": "forgesdlc",
-  "displayName": "forgeSDLC — SDLC Intelligence Layer",
+  "displayName": "forgeSDLC \u2014 SDLC Intelligence Layer",
   "description": "Requirements, architecture, memory, security, and monitoring for Cursor, Claude Code, and Copilot",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "publisher": "Akash-1512",
   "engines": {
     "vscode": "^1.95.0"
   },
-  "categories": ["AI", "Other"],
-  "keywords": ["mcp", "sdlc", "ai", "architecture", "cursor", "copilot"],
-  "activationEvents": ["onStartupFinished"],
+  "categories": [
+    "AI",
+    "Other"
+  ],
+  "keywords": [
+    "mcp",
+    "sdlc",
+    "ai",
+    "architecture",
+    "cursor",
+    "copilot"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./out/extension.js",
   "contributes": {
     "commands": [
@@ -59,6 +71,9 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "testMatch": ["**/*.test.ts", "**/*.spec.ts"]
+    "testMatch": [
+      "**/*.test.ts",
+      "**/*.spec.ts"
+    ]
   }
 }
