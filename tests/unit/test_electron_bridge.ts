@@ -5,17 +5,17 @@
  */
 
 // Mock window.electronAPI
-const mockHitlApprove = jest.fn().mockResolvedValue({ success: true });
-const mockHitlCorrect = jest.fn().mockResolvedValue({ success: true });
+const mockApproveGate = jest.fn().mockResolvedValue({ success: true });
+const mockSubmitCorrection = jest.fn().mockResolvedValue({ success: true });
 const mockGetMcpStatus = jest.fn().mockResolvedValue({ status: 'running', port: 8080 });
 
 Object.defineProperty(window, 'electronAPI', {
     value: {
-        hitlApprove: mockHitlApprove,
-        hitlCorrect: mockHitlCorrect,
+        approveGate: mockApproveGate,
+        submitCorrection: mockSubmitCorrection,
         getMcpStatus: mockGetMcpStatus,
         onStatusChange: jest.fn().mockReturnValue(() => {}),
-        onHitlReady: jest.fn().mockReturnValue(() => {}),
+        onApprovalReady: jest.fn().mockReturnValue(() => {}),
         platform: 'win32',
     },
     writable: true,
@@ -27,14 +27,14 @@ beforeEach(() => {
 
 test('test_hitl_approve_calls_ipc_invoke_with_project_id', async () => {
     const api = (window as any).electronAPI;
-    await api.hitlApprove('proj-123');
-    expect(mockHitlApprove).toHaveBeenCalledWith('proj-123');
+    await api.approveGate('proj-123');
+    expect(mockApproveGate).toHaveBeenCalledWith('proj-123');
 });
 
 test('test_hitl_correct_sends_correction_string_to_ipc', async () => {
     const api = (window as any).electronAPI;
-    await api.hitlCorrect('proj-123', 'use PostgreSQL instead of SQLite');
-    expect(mockHitlCorrect).toHaveBeenCalledWith(
+    await api.submitCorrection('proj-123', 'use PostgreSQL instead of SQLite');
+    expect(mockSubmitCorrection).toHaveBeenCalledWith(
         'proj-123',
         'use PostgreSQL instead of SQLite'
     );
@@ -44,7 +44,7 @@ test('test_hitl_correct_clears_field_after_submit', async () => {
     // Simulate textarea state management
     let fieldValue = 'my correction';
     const submitCorrection = async () => {
-        await mockHitlCorrect('proj-123', fieldValue.trim());
+        await mockSubmitCorrection('proj-123', fieldValue.trim());
         fieldValue = '';  // clears after submit
     };
     await submitCorrection();
@@ -80,12 +80,12 @@ test('test_correction_field_clears_after_successful_submit', async () => {
     let correctionValue = 'use async instead of sync';
     const handleCorrect = async () => {
         if (!correctionValue.trim()) return;
-        await mockHitlCorrect('proj-123', correctionValue.trim());
+        await mockSubmitCorrection('proj-123', correctionValue.trim());
         correctionValue = '';
     };
     await handleCorrect();
     expect(correctionValue).toBe('');
-    expect(mockHitlCorrect).toHaveBeenCalledWith('proj-123', 'use async instead of sync');
+    expect(mockSubmitCorrection).toHaveBeenCalledWith('proj-123', 'use async instead of sync');
 });
 
 test('test_approve_button_text_is_approve_not_100_percent_go', () => {

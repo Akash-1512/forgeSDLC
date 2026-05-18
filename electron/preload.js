@@ -19,15 +19,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
      * "100% GO" is the internal constant — NEVER shown in UI text.
      * UI shows [✅ Approve]. Server receives "100% GO".
      */
-    hitlApprove: (projectId) =>
-        ipcRenderer.invoke('hitl:approve', { projectId }),
+    approveGate: (projectId) =>
+        ipcRenderer.invoke('approval:submit', { projectId }),
 
     /**
      * Approval correction: overwrites state["human_corrections"][-1] on server.
      * displayed_interpretation is replaced — user sees only current interpretation.
      */
-    hitlCorrect: (projectId, correction) =>
-        ipcRenderer.invoke('hitl:correct', { projectId, correction }),
+    submitCorrection: (projectId, correction) =>
+        ipcRenderer.invoke('approval:correction', { projectId, correction }),
 
     /**
      * MCP server health status.
@@ -49,10 +49,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
      * Subscribe to approval gate notifications (stage ready for human review).
      * Returns cleanup function.
      */
-    onHitlReady: (callback) => {
+    onApprovalReady: (callback) => {
         const handler = (_, data) => callback(data);
-        ipcRenderer.on('hitl:ready', handler);
-        return () => ipcRenderer.removeListener('hitl:ready', handler);
+        ipcRenderer.on('approval:ready', handler);
+        return () => ipcRenderer.removeListener('approval:ready', handler);
     },
 
     /**

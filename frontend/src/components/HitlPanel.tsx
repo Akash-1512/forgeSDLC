@@ -18,7 +18,7 @@ export function HitlPanel({
     const handleApprove = async () => {
         setSubmitting(true);
         // Sends "100% GO" internally — NEVER shown in UI text
-        await (window as any).electronAPI.hitlApprove(projectId);
+        await (window as any).electronAPI.approveGate(projectId);
         onApprove();
         setSubmitting(false);
     };
@@ -28,7 +28,7 @@ export function HitlPanel({
         setSubmitting(true);
         // Correction OVERWRITES state["human_corrections"][-1] on server
         // displayed_interpretation replaced — user always sees ONE current interpretation
-        await (window as any).electronAPI.hitlCorrect(projectId, correction.trim());
+        await (window as any).electronAPI.submitCorrection(projectId, correction.trim());
         setCorrection("");   // clear field after submit
         onCorrect(correction.trim());
         setSubmitting(false);

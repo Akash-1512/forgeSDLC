@@ -101,7 +101,7 @@ ipcMain.handle('mcp:status', () => {
 
 // Renderer: [✅ Approve] button pressed
 // Sends "100% GO" to MCP server — "100% GO" NEVER appears in UI text
-ipcMain.handle('hitl:approve', async (_, { projectId }) => {
+ipcMain.handle('approval:submit', async (_, { projectId }) => {
     try {
         return await server.sendApproval(projectId);
     } catch (err) {
@@ -111,7 +111,7 @@ ipcMain.handle('hitl:approve', async (_, { projectId }) => {
 
 // Renderer: correction submitted
 // Server overwrites state["human_corrections"][-1] — never appends
-ipcMain.handle('hitl:correct', async (_, { projectId, correction }) => {
+ipcMain.handle('approval:correction', async (_, { projectId, correction }) => {
     try {
         return await server.sendCorrection(projectId, correction);
     } catch (err) {
@@ -121,7 +121,7 @@ ipcMain.handle('hitl:correct', async (_, { projectId, correction }) => {
 
 // Main process notifies tray when agent reaches approval gate
 // Called from MCP server webhook or polling in future sessions
-ipcMain.handle('hitl:notify', (_, { stage }) => {
+ipcMain.handle('approval:notify', (_, { stage }) => {
     if (tray && tray.notifyHitl) {
         tray.notifyHitl(stage);
     }
