@@ -12,6 +12,8 @@ import json
 
 import structlog
 
+from orchestrator.constants import CHECKPOINT_DB_PATH
+
 logger = structlog.get_logger()
 
 
@@ -21,9 +23,9 @@ async def get_project_prd(project_id: str) -> str:
     from pathlib import Path
 
     try:
-        if not Path("./data/checkpoints.db").exists():
+        if not Path(CHECKPOINT_DB_PATH).exists():
             return json.dumps({"error": "No checkpoint found. Run gather_requirements first."})
-        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+        with sqlite3.connect(CHECKPOINT_DB_PATH, check_same_thread=False) as conn:
             from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
 
             cp = SqliteSaver(conn)
@@ -33,7 +35,7 @@ async def get_project_prd(project_id: str) -> str:
                 return json.dumps({"error": f"No state for project_id={project_id!r}"})
             prd = existing.get("channel_values", {}).get("prd", "")
             return json.dumps({"project_id": project_id, "prd": prd})
-    except Exception as exc:
+    except (OSError, RuntimeError, ValueError) as exc:
         return json.dumps({"error": str(exc)})
 
 
@@ -43,9 +45,9 @@ async def get_project_adr(project_id: str) -> str:
     from pathlib import Path
 
     try:
-        if not Path("./data/checkpoints.db").exists():
+        if not Path(CHECKPOINT_DB_PATH).exists():
             return json.dumps({"error": "No checkpoint found. Run gather_requirements first."})
-        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+        with sqlite3.connect(CHECKPOINT_DB_PATH, check_same_thread=False) as conn:
             from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
 
             cp = SqliteSaver(conn)
@@ -55,7 +57,7 @@ async def get_project_adr(project_id: str) -> str:
                 return json.dumps({"error": f"No state for project_id={project_id!r}"})
             adr = existing.get("channel_values", {}).get("adr", "")
             return json.dumps({"project_id": project_id, "adr": adr})
-    except Exception as exc:
+    except (OSError, RuntimeError, ValueError) as exc:
         return json.dumps({"error": str(exc)})
 
 
@@ -74,5 +76,5 @@ async def get_project_memory(project_id: str, query: str = "architecture decisio
                 "count": len(entries),
             }
         )
-    except Exception as exc:
+    except (OSError, RuntimeError, ValueError) as exc:
         return json.dumps({"error": str(exc)})

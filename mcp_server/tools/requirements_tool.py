@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import structlog
 
+from orchestrator.constants import CHECKPOINT_DB_PATH
+
 try:
     from fastmcp import Context
 except ImportError:  # pragma: no cover
@@ -108,7 +110,7 @@ async def gather_requirements(
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
 
         Path("./data").mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+        with sqlite3.connect(CHECKPOINT_DB_PATH, check_same_thread=False) as conn:
             checkpointer = SqliteSaver(conn)
             existing = checkpointer.get(config)
             if existing and existing.get("channel_values"):

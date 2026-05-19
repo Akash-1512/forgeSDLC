@@ -7,6 +7,8 @@ from pathlib import Path
 
 import structlog
 
+from orchestrator.constants import CHECKPOINT_DB_PATH
+
 logger = structlog.get_logger()
 
 
@@ -24,7 +26,7 @@ async def track_progress(project_id: str) -> dict[str, object]:
     token_records: list[dict[str, object]] = []
     budget_used: float = 0.0
 
-    checkpoint_db = Path("./data/checkpoints.db")
+    checkpoint_db = Path(CHECKPOINT_DB_PATH)
     if checkpoint_db.exists():
         try:
             with sqlite3.connect(str(checkpoint_db), check_same_thread=False) as conn:

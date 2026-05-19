@@ -5,6 +5,7 @@ from pathlib import Path
 
 import structlog
 
+from orchestrator.constants import CHECKPOINT_DB_PATH
 from subscription.tiers import FREE
 
 try:
@@ -30,7 +31,7 @@ def _build_deploy_state(
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
 
         Path("./data").mkdir(parents=True, exist_ok=True)
-        with sqlite3.connect("./data/checkpoints.db", check_same_thread=False) as conn:
+        with sqlite3.connect(CHECKPOINT_DB_PATH, check_same_thread=False) as conn:
             checkpointer = SqliteSaver(conn)
             config = {"configurable": {"thread_id": project_id}}
             existing = checkpointer.get(config)
@@ -131,7 +132,7 @@ async def deploy_project(
     # Restore or initialise state
     try:
         Path("./data").mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
+        conn = sqlite3.connect(CHECKPOINT_DB_PATH, check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
 
         checkpointer = SqliteSaver(conn)

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import structlog
 
+from orchestrator.constants import CHECKPOINT_DB_PATH
 from subscription.tiers import FREE
 
 try:
@@ -114,7 +115,7 @@ async def generate_docs(
     # Restore or initialise state
     try:
         Path("./data").mkdir(parents=True, exist_ok=True)
-        conn = sqlite3.connect("./data/checkpoints.db", check_same_thread=False)
+        conn = sqlite3.connect(CHECKPOINT_DB_PATH, check_same_thread=False)
         from langgraph.checkpoint.sqlite import SqliteSaver  # noqa: PLC0415
 
         checkpointer = SqliteSaver(conn)

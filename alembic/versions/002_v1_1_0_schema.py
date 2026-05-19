@@ -9,7 +9,7 @@ Changes:
 - pipeline_runs: deployment_success column type verification (Boolean, not String)
 
 IMPORTANT for existing installations:
-  If you ran forgeSDLC v1.0.0 and already have data, run:
+  If you have an existing installation from before v1.1.0, run:
     alembic upgrade head
   This will ADD the project_id column to existing rows with default 'default'.
   No data is lost.
