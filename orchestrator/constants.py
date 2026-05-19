@@ -55,3 +55,6 @@ LOCAL_DB_URL: str = _os.getenv(
     "DATABASE_URL",
     "postgresql+asyncpg://postgres:localdev@localhost:5432/forgesdlc",
 )
+
+# ── SQLite checkpoint path (LangGraph HITL checkpointing)
+CHECKPOINT_DB_PATH: str = _os.getenv("FORGESDLC_CHECKPOINT_PATH", "./data/checkpoints.db")
