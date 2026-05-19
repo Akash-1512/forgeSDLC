@@ -8,6 +8,7 @@ from context_management.context_compressor import ContextCompressor
 from context_management.context_packet import AgentContextSpec, ContextPacket
 from context_management.token_estimator import TokenEstimator
 from interpret.record import InterpretRecord
+from model_router.catalog import AGENT_MODELS
 from orchestrator.exceptions import ForgeSDLCError
 
 logger = structlog.get_logger()
@@ -89,7 +90,9 @@ class ContextWindowManager:
                 summary = await self._cmp.compress(str(value), field)
                 compressed[field] = summary
                 compression_applied = True
-                compression_model = "groq/llama-3.1-8b-instant"
+                compression_model = AGENT_MODELS.get(
+                    "context_compressor", "groq/llama-3.1-8b-instant"
+                )
 
         # Step 3: Excluded fields are NOT added — completely absent from packet.
         # No loop needed — absence is achieved by never adding them above.
