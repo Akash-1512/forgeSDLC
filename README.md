@@ -2,7 +2,6 @@
 The missing SDLC layer for your AI coding tools.
 Connect forgeSDLC to Cursor, Claude Code, or GitHub Copilot in one line of config.
 
-[![CI](https://github.com/Akash-1512/forgeSDLC/actions/workflows/ci.yml/badge.svg)](https://github.com/Akash-1512/forgeSDLC/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-teal.svg)](LICENSE)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
 
